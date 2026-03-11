@@ -3,6 +3,7 @@
 import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 
 interface TransformProgressProps {
   progress: number;
@@ -20,6 +21,7 @@ function computePercentage(progress: number, total: number): number {
 export default function TransformProgress({
   progress,
   total,
+  message,
 }: TransformProgressProps) {
   const percentage = computePercentage(progress, total);
 
@@ -29,11 +31,17 @@ export default function TransformProgress({
         <Box sx={{ flex: 1 }}>
           <LinearProgress
             aria-label="Transform progress"
+            variant="determinate"
             value={percentage}
             color="inherit"
           />
         </Box>
       </Stack>
+      {message && (
+        <Typography variant="caption" color="text.disabled">
+          {message}
+        </Typography>
+      )}
     </Stack>
   );
 }

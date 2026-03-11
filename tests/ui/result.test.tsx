@@ -20,28 +20,6 @@ const baseResult: TransformResult = {
 };
 
 describe("TransformResultPanel", () => {
-  it("renders details accordion collapsed by default", () => {
-    renderPanel();
-
-    const detailsButton = screen.getByRole("button", { name: /details/i });
-    expect(detailsButton).toBeInTheDocument();
-    expect(detailsButton).toHaveAttribute("aria-expanded", "false");
-  });
-
-  it("renders summary and metadata data when expanded", () => {
-    renderPanel();
-
-    const detailsButton = screen.getByRole("button", { name: /details/i });
-    fireEvent.click(detailsButton);
-
-    expect(screen.getByText("Example Domain")).toBeInTheDocument();
-    expect(screen.getByText("https://example.com")).toBeInTheDocument();
-    expect(screen.getByText("Fresh")).toBeInTheDocument();
-    expect(screen.getByText("42 chars")).toBeInTheDocument();
-    expect(screen.getByText("An example page")).toBeInTheDocument();
-    expect(screen.getByText("IANA")).toBeInTheDocument();
-  });
-
   it("renders markdown preview by default", async () => {
     renderPanel();
 
@@ -90,16 +68,6 @@ describe("TransformResultPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: /copy markdown/i }));
 
     expect(writeText).toHaveBeenCalledWith("# Example\n\nThis is an example.");
-  });
-
-  it("hides metadata section when empty", () => {
-    const noMeta = { ...baseResult, metadata: {} };
-    renderPanel({ result: noMeta });
-
-    const detailsButton = screen.getByRole("button", { name: /details/i });
-    fireEvent.click(detailsButton);
-
-    expect(screen.queryByText("Metadata")).not.toBeInTheDocument();
   });
 });
 

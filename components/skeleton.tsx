@@ -3,7 +3,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 
 const MARKDOWN_PANEL_MAX_HEIGHT = 600;
-const SKELETON_PADDING_OFFSET = 32;
+const SKELETON_PADDING_OFFSET = 25;
 
 const WAVE = "wave" as const;
 

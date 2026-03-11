@@ -3,9 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Stack from "@mui/material/Stack";
 import Alert from "@mui/material/Alert";
-import Accordion from "@mui/material/Accordion";
-import AccordionSummary from "@mui/material/AccordionSummary";
-import AccordionDetails from "@mui/material/AccordionDetails";
 import Typography from "@mui/material/Typography";
 
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -15,8 +12,6 @@ import CodeIcon from "@mui/icons-material/Code";
 import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Tooltip from "@mui/material/Tooltip";
-import Grid from "@mui/material/Grid";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { TransformResult } from "@/lib/errors/transform";
 import MarkdownSkeleton from "@/components/skeleton";
 import { lazy, Suspense } from "react";
@@ -27,98 +22,10 @@ interface TransformResultProps {
   result: TransformResult;
 }
 
-interface DetailField {
-  key: string;
-  label: string;
-  value: string;
-  truncate?: boolean;
-}
-
-interface DetailFieldConfig {
-  key: string;
-  label: string;
-  getValue: (result: TransformResult) => string | undefined;
-  truncate?: boolean;
-}
-
 type ViewMode = "preview" | "code";
 
 const COPY_RESET_DELAY_MS = 2000;
 const MARKDOWN_FONT_FAMILY = "var(--font-geist-mono), monospace";
-const SUMMARY_FIELD_CONFIGS: readonly DetailFieldConfig[] = [
-  {
-    key: "title",
-    label: "Title",
-    getValue: (result) => result.title,
-  },
-  {
-    key: "input-url",
-    label: "Input URL",
-    getValue: (result) => result.url,
-    truncate: true,
-  },
-  {
-    key: "resolved-url",
-    label: "Resolved URL",
-    getValue: (result) => result.resolvedUrl,
-    truncate: true,
-  },
-  {
-    key: "final-url",
-    label: "Final URL",
-    getValue: (result) => result.finalUrl,
-    truncate: true,
-  },
-  {
-    key: "cache",
-    label: "Cache",
-    getValue: (result) => (result.fromCache ? "Cached" : "Fresh"),
-  },
-  {
-    key: "fetched",
-    label: "Fetched",
-    getValue: (result) => new Date(result.fetchedAt).toLocaleString(),
-  },
-  {
-    key: "size",
-    label: "Size",
-    getValue: (result) => `${result.contentSize.toLocaleString()} chars`,
-  },
-] as const;
-const METADATA_FIELD_CONFIGS: readonly DetailFieldConfig[] = [
-  {
-    key: "description",
-    label: "Description",
-    getValue: (result) => result.metadata.description,
-  },
-  {
-    key: "author",
-    label: "Author",
-    getValue: (result) => result.metadata.author,
-  },
-  {
-    key: "published",
-    label: "Published",
-    getValue: (result) => result.metadata.publishedDate,
-  },
-  {
-    key: "modified",
-    label: "Modified",
-    getValue: (result) => result.metadata.modifiedDate,
-  },
-  {
-    key: "image",
-    label: "Image",
-    getValue: (result) => result.metadata.image,
-    truncate: true,
-  },
-  {
-    key: "favicon",
-    label: "Favicon",
-    getValue: (result) => result.metadata.favicon,
-    truncate: true,
-  },
-] as const;
 
 export default function TransformResultPanel({ result }: TransformResultProps) {
   const [copied, setCopied] = useState(false);
@@ -126,8 +33,6 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
   const copyResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-  const summaryFields = buildDetailFields(result, SUMMARY_FIELD_CONFIGS);
-  const metadataFields = buildDetailFields(result, METADATA_FIELD_CONFIGS);
 
   function clearCopyResetTimeout() {
     if (copyResetTimeoutRef.current === null) {
@@ -182,17 +87,6 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
         </Alert>
       )}
 
-      {/* Details Accordion */}
-      <DetailAccordion
-        title="Details"
-        sections={[
-          { fields: summaryFields },
-          ...(metadataFields.length > 0
-            ? [{ label: "Metadata", fields: metadataFields }]
-            : []),
-        ]}
-      />
-
       {/* Markdown Section */}
       <section>
         <Stack
@@ -204,6 +98,7 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
             <Tooltip title="Preview">
               <IconButton
                 size="large"
+                aria-label="Preview"
                 onClick={() => setViewMode("preview")}
                 color={viewMode === "preview" ? "success" : "default"}
               >
@@ -213,6 +108,7 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
             <Tooltip title="Code">
               <IconButton
                 size="large"
+                aria-label="Code"
                 onClick={() => setViewMode("code")}
                 color={viewMode === "code" ? "success" : "default"}
               >
@@ -224,6 +120,7 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
             <Tooltip title={copied ? "Copied!" : "Copy Markdown"}>
               <IconButton
                 size="large"
+                aria-label="Copy Markdown"
                 onClick={handleCopy}
                 color={copied ? "success" : "default"}
               >
@@ -231,15 +128,25 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
               </IconButton>
             </Tooltip>
             <Tooltip title="Download Markdown">
-              <IconButton size="large" onClick={handleDownload}>
+              <IconButton
+                size="large"
+                aria-label="Download Markdown"
+                onClick={handleDownload}
+              >
                 <DownloadIcon fontSize="small" />
               </IconButton>
             </Tooltip>
           </Stack>
         </Stack>
         <Paper
-          variant="elevation"
-          sx={{ p: 2, maxHeight: 600, overflow: "auto" }}
+          sx={{
+            p: 2.5,
+            maxHeight: 600,
+            overflow: "auto",
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 2,
+          }}
         >
           {viewMode === "preview" ? (
             <Suspense fallback={<MarkdownSkeleton />}>
@@ -262,89 +169,4 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
       </section>
     </Stack>
   );
-}
-
-interface DetailSection {
-  label?: string;
-  fields: DetailField[];
-}
-
-function DetailAccordion({
-  title,
-  sections,
-}: {
-  title: string;
-  sections: DetailSection[];
-}) {
-  return (
-    <Accordion>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography variant="overline">{title}</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <Stack spacing={2}>
-          {sections.map((section) => (
-            <div key={section.label ?? "default"}>
-              {section.label && (
-                <Typography variant="caption" color="text.secondary">
-                  {section.label}
-                </Typography>
-              )}
-              <DetailList fields={section.fields} />
-            </div>
-          ))}
-        </Stack>
-      </AccordionDetails>
-    </Accordion>
-  );
-}
-
-function DetailList({ fields }: { fields: DetailField[] }) {
-  return (
-    <Paper variant="outlined" sx={{ p: 2 }}>
-      <Grid container spacing={1}>
-        {fields.map((field) => (
-          <DetailListRow key={field.key} field={field} />
-        ))}
-      </Grid>
-    </Paper>
-  );
-}
-
-function DetailListRow({ field }: { field: DetailField }) {
-  return (
-    <>
-      <Grid size={4}>
-        <Typography variant="body2" fontWeight="medium" color="text.secondary">
-          {field.label}
-        </Typography>
-      </Grid>
-      <Grid size={8}>
-        <Typography variant="body2" noWrap={field.truncate}>
-          {field.value}
-        </Typography>
-      </Grid>
-    </>
-  );
-}
-
-function buildDetailFields(
-  result: TransformResult,
-  configs: readonly DetailFieldConfig[],
-): DetailField[] {
-  return configs.flatMap((config) => {
-    const value = config.getValue(result);
-    if (!value) {
-      return [];
-    }
-
-    return [
-      {
-        key: config.key,
-        label: config.label,
-        value,
-        truncate: config.truncate,
-      },
-    ];
-  });
 }

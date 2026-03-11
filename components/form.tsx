@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -53,12 +52,9 @@ export default function TransformForm({
     onLoading(loading);
   }
 
-  async function handleStreamEvent(event: StreamEvent) {
+  function handleStreamEvent(event: StreamEvent) {
     if (event.type === "progress") {
-      flushSync(() => {
-        onProgress(event);
-      });
-      await waitForProgressPaint();
+      onProgress(event);
       return;
     }
 
@@ -140,12 +136,12 @@ export default function TransformForm({
       for (const line of lines) {
         const trimmed = line.trim();
         if (trimmed.length === 0) continue;
-        await handleStreamEvent(JSON.parse(trimmed) as StreamEvent);
+        handleStreamEvent(JSON.parse(trimmed) as StreamEvent);
       }
     }
 
     if (buffer.trim().length > 0) {
-      await handleStreamEvent(JSON.parse(buffer.trim()) as StreamEvent);
+      handleStreamEvent(JSON.parse(buffer.trim()) as StreamEvent);
     }
   }
 
@@ -190,20 +186,6 @@ export default function TransformForm({
 
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "AbortError";
-}
-
-function waitForProgressPaint(): Promise<void> {
-  return new Promise((resolve) => {
-    if (
-      typeof window !== "undefined" &&
-      typeof window.requestAnimationFrame === "function"
-    ) {
-      window.requestAnimationFrame(() => resolve());
-      return;
-    }
-
-    setTimeout(resolve, 0);
-  });
 }
 
 function isTransformErrorResponse(

@@ -1,52 +1,10 @@
-"use client";
-
-import { useState } from "react";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
-import Alert from "@mui/material/Alert";
-import TransformForm from "@/components/form";
-import TransformResultPanel from "@/components/result";
-import TransformProgress from "@/components/progress";
-import type {
-  TransformResult,
-  TransformError,
-  StreamProgressEvent,
-} from "@/lib/errors/transform";
-import {
-  isTerminalStreamProgressEvent,
-  normalizeStreamProgressEvent,
-} from "@/lib/errors/transform";
+import HomeClient from "@/components/home-client";
 
 export default function Home() {
-  const [result, setResult] = useState<TransformResult | null>(null);
-  const [error, setError] = useState<TransformError | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState<StreamProgressEvent | null>(null);
-
-  function handleResult(nextResult: TransformResult) {
-    setResult(nextResult);
-    setError(null);
-    setProgress(null);
-  }
-
-  function handleError(nextError: TransformError) {
-    setError(nextError);
-    setResult(null);
-    setProgress(null);
-  }
-
-  function handleProgress(event: StreamProgressEvent) {
-    setProgress((current) => {
-      if (current && isTerminalStreamProgressEvent(current)) {
-        return current;
-      }
-
-      return normalizeStreamProgressEvent(event, current);
-    });
-  }
-
   return (
     <Box sx={{ minHeight: "100vh", py: 8 }}>
       <Container maxWidth="md">
@@ -63,34 +21,7 @@ export default function Home() {
             </Typography>
           </div>
 
-          <TransformForm
-            onResult={handleResult}
-            onError={handleError}
-            onLoading={setLoading}
-            onProgress={handleProgress}
-          />
-
-          {loading && progress && (
-            <TransformProgress
-              progress={progress.progress}
-              total={progress.total}
-              message={progress.message}
-            />
-          )}
-
-          {error && !loading && (
-            <Alert severity="error" variant="outlined">
-              <Typography variant="body2" fontWeight="medium">
-                Error: {error.message}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Code: {error.code}
-                {error.retryable && " · Retryable"}
-              </Typography>
-            </Alert>
-          )}
-
-          {result && !loading && <TransformResultPanel result={result} />}
+          <HomeClient />
         </Stack>
       </Container>
     </Box>
