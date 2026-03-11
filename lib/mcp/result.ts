@@ -18,30 +18,40 @@ const METADATA_FIELDS = [
   "favicon",
 ] as const;
 const HTTP_ERROR_CODE_PREFIX = "HTTP_";
+const UNKNOWN_MCP_ERROR_MESSAGE = "Unknown MCP error";
+const EMPTY_MCP_RESPONSE_MESSAGE = "Empty MCP response";
+const INVALID_MCP_RESPONSE_MESSAGE = "Failed to parse MCP response as JSON";
+const INVALID_MCP_ERROR_RESPONSE_MESSAGE = "Failed to parse MCP error response";
+
+const KNOWN_MCP_ERRORS = {
+  VALIDATION_ERROR: { code: "VALIDATION_ERROR", retryable: false },
+  FETCH_ERROR: { code: "FETCH_ERROR", retryable: true },
+  ABORTED: { code: "ABORTED", retryable: true },
+  queue_full: { code: "QUEUE_FULL", retryable: true },
+} as const;
 
 type JsonRecord = Record<string, unknown>;
+type KnownMcpErrorCode = keyof typeof KNOWN_MCP_ERRORS;
+
+function readKnownMcpError(code: string) {
+  return KNOWN_MCP_ERRORS[code as KnownMcpErrorCode];
+}
 
 /**
  * Maps an MCP error code string to a TransformError.
  */
 function mapMcpError(errorPayload: JsonRecord): TransformError {
   const code = readString(errorPayload.code) ?? "";
-  const message = readString(errorPayload.message) ?? "Unknown MCP error";
+  const message = readString(errorPayload.message) ?? UNKNOWN_MCP_ERROR_MESSAGE;
+  const knownError = readKnownMcpError(code);
 
-  switch (code) {
-    case "VALIDATION_ERROR":
-      return createTransformError("VALIDATION_ERROR", message, {
-        retryable: false,
-      });
-    case "FETCH_ERROR":
-      return createTransformError("FETCH_ERROR", message, { retryable: true });
-    case "ABORTED":
-      return createTransformError("ABORTED", message, { retryable: true });
-    case "queue_full":
-      return createTransformError("QUEUE_FULL", message, { retryable: true });
-    default:
-      return mapUnknownMcpError(code, message);
+  if (knownError) {
+    return createTransformError(knownError.code, message, {
+      retryable: knownError.retryable,
+    });
   }
+
+  return mapUnknownMcpError(code, message);
 }
 
 function mapUnknownMcpError(code: string, message: string): TransformError {
@@ -49,14 +59,15 @@ function mapUnknownMcpError(code: string, message: string): TransformError {
     return createInternalError(message);
   }
 
-  const statusCode = Number.parseInt(
-    code.slice(HTTP_ERROR_CODE_PREFIX.length),
-    10,
-  );
+  const statusCode = readHttpStatusCode(code);
   return createTransformError("HTTP_ERROR", message, {
     retryable: !Number.isNaN(statusCode) && statusCode >= 500,
     statusCode: Number.isNaN(statusCode) ? undefined : statusCode,
   });
+}
+
+function readHttpStatusCode(code: string): number {
+  return Number.parseInt(code.slice(HTTP_ERROR_CODE_PREFIX.length), 10);
 }
 
 function extractMetadata(data: JsonRecord): TransformMetadata {
@@ -97,33 +108,21 @@ export type ParsedMcpResult =
   | { ok: false; error: TransformError };
 
 export function parseMcpResult(raw: CallToolResult): ParsedMcpResult {
-  if (raw.isError) {
-    return parseErrorResult(raw);
-  }
-
-  const payload = readPayloadRecord(raw);
-  if (payload) {
-    return {
-      ok: true,
-      result: mapToTransformResult(unwrapRecord(payload, "result")),
-    };
-  }
-
-  return getContentParseFailure(raw);
-}
-
-function parseErrorResult(raw: CallToolResult): ParsedMcpResult {
   const payload = readPayloadRecord(raw);
   if (!payload) {
+    return getContentParseFailure(raw);
+  }
+
+  if (raw.isError) {
     return {
       ok: false,
-      error: createInternalError("Failed to parse MCP error response"),
+      error: mapMcpError(unwrapRecord(payload, "error")),
     };
   }
 
   return {
-    ok: false,
-    error: mapMcpError(unwrapRecord(payload, "error")),
+    ok: true,
+    result: mapToTransformResult(unwrapRecord(payload, "result")),
   };
 }
 
@@ -132,16 +131,23 @@ function readPayloadRecord(raw: CallToolResult): JsonRecord | null {
 }
 
 function getContentParseFailure(raw: CallToolResult): ParsedMcpResult {
+  if (raw.isError) {
+    return {
+      ok: false,
+      error: createInternalError(INVALID_MCP_ERROR_RESPONSE_MESSAGE),
+    };
+  }
+
   if (getFirstTextBlock(raw) !== null) {
     return {
       ok: false,
-      error: createInternalError("Failed to parse MCP response as JSON"),
+      error: createInternalError(INVALID_MCP_RESPONSE_MESSAGE),
     };
   }
 
   return {
     ok: false,
-    error: createInternalError("Empty MCP response"),
+    error: createInternalError(EMPTY_MCP_RESPONSE_MESSAGE),
   };
 }
 

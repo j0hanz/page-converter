@@ -4,6 +4,8 @@ import Stack from "@mui/material/Stack";
 
 const MARKDOWN_PANEL_MAX_HEIGHT = 600;
 const SKELETON_PADDING_OFFSET = 25;
+const INTRO_LINE_WIDTHS = ["100%", "100%", "75%"] as const;
+const OUTRO_LINE_WIDTHS = ["100%", "85%", "50%"] as const;
 
 const WAVE = "wave" as const;
 
@@ -17,6 +19,12 @@ function Heading({ fontSize, width }: { fontSize: string; width: string }) {
   );
 }
 
+function renderTextLines(widths: readonly string[]) {
+  return widths.map((width, index) => (
+    <TextLine key={`${width}-${index}`} width={width} />
+  ));
+}
+
 export default function MarkdownSkeleton() {
   return (
     <Stack
@@ -24,16 +32,11 @@ export default function MarkdownSkeleton() {
       sx={{ height: MARKDOWN_PANEL_MAX_HEIGHT - SKELETON_PADDING_OFFSET }}
     >
       <Heading fontSize="2rem" width="50%" />
-      <TextLine />
-      <TextLine />
-      <TextLine width="75%" />
+      {renderTextLines(INTRO_LINE_WIDTHS)}
       <Box sx={{ mt: 1 }}>
         <Heading fontSize="1.5rem" width="35%" />
       </Box>
-      <TextLine />
-      <TextLine width="90%" />
-      <TextLine />
-      <TextLine width="60%" />
+      {renderTextLines(["100%", "90%", "100%", "60%"])}
       <Skeleton
         animation={WAVE}
         variant="rounded"
@@ -42,9 +45,7 @@ export default function MarkdownSkeleton() {
       <Box sx={{ mt: 0.5 }}>
         <Heading fontSize="1.5rem" width="40%" />
       </Box>
-      <TextLine />
-      <TextLine width="85%" />
-      <TextLine width="50%" />
+      {renderTextLines(OUTRO_LINE_WIDTHS)}
     </Stack>
   );
 }

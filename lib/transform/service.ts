@@ -13,6 +13,7 @@ const RETRYABLE_TRANSPORT_ERROR_CODES = new Set<ErrorCode>([
   ErrorCode.RequestTimeout,
   ErrorCode.ConnectionClosed,
 ]);
+const MAX_TRANSFORM_ATTEMPTS = 2;
 
 async function executeTransform(
   request: TransformRequest,
@@ -33,13 +34,17 @@ export async function transformUrl(
   request: TransformRequest,
   onProgress?: ProgressCallback,
 ): Promise<TransformResponse> {
-  const firstAttempt = await executeTransform(request, onProgress);
+  for (let attempt = 1; attempt <= MAX_TRANSFORM_ATTEMPTS; attempt += 1) {
+    const response = await executeTransform(request, onProgress);
 
-  if (shouldRetry(firstAttempt)) {
-    return executeTransform(request, onProgress);
+    if (!shouldRetry(response) || attempt === MAX_TRANSFORM_ATTEMPTS) {
+      return response;
+    }
   }
 
-  return firstAttempt;
+  return createInternalErrorResponse(
+    "Transform attempt loop exited unexpectedly.",
+  );
 }
 
 function shouldRetry(
@@ -48,20 +53,28 @@ function shouldRetry(
   return !response.ok && response.error.retryable;
 }
 
+function createInternalErrorResponse(message: string): TransformErrorResponse {
+  return {
+    ok: false,
+    error: createInternalError(message),
+  };
+}
+
+function isRetryableTransportError(code: ErrorCode): boolean {
+  return RETRYABLE_TRANSPORT_ERROR_CODES.has(code);
+}
+
+function readErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unknown error";
+}
+
 function mapTransportError(error: unknown): TransformError {
   if (error instanceof McpError) {
-    const errorCode = error.code as ErrorCode;
-
-    if (RETRYABLE_TRANSPORT_ERROR_CODES.has(errorCode)) {
-      return createInternalError(error.message, true);
-    }
-
-    return createInternalError(error.message);
+    return createInternalError(
+      error.message,
+      isRetryableTransportError(error.code as ErrorCode),
+    );
   }
 
-  if (error instanceof Error) {
-    return createInternalError(error.message);
-  }
-
-  return createInternalError("Unknown error");
+  return createInternalError(readErrorMessage(error));
 }

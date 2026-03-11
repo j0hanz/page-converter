@@ -31,6 +31,69 @@ interface TransformRequestBody {
 const TRANSFORM_ENDPOINT = "/api/transform";
 const JSON_HEADERS = { "Content-Type": "application/json" } as const;
 
+function isNdjsonResponse(response: Response): boolean {
+  return (response.headers.get("Content-Type") ?? "").includes(
+    NDJSON_CONTENT_TYPE,
+  );
+}
+
+function parseStreamEvent(line: string): StreamEvent {
+  return JSON.parse(line) as StreamEvent;
+}
+
+function flushBufferedLines(
+  chunk: string,
+  onEvent: (event: StreamEvent) => void,
+): string {
+  const lines = chunk.split("\n");
+  const remainder = lines.pop() ?? "";
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.length > 0) {
+      onEvent(parseStreamEvent(trimmed));
+    }
+  }
+
+  return remainder;
+}
+
+async function readNdjsonStream(
+  response: Response,
+  onEvent: (event: StreamEvent) => void,
+): Promise<TransformError | null> {
+  const reader = response.body?.getReader();
+  if (!reader) {
+    return createUnexpectedResponseError();
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      buffer = flushBufferedLines(
+        buffer + decoder.decode(value, { stream: true }),
+        onEvent,
+      );
+    }
+
+    const trailingContent = buffer.trim();
+    if (trailingContent.length > 0) {
+      onEvent(parseStreamEvent(trailingContent));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  return null;
+}
+
 export default function TransformForm({
   onResult,
   onError,
@@ -91,15 +154,21 @@ export default function TransformForm({
         signal: abortController.signal,
       });
 
-      const contentType = res.headers.get("Content-Type") ?? "";
-
-      if (contentType.includes(NDJSON_CONTENT_TYPE)) {
-        await readStreamResponse(res);
+      if (isNdjsonResponse(res)) {
+        const streamError = await readNdjsonStream(res, handleStreamEvent);
+        if (streamError) {
+          onError(streamError);
+        }
       } else {
         handleJsonFallback(await res.json());
       }
     } catch (error) {
       if (isAbortError(error)) {
+        return;
+      }
+
+      if (isTransformError(error)) {
+        onError(error);
         return;
       }
 
@@ -110,38 +179,6 @@ export default function TransformForm({
       }
 
       setLoadingState(false);
-    }
-  }
-
-  async function readStreamResponse(res: Response) {
-    const reader = res.body?.getReader();
-    if (!reader) {
-      onError(createUnexpectedResponseError());
-      return;
-    }
-
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed.length === 0) continue;
-        handleStreamEvent(JSON.parse(trimmed) as StreamEvent);
-      }
-    }
-
-    if (buffer.trim().length > 0) {
-      handleStreamEvent(JSON.parse(buffer.trim()) as StreamEvent);
     }
   }
 
@@ -206,5 +243,15 @@ function isTransformErrorResponse(
     typeof candidate.error.code === "string" &&
     typeof candidate.error.message === "string" &&
     typeof candidate.error.retryable === "boolean"
+  );
+}
+
+function isTransformError(error: unknown): error is TransformError {
+  return (
+    error !== null &&
+    typeof error === "object" &&
+    "code" in error &&
+    "message" in error &&
+    "retryable" in error
   );
 }

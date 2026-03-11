@@ -109,6 +109,13 @@ export function createUnexpectedResponseError(): TransformError {
   return createInternalError(UNEXPECTED_RESPONSE_MESSAGE, false);
 }
 
+function resolveProgressTotal(
+  total: number | undefined,
+  fallback = STREAM_PROGRESS_TOTAL,
+): number {
+  return total !== undefined && total > 0 ? total : fallback;
+}
+
 export function createStreamProgressEvent(
   progress: number,
   total?: number,
@@ -117,7 +124,7 @@ export function createStreamProgressEvent(
   return {
     type: "progress",
     progress,
-    total: total && total > 0 ? total : STREAM_PROGRESS_TOTAL,
+    total: resolveProgressTotal(total),
     message: message ?? "",
   };
 }
@@ -126,8 +133,7 @@ export function normalizeStreamProgressEvent(
   event: StreamProgressEvent,
   previous?: StreamProgressEvent | null,
 ): StreamProgressEvent {
-  const total =
-    event.total > 0 ? event.total : (previous?.total ?? STREAM_PROGRESS_TOTAL);
+  const total = resolveProgressTotal(event.total, previous?.total);
   const progress = Math.max(event.progress, previous?.progress ?? 0);
 
   return {

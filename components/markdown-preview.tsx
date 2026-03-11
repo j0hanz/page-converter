@@ -22,6 +22,11 @@ interface MarkdownPreviewProps {
 }
 
 const remarkPlugins = [remarkGfm];
+const MONO_FONT_FAMILY = "var(--font-geist-mono), monospace";
+
+function readTextAlign(style?: CSSProperties) {
+  return style?.textAlign;
+}
 
 const components: Components = {
   h1: ({ children }) => (
@@ -98,7 +103,7 @@ const components: Components = {
             p: 2,
             my: 1,
             overflow: "auto",
-            fontFamily: "var(--font-geist-mono), monospace",
+            fontFamily: MONO_FONT_FAMILY,
             fontSize: "0.85rem",
             lineHeight: 1.6,
           }}
@@ -115,7 +120,7 @@ const components: Components = {
           py: 0.2,
           borderRadius: 0.5,
           bgcolor: "action.hover",
-          fontFamily: "var(--font-geist-mono), monospace",
+          fontFamily: MONO_FONT_FAMILY,
           fontSize: "0.85em",
         }}
       >
@@ -158,14 +163,14 @@ const components: Components = {
     <TableCell
       sx={{
         fontWeight: "bold",
-        textAlign: (style as CSSProperties)?.textAlign,
+        textAlign: readTextAlign(style as CSSProperties),
       }}
     >
       {children}
     </TableCell>
   ),
   td: ({ children, style }) => (
-    <TableCell sx={{ textAlign: (style as CSSProperties)?.textAlign }}>
+    <TableCell sx={{ textAlign: readTextAlign(style as CSSProperties) }}>
       {children}
     </TableCell>
   ),

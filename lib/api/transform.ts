@@ -8,6 +8,7 @@ import {
   createTransformError,
   NDJSON_CONTENT_TYPE,
   type StreamEvent,
+  type TransformResponse,
   type TransformError,
   type TransformErrorCode,
 } from "@/lib/errors/transform";
@@ -28,6 +29,76 @@ const NDJSON_HEADERS = {
   "Transfer-Encoding": "chunked",
 } as const;
 
+function createValidationErrorResponse(message: string): Response {
+  return createErrorResponse(
+    createTransformError("VALIDATION_ERROR", message, { retryable: false }),
+  );
+}
+
+function createErrorResponse(error: TransformError): Response {
+  return Response.json(
+    { ok: false, error },
+    { status: HTTP_STATUS_BY_ERROR_CODE[error.code] },
+  );
+}
+
+function createNdjsonResponseStream(
+  request: Request,
+  handleTransform: (
+    onProgress: (progress: Progress) => void,
+  ) => Promise<TransformResponse>,
+) {
+  const encoder = new TextEncoder();
+
+  return new ReadableStream({
+    async start(controller) {
+      let closed = false;
+
+      const closeStream = () => {
+        if (closed) {
+          return;
+        }
+
+        closed = true;
+        request.signal.removeEventListener("abort", closeStream);
+        controller.close();
+      };
+
+      const writeLine = (event: StreamEvent) => {
+        if (closed) {
+          return;
+        }
+
+        controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
+      };
+
+      request.signal.addEventListener("abort", closeStream, { once: true });
+
+      try {
+        if (request.signal.aborted) {
+          return;
+        }
+
+        const response = await handleTransform((progress) => {
+          writeLine(
+            createStreamProgressEvent(
+              progress.progress,
+              progress.total,
+              progress.message,
+            ),
+          );
+        });
+
+        if (!request.signal.aborted) {
+          writeLine({ type: "result", ...response });
+        }
+      } finally {
+        closeStream();
+      }
+    },
+  });
+}
+
 export async function POST(request: Request) {
   let body: unknown;
   try {
@@ -45,64 +116,9 @@ export async function POST(request: Request) {
     return createValidationErrorResponse(message);
   }
 
-  const encoder = new TextEncoder();
-
-  const stream = new ReadableStream({
-    async start(controller) {
-      let closed = false;
-
-      const handleAbort = () => closeStream();
-
-      function closeStream() {
-        if (closed) return;
-
-        closed = true;
-        request.signal.removeEventListener("abort", handleAbort);
-        controller.close();
-      }
-
-      function writeLine(event: StreamEvent) {
-        if (closed) return;
-
-        controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
-      }
-
-      function onProgress(p: Progress) {
-        writeLine(createStreamProgressEvent(p.progress, p.total, p.message));
-      }
-
-      request.signal.addEventListener("abort", handleAbort, { once: true });
-
-      try {
-        if (request.signal.aborted) {
-          return;
-        }
-
-        const response = await transformUrl(validated, onProgress);
-
-        if (request.signal.aborted) {
-          return;
-        }
-
-        writeLine({ type: "result", ...response });
-      } finally {
-        closeStream();
-      }
-    },
-  });
+  const stream = createNdjsonResponseStream(request, (onProgress) =>
+    transformUrl(validated, onProgress),
+  );
 
   return new Response(stream, { headers: NDJSON_HEADERS });
-}
-
-function createValidationErrorResponse(message: string): Response {
-  return createErrorResponse(
-    createTransformError("VALIDATION_ERROR", message, { retryable: false }),
-  );
-}
-
-function createErrorResponse(error: TransformError): Response {
-  return Response.json(
-    { ok: false, error },
-    { status: HTTP_STATUS_BY_ERROR_CODE[error.code] },
-  );
 }

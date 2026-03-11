@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  type MutableRefObject,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import Stack from "@mui/material/Stack";
 import Alert from "@mui/material/Alert";
 import Typography from "@mui/material/Typography";
-
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -14,7 +20,6 @@ import Paper from "@mui/material/Paper";
 import Tooltip from "@mui/material/Tooltip";
 import type { TransformResult } from "@/lib/errors/transform";
 import MarkdownSkeleton from "@/components/skeleton";
-import { lazy, Suspense } from "react";
 
 const MarkdownPreview = lazy(() => import("@/components/markdown-preview"));
 
@@ -27,6 +32,44 @@ type ViewMode = "preview" | "code";
 const COPY_RESET_DELAY_MS = 2000;
 const MARKDOWN_FONT_FAMILY = "var(--font-geist-mono), monospace";
 
+function clearScheduledTimeout(
+  timeoutRef: MutableRefObject<ReturnType<typeof setTimeout> | null>,
+) {
+  if (timeoutRef.current === null) {
+    return;
+  }
+
+  clearTimeout(timeoutRef.current);
+  timeoutRef.current = null;
+}
+
+function scheduleCopiedReset(
+  timeoutRef: MutableRefObject<ReturnType<typeof setTimeout> | null>,
+  onReset: () => void,
+) {
+  clearScheduledTimeout(timeoutRef);
+  timeoutRef.current = setTimeout(() => {
+    timeoutRef.current = null;
+    onReset();
+  }, COPY_RESET_DELAY_MS);
+}
+
+function downloadMarkdownFile(title: string | undefined, markdown: string) {
+  const blob = new Blob([markdown], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  try {
+    link.href = url;
+    link.download = `${title || "page"}.md`;
+    document.body.appendChild(link);
+    link.click();
+  } finally {
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+}
+
 export default function TransformResultPanel({ result }: TransformResultProps) {
   const [copied, setCopied] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("preview");
@@ -34,47 +77,26 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
     null,
   );
 
-  function clearCopyResetTimeout() {
-    if (copyResetTimeoutRef.current === null) {
-      return;
-    }
-
-    clearTimeout(copyResetTimeoutRef.current);
-    copyResetTimeoutRef.current = null;
-  }
-
-  function scheduleCopyReset() {
-    clearCopyResetTimeout();
-    copyResetTimeoutRef.current = setTimeout(() => {
-      copyResetTimeoutRef.current = null;
-      setCopied(false);
-    }, COPY_RESET_DELAY_MS);
-  }
-
   useEffect(() => {
-    return clearCopyResetTimeout;
+    return () => {
+      clearScheduledTimeout(copyResetTimeoutRef);
+    };
   }, []);
 
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(result.markdown);
       setCopied(true);
-      scheduleCopyReset();
+      scheduleCopiedReset(copyResetTimeoutRef, () => {
+        setCopied(false);
+      });
     } catch {
       // Clipboard API may fail in some contexts
     }
   }
 
   function handleDownload() {
-    const blob = new Blob([result.markdown], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${result.title || "page"}.md`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    downloadMarkdownFile(result.title, result.markdown);
   }
 
   return (

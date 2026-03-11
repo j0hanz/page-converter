@@ -17,44 +17,54 @@ const FETCH_URL_TRANSPORT_ARGS: string[] = [];
 
 export type ProgressCallback = (progress: Progress) => void;
 
+function createTransport() {
+  return new StdioClientTransport({
+    command: FETCH_URL_TRANSPORT_COMMAND,
+    args: FETCH_URL_TRANSPORT_ARGS,
+  });
+}
+
+function createProgressOptions(onProgress?: ProgressCallback) {
+  if (!onProgress) {
+    return undefined;
+  }
+
+  return {
+    onprogress: (progress: Progress) => {
+      onProgress(progress);
+    },
+  };
+}
+
+async function closeClientSafely(client: Client) {
+  try {
+    await client.close();
+  } catch {
+    // Ignore close errors
+  }
+}
+
 export async function callFetchUrl(
   args: FetchUrlArgs,
   onProgress?: ProgressCallback,
 ): Promise<CallToolResult> {
   const client = new Client(CLIENT_INFO);
-
-  const transport = new StdioClientTransport({
-    command: FETCH_URL_TRANSPORT_COMMAND,
-    args: FETCH_URL_TRANSPORT_ARGS,
-  });
+  const transport = createTransport();
 
   try {
     await client.connect(transport);
-
-    const progressOptions = onProgress
-      ? {
-          onprogress: (progress: Progress) => {
-            onProgress(progress);
-          },
-        }
-      : undefined;
-
     const result = await client.callTool(
       {
         name: FETCH_URL_TOOL_NAME,
         arguments: { url: args.url },
       },
       undefined,
-      progressOptions,
+      createProgressOptions(onProgress),
     );
 
     return result as CallToolResult;
   } finally {
-    try {
-      await client.close();
-    } catch {
-      // Ignore close errors
-    }
+    await closeClientSafely(client);
   }
 }
 

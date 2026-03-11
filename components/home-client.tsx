@@ -36,6 +36,15 @@ const initialState: State = {
   progress: null,
 };
 
+function clearResolvedState(state: State): State {
+  return {
+    ...state,
+    result: null,
+    error: null,
+    progress: null,
+  };
+}
+
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "loading":
@@ -50,17 +59,13 @@ function reducer(state: State, action: Action): State {
       };
     case "result":
       return {
-        ...state,
+        ...clearResolvedState(state),
         result: action.result,
-        error: null,
-        progress: null,
       };
     case "error":
       return {
-        ...state,
+        ...clearResolvedState(state),
         error: action.error,
-        result: null,
-        progress: null,
       };
   }
 }
