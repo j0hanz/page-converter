@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
 
 export default function Error({
   error,
@@ -14,19 +18,31 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 p-8">
-      <h2 className="text-xl font-semibold text-red-600 dark:text-red-400">
-        Something went wrong
-      </h2>
-      <p className="max-w-md text-center text-zinc-600 dark:text-zinc-400">
-        {error.message || "An unexpected error occurred."}
-      </p>
-      <button
-        onClick={reset}
-        className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-      >
-        Try again
-      </button>
-    </div>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "50vh",
+        alignItems: "center",
+        justifyContent: "center",
+        p: 4,
+      }}
+    >
+      <Stack spacing={2} alignItems="center">
+        <Typography variant="h6" color="error">
+          Something went wrong
+        </Typography>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          textAlign="center"
+          sx={{ maxWidth: 400 }}
+        >
+          {error.message || "An unexpected error occurred."}
+        </Typography>
+        <Button variant="contained" onClick={reset}>
+          Try again
+        </Button>
+      </Stack>
+    </Box>
   );
 }

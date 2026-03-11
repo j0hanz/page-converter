@@ -1,5 +1,15 @@
 "use client";
 
+import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
+import { ThemeProvider } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
+import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import theme from "@/lib/theme";
+
 export default function GlobalError({
   error,
   reset,
@@ -9,21 +19,39 @@ export default function GlobalError({
 }) {
   return (
     <html lang="en">
-      <body className="flex min-h-screen items-center justify-center bg-white font-sans dark:bg-zinc-950">
-        <div className="flex flex-col items-center gap-4 p-8">
-          <h2 className="text-xl font-semibold text-red-600 dark:text-red-400">
-            Something went wrong
-          </h2>
-          <p className="max-w-md text-center text-zinc-600 dark:text-zinc-400">
-            {error.message || "A critical error occurred."}
-          </p>
-          <button
-            onClick={reset}
-            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-          >
-            Try again
-          </button>
-        </div>
+      <body>
+        <InitColorSchemeScript />
+        <AppRouterCacheProvider>
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <Box
+              sx={{
+                display: "flex",
+                minHeight: "100vh",
+                alignItems: "center",
+                justifyContent: "center",
+                p: 4,
+              }}
+            >
+              <Stack spacing={2} alignItems="center">
+                <Typography variant="h6" color="error">
+                  Something went wrong
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  textAlign="center"
+                  sx={{ maxWidth: 400 }}
+                >
+                  {error.message || "A critical error occurred."}
+                </Typography>
+                <Button variant="contained" onClick={reset}>
+                  Try again
+                </Button>
+              </Stack>
+            </Box>
+          </ThemeProvider>
+        </AppRouterCacheProvider>
       </body>
     </html>
   );

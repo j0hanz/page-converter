@@ -1,6 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Stack from "@mui/material/Stack";
+import Alert from "@mui/material/Alert";
+import Accordion from "@mui/material/Accordion";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import Paper from "@mui/material/Paper";
+import Grid from "@mui/material/Grid";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { TransformResult } from "@/lib/errors/transform";
 
 interface TransformResultProps {
@@ -46,83 +56,96 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
   }
 
   return (
-    <div className="flex w-full flex-col gap-6">
+    <Stack spacing={3}>
       {/* Truncation Warning */}
       {result.truncated && (
-        <div className="rounded-md border border-amber-300 bg-amber-50 p-4 dark:border-amber-600 dark:bg-amber-950">
-          <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-            Content was truncated. The full page may be too large to return in
-            one response.
-          </p>
-        </div>
+        <Alert severity="warning" variant="outlined">
+          Content was truncated. The full page may be too large to return in one
+          response.
+        </Alert>
       )}
 
       {/* Summary Accordion */}
-      <details className="group">
-        <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wide text-zinc-500 select-none dark:text-zinc-400">
-          Summary
-        </summary>
-        <div className="mt-2">
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="overline">Summary</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
           <DetailList fields={summaryFields} />
-        </div>
-      </details>
+        </AccordionDetails>
+      </Accordion>
 
       {/* Metadata Accordion */}
       {metadataFields.length > 0 && (
-        <details className="group">
-          <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wide text-zinc-500 select-none dark:text-zinc-400">
-            Metadata
-          </summary>
-          <div className="mt-2">
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="overline">Metadata</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
             <DetailList fields={metadataFields} />
-          </div>
-        </details>
+          </AccordionDetails>
+        </Accordion>
       )}
 
       {/* Markdown Section */}
       <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-            Markdown
-          </h3>
-          <button
-            onClick={handleCopy}
-            className="rounded-md border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          >
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          sx={{ mb: 2 }}
+        >
+          <Typography variant="overline">Markdown</Typography>
+          <Button variant="outlined" size="small" onClick={handleCopy}>
             {copied ? "Copied!" : "Copy Markdown"}
-          </button>
-        </div>
-        <pre className="max-h-[600px] overflow-auto rounded-md border border-zinc-200 bg-zinc-50 p-4 text-sm leading-relaxed text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
-          {result.markdown}
-        </pre>
+          </Button>
+        </Stack>
+        <Paper
+          variant="outlined"
+          sx={{ p: 2, maxHeight: 600, overflow: "auto" }}
+        >
+          <Typography
+            component="pre"
+            variant="body2"
+            sx={{
+              fontFamily: "var(--font-geist-mono), monospace",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+            }}
+          >
+            {result.markdown}
+          </Typography>
+        </Paper>
       </section>
-    </div>
+    </Stack>
   );
 }
 
 function DetailList({ fields }: { fields: DetailField[] }) {
   return (
-    <div className="rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+    <Paper variant="outlined" sx={{ p: 2 }}>
+      <Grid container spacing={1}>
         {fields.map((field) => (
           <DetailListRow key={field.key} field={field} />
         ))}
-      </dl>
-    </div>
+      </Grid>
+    </Paper>
   );
 }
 
 function DetailListRow({ field }: { field: DetailField }) {
   return (
     <>
-      <dt className="font-medium text-zinc-600 dark:text-zinc-400">
-        {field.label}
-      </dt>
-      <dd
-        className={`${field.truncate ? "truncate " : ""}text-zinc-900 dark:text-zinc-100`}
-      >
-        {field.value}
-      </dd>
+      <Grid size={4}>
+        <Typography variant="body2" fontWeight="medium" color="text.secondary">
+          {field.label}
+        </Typography>
+      </Grid>
+      <Grid size={8}>
+        <Typography variant="body2" noWrap={field.truncate}>
+          {field.value}
+        </Typography>
+      </Grid>
     </>
   );
 }

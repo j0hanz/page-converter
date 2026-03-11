@@ -16,8 +16,13 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@j0hanz/fetch-url-mcp": "1.8.1",
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "@mui/icons-material": "^7.3.9",
+    "@mui/material": "^7.3.9",
+    "@mui/material-nextjs": "^7.3.9",
     "next": "16.1.6",
     "react": "19.2.4",
     "react-dom": "19.2.4"
@@ -25,7 +30,6 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@next/eslint-plugin-next": "16.1.6",
-    "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^24",
@@ -40,7 +44,6 @@
     "eslint-plugin-unused-imports": "^4.4.1",
     "jsdom": "^28.1.0",
     "prettier": "^3.8.1",
-    "tailwindcss": "^4",
     "typescript": "^5",
     "typescript-eslint": "^8.57.0",
     "vitest": "^4.0.18"

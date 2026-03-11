@@ -20,19 +20,19 @@ const baseResult: TransformResult = {
 };
 
 describe("TransformResultPanel", () => {
-  it("renders summary fields inside a collapsed details element", () => {
+  it("renders summary accordion collapsed by default", () => {
     renderPanel();
 
-    const details = screen.getByText("Summary").closest("details");
-    expect(details).toBeInTheDocument();
-    expect(details).not.toHaveAttribute("open");
+    const summaryButton = screen.getByRole("button", { name: /summary/i });
+    expect(summaryButton).toBeInTheDocument();
+    expect(summaryButton).toHaveAttribute("aria-expanded", "false");
   });
 
   it("renders summary data when expanded", () => {
     renderPanel();
 
-    const details = screen.getByText("Summary").closest("details")!;
-    details.setAttribute("open", "");
+    const summaryButton = screen.getByRole("button", { name: /summary/i });
+    fireEvent.click(summaryButton);
 
     expect(screen.getByText("Example Domain")).toBeInTheDocument();
     expect(screen.getByText("https://example.com")).toBeInTheDocument();
@@ -40,12 +40,12 @@ describe("TransformResultPanel", () => {
     expect(screen.getByText("42 chars")).toBeInTheDocument();
   });
 
-  it("renders metadata inside a collapsed details element", () => {
+  it("renders metadata accordion collapsed by default", () => {
     renderPanel();
 
-    const details = screen.getByText("Metadata").closest("details");
-    expect(details).toBeInTheDocument();
-    expect(details).not.toHaveAttribute("open");
+    const metadataButton = screen.getByRole("button", { name: /metadata/i });
+    expect(metadataButton).toBeInTheDocument();
+    expect(metadataButton).toHaveAttribute("aria-expanded", "false");
   });
 
   it("renders markdown content in a pre element", () => {
@@ -71,7 +71,9 @@ describe("TransformResultPanel", () => {
 
   it("shows copy markdown button", () => {
     renderPanel();
-    expect(screen.getByText("Copy Markdown")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /copy markdown/i }),
+    ).toBeInTheDocument();
   });
 
   it("copies markdown to clipboard on button click", () => {
@@ -79,7 +81,7 @@ describe("TransformResultPanel", () => {
     Object.assign(navigator, { clipboard: { writeText } });
 
     renderPanel();
-    fireEvent.click(screen.getByText("Copy Markdown"));
+    fireEvent.click(screen.getByRole("button", { name: /copy markdown/i }));
 
     expect(writeText).toHaveBeenCalledWith("# Example\n\nThis is an example.");
   });
