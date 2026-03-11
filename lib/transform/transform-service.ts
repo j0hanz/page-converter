@@ -1,43 +1,27 @@
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import type { TransformRequest } from "@/lib/validation/transform-request";
 import type {
   TransformResponse,
   TransformError,
-  TransformErrorCode,
 } from "@/lib/errors/transform-errors";
 import { createInternalError } from "@/lib/errors/transform-errors";
 import { callFetchUrl } from "@/lib/mcp/mcp-client";
 import { parseMcpResult } from "@/lib/mcp/runtime";
 
-const RETRYABLE_CODES = new Set<TransformErrorCode>([
-  "FETCH_ERROR",
-  "QUEUE_FULL",
-]);
-
 function isRetryableError(error: TransformError): boolean {
-  return (
-    RETRYABLE_CODES.has(error.code) ||
-    (error.code === "HTTP_ERROR" &&
-      error.statusCode !== undefined &&
-      error.statusCode >= 500)
-  );
+  return error.retryable;
 }
 
 async function executeTransform(
   request: TransformRequest,
 ): Promise<TransformResponse> {
   try {
-    const raw = await callFetchUrl({
-      url: request.url,
-      skipNoiseRemoval: request.skipNoiseRemoval,
-      forceRefresh: request.forceRefresh,
-      maxInlineChars: request.maxInlineChars,
-    });
+    const raw = await callFetchUrl(buildFetchUrlArgs(request));
     return parseMcpResult(raw);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
     return {
       ok: false,
-      error: createInternalError(message),
+      error: mapTransportError(error),
     };
   }
 }
@@ -53,4 +37,34 @@ export async function transformUrl(
   }
 
   return first;
+}
+
+function buildFetchUrlArgs(request: TransformRequest) {
+  return {
+    url: request.url,
+    skipNoiseRemoval: request.skipNoiseRemoval,
+    forceRefresh: request.forceRefresh,
+    maxInlineChars: request.maxInlineChars,
+  };
+}
+
+function mapTransportError(error: unknown): TransformError {
+  if (error instanceof McpError) {
+    const errorCode = error.code as ErrorCode;
+
+    if (
+      errorCode === ErrorCode.RequestTimeout ||
+      errorCode === ErrorCode.ConnectionClosed
+    ) {
+      return createInternalError(error.message, true);
+    }
+
+    return createInternalError(error.message);
+  }
+
+  if (error instanceof Error) {
+    return createInternalError(error.message);
+  }
+
+  return createInternalError("Unknown error");
 }

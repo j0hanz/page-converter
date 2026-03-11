@@ -91,7 +91,8 @@ export type ParsedMcpResult =
 export function parseMcpResult(raw: CallToolResult): ParsedMcpResult {
   // Handle error responses
   if (raw.isError) {
-    const errorPayload = parseFirstTextRecord(raw);
+    const errorPayload =
+      asRecord(raw.structuredContent) ?? parseFirstTextRecord(raw);
     if (errorPayload) {
       return {
         ok: false,

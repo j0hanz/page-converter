@@ -87,4 +87,20 @@ describe("error mapper", () => {
     if (parsed.ok) return;
     expect(parsed.error.code).toBe("INTERNAL_ERROR");
   });
+
+  it("reads machine-readable error payloads from structuredContent", () => {
+    const raw: CallToolResult = {
+      content: [],
+      isError: true,
+      structuredContent: {
+        error: { code: "FETCH_ERROR", message: "Upstream unavailable" },
+      },
+    };
+
+    const parsed = parseMcpResult(raw);
+    expect(parsed.ok).toBe(false);
+    if (parsed.ok) return;
+    expect(parsed.error.code).toBe("FETCH_ERROR");
+    expect(parsed.error.retryable).toBe(true);
+  });
 });

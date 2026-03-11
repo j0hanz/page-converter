@@ -1,6 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import path from "node:path";
 
 export interface FetchUrlArgs {
   url: string;
@@ -10,13 +11,14 @@ export interface FetchUrlArgs {
 }
 
 const CLIENT_INFO = { name: "page-converter", version: "1.0.0" };
-const FETCH_URL_TRANSPORT_COMMAND = "npx";
-const FETCH_URL_TRANSPORT_ARGS = ["-y", "@j0hanz/fetch-url-mcp@latest"];
+const FETCH_URL_TRANSPORT_COMMAND = getFetchUrlTransportCommand();
+const FETCH_URL_TRANSPORT_ARGS: string[] = [];
 
 export async function callFetchUrl(
   args: FetchUrlArgs,
 ): Promise<CallToolResult> {
   const client = new Client(CLIENT_INFO);
+  let closing = false;
 
   const transport = new StdioClientTransport({
     command: FETCH_URL_TRANSPORT_COMMAND,
@@ -25,6 +27,12 @@ export async function callFetchUrl(
 
   client.onerror = (error) => {
     console.error("[MCP client error]", error);
+  };
+
+  client.onclose = () => {
+    if (!closing) {
+      console.error("[MCP client connection closed unexpectedly]");
+    }
   };
 
   try {
@@ -38,11 +46,21 @@ export async function callFetchUrl(
     return result as CallToolResult;
   } finally {
     try {
+      closing = true;
       await client.close();
     } catch {
       // Ignore close errors
     }
   }
+}
+
+function getFetchUrlTransportCommand(): string {
+  return path.join(
+    process.cwd(),
+    "node_modules",
+    ".bin",
+    process.platform === "win32" ? "fetch-url-mcp.cmd" : "fetch-url-mcp",
+  );
 }
 
 function buildToolArguments(args: FetchUrlArgs): Record<string, unknown> {
