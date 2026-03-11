@@ -7,10 +7,11 @@ import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
-import ButtonGroup from "@mui/material/ButtonGroup";
+
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import CodeIcon from "@mui/icons-material/Code";
 import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Tooltip from "@mui/material/Tooltip";
@@ -185,7 +186,7 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
       <DetailAccordion
         title="Details"
         sections={[
-          { label: "Summary", fields: summaryFields },
+          { fields: summaryFields },
           ...(metadataFields.length > 0
             ? [{ label: "Metadata", fields: metadataFields }]
             : []),
@@ -198,28 +199,31 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
           direction="row"
           justifyContent="space-between"
           alignItems="center"
-          sx={{ mb: 2 }}
         >
-          <ButtonGroup size="small" aria-label="markdown view mode">
-            <Button
-              color={viewMode === "preview" ? "primary" : "inherit"}
-              variant="contained"
-              onClick={() => setViewMode("preview")}
-            >
-              Preview
-            </Button>
-            <Button
-              color={viewMode === "code" ? "primary" : "inherit"}
-              variant="contained"
-              onClick={() => setViewMode("code")}
-            >
-              Code
-            </Button>
-          </ButtonGroup>
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row">
+            <Tooltip title="Preview">
+              <IconButton
+                size="large"
+                onClick={() => setViewMode("preview")}
+                color={viewMode === "preview" ? "success" : "default"}
+              >
+                <VisibilityIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Code">
+              <IconButton
+                size="large"
+                onClick={() => setViewMode("code")}
+                color={viewMode === "code" ? "success" : "default"}
+              >
+                <CodeIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+          <Stack direction="row">
             <Tooltip title={copied ? "Copied!" : "Copy Markdown"}>
               <IconButton
-                size="small"
+                size="large"
                 onClick={handleCopy}
                 color={copied ? "success" : "default"}
               >
@@ -227,14 +231,14 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
               </IconButton>
             </Tooltip>
             <Tooltip title="Download Markdown">
-              <IconButton size="small" onClick={handleDownload}>
+              <IconButton size="large" onClick={handleDownload}>
                 <DownloadIcon fontSize="small" />
               </IconButton>
             </Tooltip>
           </Stack>
         </Stack>
         <Paper
-          variant="outlined"
+          variant="elevation"
           sx={{ p: 2, maxHeight: 600, overflow: "auto" }}
         >
           {viewMode === "preview" ? (
@@ -261,7 +265,7 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
 }
 
 interface DetailSection {
-  label: string;
+  label?: string;
   fields: DetailField[];
 }
 
@@ -280,14 +284,12 @@ function DetailAccordion({
       <AccordionDetails>
         <Stack spacing={2}>
           {sections.map((section) => (
-            <div key={section.label}>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mb: 0.5, display: "block" }}
-              >
-                {section.label}
-              </Typography>
+            <div key={section.label ?? "default"}>
+              {section.label && (
+                <Typography variant="caption" color="text.secondary">
+                  {section.label}
+                </Typography>
+              )}
               <DetailList fields={section.fields} />
             </div>
           ))}
