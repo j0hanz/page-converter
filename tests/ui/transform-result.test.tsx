@@ -21,7 +21,7 @@ const baseResult: TransformResult = {
 
 describe("TransformResultPanel", () => {
   it("renders summary section with title, URLs, cache status, and size", () => {
-    render(<TransformResultPanel result={baseResult} onRetry={vi.fn()} />);
+    renderPanel();
 
     expect(screen.getByText("Example Domain")).toBeInTheDocument();
     expect(screen.getByText("https://example.com")).toBeInTheDocument();
@@ -30,14 +30,14 @@ describe("TransformResultPanel", () => {
   });
 
   it("renders metadata section", () => {
-    render(<TransformResultPanel result={baseResult} onRetry={vi.fn()} />);
+    renderPanel();
 
     expect(screen.getByText("An example page")).toBeInTheDocument();
     expect(screen.getByText("IANA")).toBeInTheDocument();
   });
 
   it("renders markdown content in a pre element", () => {
-    render(<TransformResultPanel result={baseResult} onRetry={vi.fn()} />);
+    renderPanel();
 
     const pre = document.querySelector("pre");
     expect(pre).toBeInTheDocument();
@@ -46,23 +46,13 @@ describe("TransformResultPanel", () => {
   });
 
   it("shows cached status when fromCache is true", () => {
-    render(
-      <TransformResultPanel
-        result={{ ...baseResult, fromCache: true }}
-        onRetry={vi.fn()}
-      />,
-    );
+    renderPanel({ result: { ...baseResult, fromCache: true } });
     expect(screen.getByText("Cached")).toBeInTheDocument();
   });
 
   it("shows truncation warning and retry button when truncated", () => {
     const onRetry = vi.fn();
-    render(
-      <TransformResultPanel
-        result={{ ...baseResult, truncated: true }}
-        onRetry={onRetry}
-      />,
-    );
+    renderPanel({ result: { ...baseResult, truncated: true }, onRetry });
 
     expect(screen.getByText(/content was truncated/i)).toBeInTheDocument();
     const retryBtn = screen.getByRole("button", {
@@ -75,14 +65,14 @@ describe("TransformResultPanel", () => {
   });
 
   it("does not show truncation warning when not truncated", () => {
-    render(<TransformResultPanel result={baseResult} onRetry={vi.fn()} />);
+    renderPanel();
     expect(
       screen.queryByText(/content was truncated/i),
     ).not.toBeInTheDocument();
   });
 
   it("shows copy markdown button", () => {
-    render(<TransformResultPanel result={baseResult} onRetry={vi.fn()} />);
+    renderPanel();
     expect(screen.getByText("Copy Markdown")).toBeInTheDocument();
   });
 
@@ -90,7 +80,7 @@ describe("TransformResultPanel", () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
 
-    render(<TransformResultPanel result={baseResult} onRetry={vi.fn()} />);
+    renderPanel();
     fireEvent.click(screen.getByText("Copy Markdown"));
 
     expect(writeText).toHaveBeenCalledWith("# Example\n\nThis is an example.");
@@ -98,7 +88,17 @@ describe("TransformResultPanel", () => {
 
   it("hides metadata section when empty", () => {
     const noMeta = { ...baseResult, metadata: {} };
-    render(<TransformResultPanel result={noMeta} onRetry={vi.fn()} />);
+    renderPanel({ result: noMeta });
     expect(screen.queryByText("Metadata")).not.toBeInTheDocument();
   });
 });
+
+function renderPanel({
+  result = baseResult,
+  onRetry = vi.fn<(options: { forceRefresh: boolean }) => void>(),
+}: {
+  result?: TransformResult;
+  onRetry?: (options: { forceRefresh: boolean }) => void;
+} = {}) {
+  return render(<TransformResultPanel result={result} onRetry={onRetry} />);
+}

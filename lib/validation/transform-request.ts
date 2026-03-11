@@ -5,12 +5,15 @@ export interface TransformRequest {
   maxInlineChars?: number;
 }
 
-const ALLOWED_FIELDS = new Set([
+const ALLOWED_FIELDS = new Set<keyof TransformRequest>([
   "url",
   "skipNoiseRemoval",
   "forceRefresh",
   "maxInlineChars",
 ]);
+const BOOLEAN_FIELDS = ["skipNoiseRemoval", "forceRefresh"] as const;
+
+type TransformRequestRecord = Record<string, unknown>;
 
 export class ValidationError extends Error {
   constructor(message: string) {
@@ -24,17 +27,43 @@ export function validateTransformRequest(body: unknown): TransformRequest {
     throw new ValidationError("Request body must be a JSON object.");
   }
 
-  const record = body as Record<string, unknown>;
+  const record = body as TransformRequestRecord;
 
   // Reject unknown fields
   for (const key of Object.keys(record)) {
-    if (!ALLOWED_FIELDS.has(key)) {
+    if (!ALLOWED_FIELDS.has(key as keyof TransformRequest)) {
       throw new ValidationError(`Unknown field: "${key}".`);
     }
   }
 
   // Validate url
-  if (typeof record.url !== "string" || record.url.trim() === "") {
+  const url = validateUrl(record.url);
+
+  // Validate optional booleans
+  for (const field of BOOLEAN_FIELDS) {
+    validateOptionalBoolean(record, field);
+  }
+
+  const maxInlineChars = validateMaxInlineChars(record.maxInlineChars);
+
+  const request: TransformRequest = { url };
+  assignOptionalField(
+    request,
+    "skipNoiseRemoval",
+    record.skipNoiseRemoval as boolean | undefined,
+  );
+  assignOptionalField(
+    request,
+    "forceRefresh",
+    record.forceRefresh as boolean | undefined,
+  );
+  assignOptionalField(request, "maxInlineChars", maxInlineChars);
+
+  return request;
+}
+
+function validateUrl(value: unknown): string {
+  if (typeof value !== "string" || value.trim() === "") {
     throw new ValidationError(
       'Field "url" is required and must be a non-empty string.',
     );
@@ -42,7 +71,7 @@ export function validateTransformRequest(body: unknown): TransformRequest {
 
   let parsed: URL;
   try {
-    parsed = new URL(record.url);
+    parsed = new URL(value);
   } catch {
     throw new ValidationError('Field "url" must be a valid URL.');
   }
@@ -51,44 +80,38 @@ export function validateTransformRequest(body: unknown): TransformRequest {
     throw new ValidationError('Field "url" must use http: or https: scheme.');
   }
 
-  // Validate optional booleans
-  if (
-    record.skipNoiseRemoval !== undefined &&
-    typeof record.skipNoiseRemoval !== "boolean"
-  ) {
-    throw new ValidationError('Field "skipNoiseRemoval" must be a boolean.');
+  return value;
+}
+
+function validateOptionalBoolean(
+  record: TransformRequestRecord,
+  field: (typeof BOOLEAN_FIELDS)[number],
+): void {
+  if (record[field] !== undefined && typeof record[field] !== "boolean") {
+    throw new ValidationError(`Field "${field}" must be a boolean.`);
+  }
+}
+
+function validateMaxInlineChars(value: unknown): number | undefined {
+  if (value === undefined) {
+    return undefined;
   }
 
-  if (
-    record.forceRefresh !== undefined &&
-    typeof record.forceRefresh !== "boolean"
-  ) {
-    throw new ValidationError('Field "forceRefresh" must be a boolean.');
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    throw new ValidationError(
+      'Field "maxInlineChars" must be a non-negative integer.',
+    );
   }
 
-  // Validate optional maxInlineChars
-  if (record.maxInlineChars !== undefined) {
-    if (
-      typeof record.maxInlineChars !== "number" ||
-      !Number.isInteger(record.maxInlineChars) ||
-      record.maxInlineChars < 0
-    ) {
-      throw new ValidationError(
-        'Field "maxInlineChars" must be a non-negative integer.',
-      );
-    }
-  }
+  return value;
+}
 
-  return {
-    url: record.url,
-    ...(record.skipNoiseRemoval !== undefined && {
-      skipNoiseRemoval: record.skipNoiseRemoval,
-    }),
-    ...(record.forceRefresh !== undefined && {
-      forceRefresh: record.forceRefresh,
-    }),
-    ...(record.maxInlineChars !== undefined && {
-      maxInlineChars: record.maxInlineChars,
-    }),
-  };
+function assignOptionalField<K extends keyof TransformRequest>(
+  request: TransformRequest,
+  key: K,
+  value: TransformRequest[K] | undefined,
+): void {
+  if (value !== undefined) {
+    request[key] = value;
+  }
 }

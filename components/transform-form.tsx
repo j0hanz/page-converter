@@ -6,11 +6,24 @@ import type {
   TransformError,
   TransformResponse,
 } from "@/lib/errors/transform-errors";
+import {
+  createNetworkError,
+  createUnexpectedResponseError,
+  hasTransformError,
+  hasTransformResult,
+} from "@/lib/errors/transform-errors";
 
 interface TransformFormProps {
   onResult: (result: TransformResult) => void;
   onError: (error: TransformError) => void;
   onLoading: (loading: boolean) => void;
+}
+
+interface TransformRequestBody {
+  url: string;
+  skipNoiseRemoval?: true;
+  forceRefresh?: true;
+  maxInlineChars?: number;
 }
 
 export default function TransformForm({
@@ -24,6 +37,23 @@ export default function TransformForm({
   const [maxInlineChars, setMaxInlineChars] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  function buildRequestBody(): TransformRequestBody {
+    const body: TransformRequestBody = { url: url.trim() };
+    if (skipNoiseRemoval) {
+      body.skipNoiseRemoval = true;
+    }
+    if (forceRefresh) {
+      body.forceRefresh = true;
+    }
+
+    const parsedMaxInlineChars = parseMaxInlineChars(maxInlineChars);
+    if (parsedMaxInlineChars !== undefined) {
+      body.maxInlineChars = parsedMaxInlineChars;
+    }
+
+    return body;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -31,39 +61,23 @@ export default function TransformForm({
     onLoading(true);
 
     try {
-      const body: Record<string, unknown> = { url: url.trim() };
-      if (skipNoiseRemoval) body.skipNoiseRemoval = true;
-      if (forceRefresh) body.forceRefresh = true;
-      if (maxInlineChars !== "") {
-        const parsed = parseInt(maxInlineChars, 10);
-        if (!isNaN(parsed)) body.maxInlineChars = parsed;
-      }
-
       const res = await fetch("/api/transform", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(buildRequestBody()),
       });
 
       const data = (await res.json()) as TransformResponse;
 
-      if (data.ok && data.result) {
+      if (hasTransformResult(data)) {
         onResult(data.result);
-      } else if (!data.ok) {
+      } else if (hasTransformError(data)) {
         onError(data.error);
       } else {
-        onError({
-          code: "INTERNAL_ERROR",
-          message: "Unexpected response format.",
-          retryable: false,
-        });
+        onError(createUnexpectedResponseError());
       }
     } catch {
-      onError({
-        code: "INTERNAL_ERROR",
-        message: "Network error. Please try again.",
-        retryable: true,
-      });
+      onError(createNetworkError());
     } finally {
       setSubmitting(false);
       onLoading(false);
@@ -144,4 +158,13 @@ export default function TransformForm({
       </button>
     </form>
   );
+}
+
+function parseMaxInlineChars(value: string): number | undefined {
+  if (value === "") {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? undefined : parsed;
 }

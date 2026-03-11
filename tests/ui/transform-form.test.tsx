@@ -2,23 +2,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import TransformForm from "@/components/transform-form";
 
-describe("TransformForm", () => {
-  const onResult = vi.fn();
-  const onError = vi.fn();
-  const onLoading = vi.fn();
+const onResult = vi.fn();
+const onError = vi.fn();
+const onLoading = vi.fn();
 
+describe("TransformForm", () => {
   beforeEach(() => {
     vi.resetAllMocks();
   });
 
   it("renders URL input, checkboxes, and submit button", () => {
-    render(
-      <TransformForm
-        onResult={onResult}
-        onError={onError}
-        onLoading={onLoading}
-      />,
-    );
+    renderForm();
 
     expect(screen.getByLabelText(/URL/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/skip noise removal/i)).toBeInTheDocument();
@@ -39,22 +33,9 @@ describe("TransformForm", () => {
       metadata: {},
     };
 
-    global.fetch = vi.fn().mockResolvedValue({
-      json: () => Promise.resolve({ ok: true, result: mockResult }),
-    });
-
-    render(
-      <TransformForm
-        onResult={onResult}
-        onError={onError}
-        onLoading={onLoading}
-      />,
-    );
-
-    fireEvent.change(screen.getByLabelText(/URL/i), {
-      target: { value: "https://example.com" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /convert/i }));
+    mockJsonResponse({ ok: true, result: mockResult });
+    renderForm();
+    submitUrl("https://example.com");
 
     await waitFor(() => {
       expect(onResult).toHaveBeenCalledWith(mockResult);
@@ -71,22 +52,9 @@ describe("TransformForm", () => {
       retryable: false,
     };
 
-    global.fetch = vi.fn().mockResolvedValue({
-      json: () => Promise.resolve({ ok: false, error: mockError }),
-    });
-
-    render(
-      <TransformForm
-        onResult={onResult}
-        onError={onError}
-        onLoading={onLoading}
-      />,
-    );
-
-    fireEvent.change(screen.getByLabelText(/URL/i), {
-      target: { value: "https://bad.example" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /convert/i }));
+    mockJsonResponse({ ok: false, error: mockError });
+    renderForm();
+    submitUrl("https://bad.example");
 
     await waitFor(() => {
       expect(onError).toHaveBeenCalledWith(mockError);
@@ -96,18 +64,8 @@ describe("TransformForm", () => {
   it("calls onError on network failure", async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error("Network fail"));
 
-    render(
-      <TransformForm
-        onResult={onResult}
-        onError={onError}
-        onLoading={onLoading}
-      />,
-    );
-
-    fireEvent.change(screen.getByLabelText(/URL/i), {
-      target: { value: "https://example.com" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /convert/i }));
+    renderForm();
+    submitUrl("https://example.com");
 
     await waitFor(() => {
       expect(onError).toHaveBeenCalledWith(
@@ -124,18 +82,8 @@ describe("TransformForm", () => {
       }),
     );
 
-    render(
-      <TransformForm
-        onResult={onResult}
-        onError={onError}
-        onLoading={onLoading}
-      />,
-    );
-
-    fireEvent.change(screen.getByLabelText(/URL/i), {
-      target: { value: "https://example.com" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /convert/i }));
+    renderForm();
+    submitUrl("https://example.com");
 
     await waitFor(() => {
       expect(screen.getByLabelText(/URL/i)).toBeDisabled();
@@ -150,3 +98,26 @@ describe("TransformForm", () => {
     resolveFetch({ json: () => Promise.resolve({ ok: true, result: {} }) });
   });
 });
+
+function renderForm() {
+  return render(
+    <TransformForm
+      onResult={onResult}
+      onError={onError}
+      onLoading={onLoading}
+    />,
+  );
+}
+
+function submitUrl(url: string) {
+  fireEvent.change(screen.getByLabelText(/URL/i), {
+    target: { value: url },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /convert/i }));
+}
+
+function mockJsonResponse(payload: unknown) {
+  global.fetch = vi.fn().mockResolvedValue({
+    json: () => Promise.resolve(payload),
+  });
+}

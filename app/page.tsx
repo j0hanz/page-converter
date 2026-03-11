@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import TransformForm from "@/components/transform-form";
 import TransformResultPanel from "@/components/transform-result";
 import type {
@@ -8,57 +8,52 @@ import type {
   TransformError,
   TransformResponse,
 } from "@/lib/errors/transform-errors";
+import {
+  createNetworkError,
+  hasTransformError,
+  hasTransformResult,
+} from "@/lib/errors/transform-errors";
+
+interface RetryOptions {
+  forceRefresh: boolean;
+}
 
 export default function Home() {
   const [result, setResult] = useState<TransformResult | null>(null);
   const [error, setError] = useState<TransformError | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleResult = useCallback((r: TransformResult) => {
-    setResult(r);
+  function handleResult(nextResult: TransformResult) {
+    setResult(nextResult);
     setError(null);
-  }, []);
+  }
 
-  const handleError = useCallback((e: TransformError) => {
-    setError(e);
+  function handleError(nextError: TransformError) {
+    setError(nextError);
     setResult(null);
-  }, []);
+  }
 
-  const handleRetry = useCallback(
-    async (options: { forceRefresh: boolean }) => {
-      if (!result) return;
-      setLoading(true);
-      setError(null);
+  async function handleRetry(options: RetryOptions) {
+    if (!result) {
+      return;
+    }
 
-      try {
-        const res = await fetch("/api/transform", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            url: result.url,
-            forceRefresh: options.forceRefresh,
-          }),
-        });
-        const data = (await res.json()) as TransformResponse;
-        if (data.ok && data.result) {
-          setResult(data.result);
-        } else if (!data.ok) {
-          setError(data.error);
-          setResult(null);
-        }
-      } catch {
-        setError({
-          code: "INTERNAL_ERROR",
-          message: "Network error. Please try again.",
-          retryable: true,
-        });
-        setResult(null);
-      } finally {
-        setLoading(false);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await retryTransform(result.url, options);
+      if (hasTransformResult(response)) {
+        setResult(response.result);
+      } else if (hasTransformError(response)) {
+        handleError(response.error);
       }
-    },
-    [result],
-  );
+    } catch {
+      handleError(createNetworkError());
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="flex min-h-screen justify-center bg-zinc-50 font-sans dark:bg-zinc-950">
@@ -108,4 +103,20 @@ export default function Home() {
       </main>
     </div>
   );
+}
+
+async function retryTransform(
+  url: string,
+  options: RetryOptions,
+): Promise<TransformResponse> {
+  const response = await fetch("/api/transform", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url,
+      forceRefresh: options.forceRefresh,
+    }),
+  });
+
+  return (await response.json()) as TransformResponse;
 }

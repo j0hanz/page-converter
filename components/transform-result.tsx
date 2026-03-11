@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { TransformResult } from "@/lib/errors/transform-errors";
 
 interface TransformResultProps {
@@ -8,17 +8,42 @@ interface TransformResultProps {
   onRetry: (options: { forceRefresh: boolean }) => void;
 }
 
+interface DetailField {
+  key: string;
+  label: string;
+  value: string;
+  truncate?: boolean;
+}
+
 export default function TransformResultPanel({
   result,
   onRetry,
 }: TransformResultProps) {
   const [copied, setCopied] = useState(false);
+  const copyResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const summaryFields = getSummaryFields(result);
+  const metadataFields = getMetadataFields(result);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimeoutRef.current !== null) {
+        clearTimeout(copyResetTimeoutRef.current);
+      }
+    };
+  }, []);
 
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(result.markdown);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      if (copyResetTimeoutRef.current !== null) {
+        clearTimeout(copyResetTimeoutRef.current);
+      }
+      copyResetTimeoutRef.current = setTimeout(() => {
+        setCopied(false);
+      }, 2000);
     } catch {
       // Clipboard API may fail in some contexts
     }
@@ -51,136 +76,16 @@ export default function TransformResultPanel({
         <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
           Summary
         </h3>
-        <div className="rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
-          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-            {result.title && (
-              <>
-                <dt className="font-medium text-zinc-600 dark:text-zinc-400">
-                  Title
-                </dt>
-                <dd className="text-zinc-900 dark:text-zinc-100">
-                  {result.title}
-                </dd>
-              </>
-            )}
-            <dt className="font-medium text-zinc-600 dark:text-zinc-400">
-              Input URL
-            </dt>
-            <dd className="truncate text-zinc-900 dark:text-zinc-100">
-              {result.url}
-            </dd>
-            {result.resolvedUrl && (
-              <>
-                <dt className="font-medium text-zinc-600 dark:text-zinc-400">
-                  Resolved URL
-                </dt>
-                <dd className="truncate text-zinc-900 dark:text-zinc-100">
-                  {result.resolvedUrl}
-                </dd>
-              </>
-            )}
-            {result.finalUrl && (
-              <>
-                <dt className="font-medium text-zinc-600 dark:text-zinc-400">
-                  Final URL
-                </dt>
-                <dd className="truncate text-zinc-900 dark:text-zinc-100">
-                  {result.finalUrl}
-                </dd>
-              </>
-            )}
-            <dt className="font-medium text-zinc-600 dark:text-zinc-400">
-              Cache
-            </dt>
-            <dd className="text-zinc-900 dark:text-zinc-100">
-              {result.fromCache ? "Cached" : "Fresh"}
-            </dd>
-            <dt className="font-medium text-zinc-600 dark:text-zinc-400">
-              Fetched
-            </dt>
-            <dd className="text-zinc-900 dark:text-zinc-100">
-              {new Date(result.fetchedAt).toLocaleString()}
-            </dd>
-            <dt className="font-medium text-zinc-600 dark:text-zinc-400">
-              Size
-            </dt>
-            <dd className="text-zinc-900 dark:text-zinc-100">
-              {result.contentSize.toLocaleString()} chars
-            </dd>
-          </dl>
-        </div>
+        <DetailList fields={summaryFields} />
       </section>
 
       {/* Metadata Section */}
-      {hasMetadata(result.metadata) && (
+      {metadataFields.length > 0 && (
         <section>
           <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             Metadata
           </h3>
-          <div className="rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
-            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-              {result.metadata.description && (
-                <>
-                  <dt className="font-medium text-zinc-600 dark:text-zinc-400">
-                    Description
-                  </dt>
-                  <dd className="text-zinc-900 dark:text-zinc-100">
-                    {result.metadata.description}
-                  </dd>
-                </>
-              )}
-              {result.metadata.author && (
-                <>
-                  <dt className="font-medium text-zinc-600 dark:text-zinc-400">
-                    Author
-                  </dt>
-                  <dd className="text-zinc-900 dark:text-zinc-100">
-                    {result.metadata.author}
-                  </dd>
-                </>
-              )}
-              {result.metadata.publishedDate && (
-                <>
-                  <dt className="font-medium text-zinc-600 dark:text-zinc-400">
-                    Published
-                  </dt>
-                  <dd className="text-zinc-900 dark:text-zinc-100">
-                    {result.metadata.publishedDate}
-                  </dd>
-                </>
-              )}
-              {result.metadata.modifiedDate && (
-                <>
-                  <dt className="font-medium text-zinc-600 dark:text-zinc-400">
-                    Modified
-                  </dt>
-                  <dd className="text-zinc-900 dark:text-zinc-100">
-                    {result.metadata.modifiedDate}
-                  </dd>
-                </>
-              )}
-              {result.metadata.image && (
-                <>
-                  <dt className="font-medium text-zinc-600 dark:text-zinc-400">
-                    Image
-                  </dt>
-                  <dd className="truncate text-zinc-900 dark:text-zinc-100">
-                    {result.metadata.image}
-                  </dd>
-                </>
-              )}
-              {result.metadata.favicon && (
-                <>
-                  <dt className="font-medium text-zinc-600 dark:text-zinc-400">
-                    Favicon
-                  </dt>
-                  <dd className="truncate text-zinc-900 dark:text-zinc-100">
-                    {result.metadata.favicon}
-                  </dd>
-                </>
-              )}
-            </dl>
-          </div>
+          <DetailList fields={metadataFields} />
         </section>
       )}
 
@@ -205,13 +110,81 @@ export default function TransformResultPanel({
   );
 }
 
-function hasMetadata(meta: TransformResult["metadata"]): boolean {
-  return !!(
-    meta.description ||
-    meta.author ||
-    meta.publishedDate ||
-    meta.modifiedDate ||
-    meta.image ||
-    meta.favicon
+function DetailList({ fields }: { fields: DetailField[] }) {
+  return (
+    <div className="rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+        {fields.map((field) => (
+          <DetailListRow key={field.key} field={field} />
+        ))}
+      </dl>
+    </div>
   );
+}
+
+function DetailListRow({ field }: { field: DetailField }) {
+  return (
+    <>
+      <dt className="font-medium text-zinc-600 dark:text-zinc-400">
+        {field.label}
+      </dt>
+      <dd
+        className={`${field.truncate ? "truncate " : ""}text-zinc-900 dark:text-zinc-100`}
+      >
+        {field.value}
+      </dd>
+    </>
+  );
+}
+
+function getSummaryFields(result: TransformResult): DetailField[] {
+  return [
+    createDetailField("title", "Title", result.title),
+    createDetailField("input-url", "Input URL", result.url, true),
+    createDetailField("resolved-url", "Resolved URL", result.resolvedUrl, true),
+    createDetailField("final-url", "Final URL", result.finalUrl, true),
+    createDetailField("cache", "Cache", result.fromCache ? "Cached" : "Fresh"),
+    createDetailField(
+      "fetched",
+      "Fetched",
+      new Date(result.fetchedAt).toLocaleString(),
+    ),
+    createDetailField(
+      "size",
+      "Size",
+      `${result.contentSize.toLocaleString()} chars`,
+    ),
+  ].filter(isDetailField);
+}
+
+function getMetadataFields(result: TransformResult): DetailField[] {
+  return [
+    createDetailField(
+      "description",
+      "Description",
+      result.metadata.description,
+    ),
+    createDetailField("author", "Author", result.metadata.author),
+    createDetailField("published", "Published", result.metadata.publishedDate),
+    createDetailField("modified", "Modified", result.metadata.modifiedDate),
+    createDetailField("image", "Image", result.metadata.image, true),
+    createDetailField("favicon", "Favicon", result.metadata.favicon, true),
+  ].filter(isDetailField);
+}
+
+function createDetailField(
+  key: string,
+  label: string,
+  value: string | undefined,
+  truncate = false,
+): DetailField | null {
+  if (!value) {
+    return null;
+  }
+
+  return { key, label, value, truncate };
+}
+
+function isDetailField(field: DetailField | null): field is DetailField {
+  return field !== null;
 }

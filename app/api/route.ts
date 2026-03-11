@@ -3,43 +3,27 @@ import {
   ValidationError,
 } from "@/lib/validation/transform-request";
 import { transformUrl } from "@/lib/transform/transform-service";
-import type { TransformErrorCode } from "@/lib/errors/transform-errors";
+import {
+  createTransformError,
+  type TransformError,
+  type TransformErrorCode,
+} from "@/lib/errors/transform-errors";
 
-function mapErrorToHttpStatus(code: TransformErrorCode): number {
-  switch (code) {
-    case "VALIDATION_ERROR":
-      return 400;
-    case "FETCH_ERROR":
-      return 502;
-    case "HTTP_ERROR":
-      return 502;
-    case "ABORTED":
-      return 504;
-    case "QUEUE_FULL":
-      return 503;
-    case "INTERNAL_ERROR":
-      return 500;
-    default:
-      return 500;
-  }
-}
+const HTTP_STATUS_BY_ERROR_CODE: Record<TransformErrorCode, number> = {
+  VALIDATION_ERROR: 400,
+  FETCH_ERROR: 502,
+  HTTP_ERROR: 502,
+  ABORTED: 504,
+  QUEUE_FULL: 503,
+  INTERNAL_ERROR: 500,
+};
 
 export async function POST(request: Request) {
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return Response.json(
-      {
-        ok: false,
-        error: {
-          code: "VALIDATION_ERROR",
-          message: "Invalid JSON body.",
-          retryable: false,
-        },
-      },
-      { status: 400 },
-    );
+    return createValidationErrorResponse("Invalid JSON body.");
   }
 
   let validated;
@@ -48,13 +32,7 @@ export async function POST(request: Request) {
   } catch (error) {
     const message =
       error instanceof ValidationError ? error.message : "Invalid request.";
-    return Response.json(
-      {
-        ok: false,
-        error: { code: "VALIDATION_ERROR", message, retryable: false },
-      },
-      { status: 400 },
-    );
+    return createValidationErrorResponse(message);
   }
 
   const response = await transformUrl(validated);
@@ -66,8 +44,18 @@ export async function POST(request: Request) {
     );
   }
 
+  return createErrorResponse(response.error);
+}
+
+function createValidationErrorResponse(message: string): Response {
+  return createErrorResponse(
+    createTransformError("VALIDATION_ERROR", message, { retryable: false }),
+  );
+}
+
+function createErrorResponse(error: TransformError): Response {
   return Response.json(
-    { ok: false, error: response.error },
-    { status: mapErrorToHttpStatus(response.error.code) },
+    { ok: false, error },
+    { status: HTTP_STATUS_BY_ERROR_CODE[error.code] },
   );
 }

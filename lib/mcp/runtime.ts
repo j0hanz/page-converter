@@ -4,81 +4,83 @@ import type {
   TransformResult,
   TransformMetadata,
 } from "@/lib/errors/transform-errors";
+import {
+  createInternalError,
+  createTransformError,
+} from "@/lib/errors/transform-errors";
+
+const METADATA_FIELDS = [
+  "description",
+  "author",
+  "publishedDate",
+  "modifiedDate",
+  "image",
+  "favicon",
+] as const;
+
+type JsonRecord = Record<string, unknown>;
 
 /**
  * Maps an MCP error code string to a TransformError.
  */
-function mapMcpError(errorPayload: Record<string, unknown>): TransformError {
-  const code = typeof errorPayload.code === "string" ? errorPayload.code : "";
-  const message =
-    typeof errorPayload.message === "string"
-      ? errorPayload.message
-      : "Unknown MCP error";
+function mapMcpError(errorPayload: JsonRecord): TransformError {
+  const code = readString(errorPayload.code) ?? "";
+  const message = readString(errorPayload.message) ?? "Unknown MCP error";
 
-  if (code === "VALIDATION_ERROR") {
-    return { code: "VALIDATION_ERROR", message, retryable: false };
+  switch (code) {
+    case "VALIDATION_ERROR":
+      return createTransformError("VALIDATION_ERROR", message, {
+        retryable: false,
+      });
+    case "FETCH_ERROR":
+      return createTransformError("FETCH_ERROR", message, { retryable: true });
+    case "ABORTED":
+      return createTransformError("ABORTED", message, { retryable: true });
+    case "queue_full":
+      return createTransformError("QUEUE_FULL", message, { retryable: true });
+    default:
+      if (code.startsWith("HTTP_")) {
+        const statusCode = Number.parseInt(code.slice(5), 10);
+        return createTransformError("HTTP_ERROR", message, {
+          retryable: !Number.isNaN(statusCode) && statusCode >= 500,
+          statusCode: Number.isNaN(statusCode) ? undefined : statusCode,
+        });
+      }
+
+      return createInternalError(message);
   }
-
-  if (code === "FETCH_ERROR") {
-    return { code: "FETCH_ERROR", message, retryable: true };
-  }
-
-  if (code.startsWith("HTTP_")) {
-    const statusCode = parseInt(code.slice(5), 10);
-    return {
-      code: "HTTP_ERROR",
-      message,
-      retryable: !isNaN(statusCode) && statusCode >= 500,
-      statusCode: isNaN(statusCode) ? undefined : statusCode,
-    };
-  }
-
-  if (code === "ABORTED") {
-    return { code: "ABORTED", message, retryable: true };
-  }
-
-  if (code === "queue_full") {
-    return { code: "QUEUE_FULL", message, retryable: true };
-  }
-
-  return { code: "INTERNAL_ERROR", message, retryable: false };
 }
 
-function extractMetadata(data: Record<string, unknown>): TransformMetadata {
-  const meta = (
-    typeof data.metadata === "object" && data.metadata !== null
-      ? data.metadata
-      : {}
-  ) as Record<string, unknown>;
-  return {
-    description:
-      typeof meta.description === "string" ? meta.description : undefined,
-    author: typeof meta.author === "string" ? meta.author : undefined,
-    publishedDate:
-      typeof meta.publishedDate === "string" ? meta.publishedDate : undefined,
-    modifiedDate:
-      typeof meta.modifiedDate === "string" ? meta.modifiedDate : undefined,
-    image: typeof meta.image === "string" ? meta.image : undefined,
-    favicon: typeof meta.favicon === "string" ? meta.favicon : undefined,
-  };
+function extractMetadata(data: JsonRecord): TransformMetadata {
+  const metadata = asRecord(data.metadata);
+  const result: TransformMetadata = {};
+
+  if (!metadata) {
+    return result;
+  }
+
+  for (const field of METADATA_FIELDS) {
+    const value = readString(metadata[field]);
+    if (value !== undefined) {
+      result[field] = value;
+    }
+  }
+
+  return result;
 }
 
-function mapToTransformResult(data: Record<string, unknown>): TransformResult {
+function mapToTransformResult(data: JsonRecord): TransformResult {
   return {
-    url: typeof data.url === "string" ? data.url : "",
-    resolvedUrl:
-      typeof data.resolvedUrl === "string" ? data.resolvedUrl : undefined,
-    finalUrl: typeof data.finalUrl === "string" ? data.finalUrl : undefined,
-    title: typeof data.title === "string" ? data.title : undefined,
+    url: readString(data.url) ?? "",
+    resolvedUrl: readString(data.resolvedUrl),
+    finalUrl: readString(data.finalUrl),
+    title: readString(data.title),
     metadata: extractMetadata(data),
-    markdown: typeof data.markdown === "string" ? data.markdown : "",
-    fromCache: typeof data.fromCache === "boolean" ? data.fromCache : false,
-    fetchedAt:
-      typeof data.fetchedAt === "string"
-        ? data.fetchedAt
-        : new Date().toISOString(),
-    contentSize: typeof data.contentSize === "number" ? data.contentSize : 0,
-    truncated: typeof data.truncated === "boolean" ? data.truncated : false,
+    markdown: readString(data.markdown) ?? "",
+    fromCache: readBoolean(data.fromCache) ?? false,
+    fetchedAt: readString(data.fetchedAt) ?? new Date().toISOString(),
+    contentSize: readNumber(data.contentSize) ?? 0,
+    truncated: readBoolean(data.truncated) ?? false,
   };
 }
 
@@ -89,80 +91,87 @@ export type ParsedMcpResult =
 export function parseMcpResult(raw: CallToolResult): ParsedMcpResult {
   // Handle error responses
   if (raw.isError) {
-    try {
-      const content = raw.content;
-      if (
-        Array.isArray(content) &&
-        content.length > 0 &&
-        content[0].type === "text"
-      ) {
-        const errorPayload = JSON.parse(content[0].text) as Record<
-          string,
-          unknown
-        >;
-        // The error payload may be nested under an "error" key
-        const inner = (
-          typeof errorPayload.error === "object" && errorPayload.error !== null
-            ? errorPayload.error
-            : errorPayload
-        ) as Record<string, unknown>;
-        return { ok: false, error: mapMcpError(inner) };
-      }
-    } catch {
-      // Fall through to generic error
+    const errorPayload = parseFirstTextRecord(raw);
+    if (errorPayload) {
+      return {
+        ok: false,
+        error: mapMcpError(unwrapRecord(errorPayload, "error")),
+      };
     }
+
     return {
       ok: false,
-      error: {
-        code: "INTERNAL_ERROR",
-        message: "Failed to parse MCP error response",
-        retryable: false,
-      },
+      error: createInternalError("Failed to parse MCP error response"),
     };
   }
 
   // Try structuredContent first (REQ-006)
-  if (raw.structuredContent && typeof raw.structuredContent === "object") {
-    const sc = raw.structuredContent as Record<string, unknown>;
-    const data = (
-      typeof sc.result === "object" && sc.result !== null ? sc.result : sc
-    ) as Record<string, unknown>;
+  const structuredContent = asRecord(raw.structuredContent);
+  if (structuredContent) {
+    const data = unwrapRecord(structuredContent, "result");
     return { ok: true, result: mapToTransformResult(data) };
   }
 
   // Fallback: parse first text content block as JSON
-  const content = raw.content;
-  if (
-    Array.isArray(content) &&
-    content.length > 0 &&
-    content[0].type === "text"
-  ) {
-    try {
-      const parsed = JSON.parse(content[0].text) as Record<string, unknown>;
-      const data = (
-        typeof parsed.result === "object" && parsed.result !== null
-          ? parsed.result
-          : parsed
-      ) as Record<string, unknown>;
-      return { ok: true, result: mapToTransformResult(data) };
-    } catch {
-      return {
-        ok: false,
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "Failed to parse MCP response as JSON",
-          retryable: false,
-        },
-      };
-    }
+  const parsedContent = parseFirstTextRecord(raw);
+  if (parsedContent) {
+    const data = unwrapRecord(parsedContent, "result");
+    return { ok: true, result: mapToTransformResult(data) };
+  }
+
+  if (getFirstTextBlock(raw) !== null) {
+    return {
+      ok: false,
+      error: createInternalError("Failed to parse MCP response as JSON"),
+    };
   }
 
   return {
     ok: false,
-    error: {
-      code: "INTERNAL_ERROR",
-      message: "Empty MCP response",
-      retryable: false,
-    },
+    error: createInternalError("Empty MCP response"),
   };
+}
+
+function parseFirstTextRecord(raw: CallToolResult): JsonRecord | null {
+  const text = getFirstTextBlock(raw);
+  if (text === null) {
+    return null;
+  }
+
+  try {
+    return asRecord(JSON.parse(text));
+  } catch {
+    return null;
+  }
+}
+
+function getFirstTextBlock(raw: CallToolResult): string | null {
+  const [firstContent] = raw.content;
+  if (firstContent?.type !== "text") {
+    return null;
+  }
+
+  return firstContent.text;
+}
+
+function unwrapRecord(record: JsonRecord, key: string): JsonRecord {
+  return asRecord(record[key]) ?? record;
+}
+
+function asRecord(value: unknown): JsonRecord | null {
+  return typeof value === "object" && value !== null
+    ? (value as JsonRecord)
+    : null;
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function readBoolean(value: unknown): boolean | undefined {
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function readNumber(value: unknown): number | undefined {
+  return typeof value === "number" ? value : undefined;
 }
