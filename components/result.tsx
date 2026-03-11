@@ -8,13 +8,10 @@ import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
+import ButtonGroup from "@mui/material/ButtonGroup";
 import Paper from "@mui/material/Paper";
 import Grid from "@mui/material/Grid";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import CodeIcon from "@mui/icons-material/Code";
 import type { TransformResult } from "@/lib/errors/transform";
 import MarkdownPreview from "@/components/markdown-preview";
 
@@ -101,27 +98,22 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
           alignItems="center"
           sx={{ mb: 2 }}
         >
-          <Stack direction="row" spacing={2} alignItems="center">
-            <Typography variant="overline">Markdown</Typography>
-            <ToggleButtonGroup
-              value={viewMode}
-              exclusive
-              size="small"
-              onChange={(_event, value: "preview" | "code" | null) => {
-                if (value !== null) setViewMode(value);
-              }}
-              aria-label="markdown view mode"
+          <ButtonGroup size="small" aria-label="markdown view mode">
+            <Button
+              color={viewMode === "preview" ? "primary" : "inherit"}
+              variant="contained"
+              onClick={() => setViewMode("preview")}
             >
-              <ToggleButton value="preview" aria-label="preview">
-                <VisibilityIcon fontSize="small" sx={{ mr: 0.5 }} />
-                Preview
-              </ToggleButton>
-              <ToggleButton value="code" aria-label="code">
-                <CodeIcon fontSize="small" sx={{ mr: 0.5 }} />
-                Code
-              </ToggleButton>
-            </ToggleButtonGroup>
-          </Stack>
+              Preview
+            </Button>
+            <Button
+              color={viewMode === "code" ? "primary" : "inherit"}
+              variant="contained"
+              onClick={() => setViewMode("code")}
+            >
+              Code
+            </Button>
+          </ButtonGroup>
           <Button variant="outlined" size="small" onClick={handleCopy}>
             {copied ? "Copied!" : "Copy Markdown"}
           </Button>
