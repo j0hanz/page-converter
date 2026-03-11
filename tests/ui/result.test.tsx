@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import TransformResultPanel from "@/components/result";
 import type { TransformResult } from "@/lib/errors/transform";
 
@@ -42,10 +42,12 @@ describe("TransformResultPanel", () => {
     expect(screen.getByText("IANA")).toBeInTheDocument();
   });
 
-  it("renders markdown preview by default", () => {
+  it("renders markdown preview by default", async () => {
     renderPanel();
 
-    expect(screen.getByText("Example")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Example")).toBeInTheDocument();
+    });
     expect(screen.getByText("This is an example.")).toBeInTheDocument();
     expect(document.querySelector("pre")).not.toBeInTheDocument();
   });
