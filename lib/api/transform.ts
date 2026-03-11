@@ -5,10 +5,12 @@ import {
 import { transformUrl } from "@/lib/transform/service";
 import {
   createTransformError,
+  NDJSON_CONTENT_TYPE,
+  type StreamEvent,
   type TransformError,
   type TransformErrorCode,
-  type TransformResult,
 } from "@/lib/errors/transform";
+import type { Progress } from "@modelcontextprotocol/sdk/types.js";
 
 const HTTP_STATUS_BY_ERROR_CODE: Record<TransformErrorCode, number> = {
   VALIDATION_ERROR: 400,
@@ -18,7 +20,12 @@ const HTTP_STATUS_BY_ERROR_CODE: Record<TransformErrorCode, number> = {
   QUEUE_FULL: 503,
   INTERNAL_ERROR: 500,
 };
-const SUCCESS_STATUS = 200;
+
+const NDJSON_HEADERS = {
+  "Content-Type": NDJSON_CONTENT_TYPE,
+  "Cache-Control": "no-cache",
+  "Transfer-Encoding": "chunked",
+} as const;
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -37,17 +44,33 @@ export async function POST(request: Request) {
     return createValidationErrorResponse(message);
   }
 
-  const response = await transformUrl(validated);
+  const encoder = new TextEncoder();
 
-  if (response.ok) {
-    return createSuccessResponse(response.result);
-  }
+  const stream = new ReadableStream({
+    async start(controller) {
+      function writeLine(event: StreamEvent) {
+        controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
+      }
 
-  return createErrorResponse(response.error);
-}
+      function onProgress(p: Progress) {
+        writeLine({
+          type: "progress",
+          progress: p.progress,
+          total: p.total ?? 0,
+          message: p.message ?? "",
+        });
+      }
 
-function createSuccessResponse(result: TransformResult): Response {
-  return Response.json({ ok: true, result }, { status: SUCCESS_STATUS });
+      try {
+        const response = await transformUrl(validated, onProgress);
+        writeLine({ type: "result", ...response });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, { headers: NDJSON_HEADERS });
 }
 
 function createValidationErrorResponse(message: string): Response {

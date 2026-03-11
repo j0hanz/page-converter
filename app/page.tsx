@@ -5,25 +5,36 @@ import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
-import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import TransformForm from "@/components/form";
 import TransformResultPanel from "@/components/result";
-import type { TransformResult, TransformError } from "@/lib/errors/transform";
+import TransformProgress from "@/components/progress";
+import type {
+  TransformResult,
+  TransformError,
+  StreamProgressEvent,
+} from "@/lib/errors/transform";
 
 export default function Home() {
   const [result, setResult] = useState<TransformResult | null>(null);
   const [error, setError] = useState<TransformError | null>(null);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<StreamProgressEvent | null>(null);
 
   function handleResult(nextResult: TransformResult) {
     setResult(nextResult);
     setError(null);
+    setProgress(null);
   }
 
   function handleError(nextError: TransformError) {
     setError(nextError);
     setResult(null);
+    setProgress(null);
+  }
+
+  function handleProgress(event: StreamProgressEvent) {
+    setProgress(event);
   }
 
   return (
@@ -46,20 +57,14 @@ export default function Home() {
             onResult={handleResult}
             onError={handleError}
             onLoading={setLoading}
+            onProgress={handleProgress}
           />
 
-          {loading && (
-            <Stack
-              direction="row"
-              spacing={1.5}
-              alignItems="center"
-              sx={{ py: 4 }}
-            >
-              <CircularProgress size={20} />
-              <Typography variant="body2" color="text.secondary">
-                Converting…
-              </Typography>
-            </Stack>
+          {loading && progress && (
+            <TransformProgress
+              progress={progress.progress}
+              total={progress.total}
+            />
           )}
 
           {error && !loading && (

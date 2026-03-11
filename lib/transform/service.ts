@@ -6,7 +6,7 @@ import type {
   TransformErrorResponse,
 } from "@/lib/errors/transform";
 import { createInternalError } from "@/lib/errors/transform";
-import { callFetchUrl } from "@/lib/mcp/client";
+import { callFetchUrl, type ProgressCallback } from "@/lib/mcp/client";
 import { parseMcpResult } from "@/lib/mcp/result";
 
 const RETRYABLE_TRANSPORT_ERROR_CODES = new Set<ErrorCode>([
@@ -16,9 +16,10 @@ const RETRYABLE_TRANSPORT_ERROR_CODES = new Set<ErrorCode>([
 
 async function executeTransform(
   request: TransformRequest,
+  onProgress?: ProgressCallback,
 ): Promise<TransformResponse> {
   try {
-    const raw = await callFetchUrl({ url: request.url });
+    const raw = await callFetchUrl({ url: request.url }, onProgress);
     return parseMcpResult(raw);
   } catch (error) {
     return {
@@ -30,11 +31,12 @@ async function executeTransform(
 
 export async function transformUrl(
   request: TransformRequest,
+  onProgress?: ProgressCallback,
 ): Promise<TransformResponse> {
-  const firstAttempt = await executeTransform(request);
+  const firstAttempt = await executeTransform(request, onProgress);
 
   if (shouldRetry(firstAttempt)) {
-    return executeTransform(request);
+    return executeTransform(request, onProgress);
   }
 
   return firstAttempt;

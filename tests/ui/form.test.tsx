@@ -5,6 +5,7 @@ import TransformForm from "@/components/form";
 const onResult = vi.fn();
 const onError = vi.fn();
 const onLoading = vi.fn();
+const onProgress = vi.fn();
 
 describe("TransformForm", () => {
   beforeEach(() => {
@@ -31,7 +32,10 @@ describe("TransformForm", () => {
       metadata: {},
     };
 
-    mockJsonResponse({ ok: true, result: mockResult });
+    mockStreamResponse([
+      { type: "progress", progress: 1, total: 4, message: "Fetching" },
+      { type: "result", ok: true, result: mockResult },
+    ]);
     renderForm();
     submitUrl("https://example.com");
 
@@ -39,6 +43,9 @@ describe("TransformForm", () => {
       expect(onResult).toHaveBeenCalledWith(mockResult);
     });
 
+    expect(onProgress).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "progress", progress: 1 }),
+    );
     expect(onLoading).toHaveBeenCalledWith(true);
     expect(onLoading).toHaveBeenCalledWith(false);
   });
@@ -50,7 +57,7 @@ describe("TransformForm", () => {
       retryable: false,
     };
 
-    mockJsonResponse({ ok: false, error: mockError });
+    mockStreamResponse([{ type: "result", ok: false, error: mockError }]);
     renderForm();
     submitUrl("https://bad.example");
 
@@ -69,6 +76,22 @@ describe("TransformForm", () => {
       expect(onError).toHaveBeenCalledWith(
         expect.objectContaining({ code: "INTERNAL_ERROR", retryable: true }),
       );
+    });
+  });
+
+  it("calls onError for JSON validation error responses", async () => {
+    const mockError = {
+      code: "VALIDATION_ERROR",
+      message: "Invalid URL",
+      retryable: false,
+    };
+
+    mockJsonResponse({ ok: false, error: mockError });
+    renderForm();
+    submitUrl("https://bad.example");
+
+    await waitFor(() => {
+      expect(onError).toHaveBeenCalledWith(mockError);
     });
   });
 
@@ -93,7 +116,9 @@ describe("TransformForm", () => {
       throw new Error("Fetch resolver was not initialized.");
     }
 
-    resolveFetch({ json: () => Promise.resolve({ ok: true, result: {} }) });
+    resolveFetch(
+      createMockStreamResponse([{ type: "result", ok: true, result: {} }]),
+    );
   });
 });
 
@@ -103,6 +128,7 @@ function renderForm() {
       onResult={onResult}
       onError={onError}
       onLoading={onLoading}
+      onProgress={onProgress}
     />,
   );
 }
@@ -114,8 +140,31 @@ function submitUrl(url: string) {
   fireEvent.click(screen.getByRole("button", { name: /convert/i }));
 }
 
+function createNdjsonStream(lines: unknown[]): ReadableStream<Uint8Array> {
+  const text = lines.map((l) => JSON.stringify(l) + "\n").join("");
+  const encoded = new TextEncoder().encode(text);
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoded);
+      controller.close();
+    },
+  });
+}
+
+function createMockStreamResponse(lines: unknown[]) {
+  return {
+    headers: new Headers({ "Content-Type": "application/x-ndjson" }),
+    body: createNdjsonStream(lines),
+  };
+}
+
+function mockStreamResponse(lines: unknown[]) {
+  global.fetch = vi.fn().mockResolvedValue(createMockStreamResponse(lines));
+}
+
 function mockJsonResponse(payload: unknown) {
   global.fetch = vi.fn().mockResolvedValue({
+    headers: new Headers({ "Content-Type": "application/json" }),
     json: () => Promise.resolve(payload),
   });
 }

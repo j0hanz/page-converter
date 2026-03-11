@@ -54,6 +54,18 @@ export type TransformResponse =
   | TransformSuccessResponse
   | TransformErrorResponse;
 
+export interface StreamProgressEvent {
+  type: "progress";
+  progress: number;
+  total: number;
+  message: string;
+}
+
+export type StreamResultEvent = { type: "result" } & TransformResponse;
+
+export type StreamEvent = StreamProgressEvent | StreamResultEvent;
+
+export const NDJSON_CONTENT_TYPE = "application/x-ndjson";
 export const NETWORK_ERROR_MESSAGE = "Network error. Please try again.";
 export const UNEXPECTED_RESPONSE_MESSAGE = "Unexpected response format.";
 

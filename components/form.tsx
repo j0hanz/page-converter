@@ -8,19 +8,20 @@ import Button from "@mui/material/Button";
 import type {
   TransformResult,
   TransformError,
-  TransformResponse,
+  StreamEvent,
+  StreamProgressEvent,
 } from "@/lib/errors/transform";
 import {
+  NDJSON_CONTENT_TYPE,
   createNetworkError,
   createUnexpectedResponseError,
-  hasTransformError,
-  hasTransformResult,
 } from "@/lib/errors/transform";
 
 interface TransformFormProps {
   onResult: (result: TransformResult) => void;
   onError: (error: TransformError) => void;
   onLoading: (loading: boolean) => void;
+  onProgress: (event: StreamProgressEvent) => void;
 }
 
 interface TransformRequestBody {
@@ -34,6 +35,7 @@ export default function TransformForm({
   onResult,
   onError,
   onLoading,
+  onProgress,
 }: TransformFormProps) {
   const [url, setUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -43,14 +45,18 @@ export default function TransformForm({
     onLoading(loading);
   }
 
-  function handleResponse(data: TransformResponse) {
-    if (hasTransformResult(data)) {
-      onResult(data.result);
+  function handleStreamEvent(event: StreamEvent) {
+    if (event.type === "progress") {
+      onProgress(event);
       return;
     }
 
-    if (hasTransformError(data)) {
-      onError(data.error);
+    if (event.type === "result") {
+      if (event.ok) {
+        onResult(event.result);
+      } else {
+        onError(event.error);
+      }
       return;
     }
 
@@ -72,12 +78,60 @@ export default function TransformForm({
         headers: JSON_HEADERS,
         body: JSON.stringify(requestBody),
       });
-      handleResponse((await res.json()) as TransformResponse);
+
+      const contentType = res.headers.get("Content-Type") ?? "";
+
+      if (contentType.includes(NDJSON_CONTENT_TYPE)) {
+        await readStreamResponse(res);
+      } else {
+        handleJsonFallback(await res.json());
+      }
     } catch {
       onError(createNetworkError());
     } finally {
       setLoadingState(false);
     }
+  }
+
+  async function readStreamResponse(res: Response) {
+    const reader = res.body?.getReader();
+    if (!reader) {
+      onError(createUnexpectedResponseError());
+      return;
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.length === 0) continue;
+        handleStreamEvent(JSON.parse(trimmed) as StreamEvent);
+      }
+    }
+
+    if (buffer.trim().length > 0) {
+      handleStreamEvent(JSON.parse(buffer.trim()) as StreamEvent);
+    }
+  }
+
+  function handleJsonFallback(data: unknown) {
+    const response = data as { ok?: boolean; error?: TransformError };
+
+    if (response.ok === false && response.error) {
+      onError(response.error);
+      return;
+    }
+
+    onError(createUnexpectedResponseError());
   }
 
   return (

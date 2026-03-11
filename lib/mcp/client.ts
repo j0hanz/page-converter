@@ -1,6 +1,9 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type {
+  CallToolResult,
+  Progress,
+} from "@modelcontextprotocol/sdk/types.js";
 import path from "node:path";
 
 export interface FetchUrlArgs {
@@ -12,8 +15,11 @@ const FETCH_URL_TOOL_NAME = "fetch-url";
 const FETCH_URL_TRANSPORT_COMMAND = getFetchUrlTransportCommand();
 const FETCH_URL_TRANSPORT_ARGS: string[] = [];
 
+export type ProgressCallback = (progress: Progress) => void;
+
 export async function callFetchUrl(
   args: FetchUrlArgs,
+  onProgress?: ProgressCallback,
 ): Promise<CallToolResult> {
   const client = new Client(CLIENT_INFO);
   let closing = false;
@@ -36,10 +42,14 @@ export async function callFetchUrl(
   try {
     await client.connect(transport);
 
-    const result = await client.callTool({
-      name: FETCH_URL_TOOL_NAME,
-      arguments: { url: args.url },
-    });
+    const result = await client.callTool(
+      {
+        name: FETCH_URL_TOOL_NAME,
+        arguments: { url: args.url },
+      },
+      undefined,
+      onProgress ? { onprogress: onProgress } : undefined,
+    );
 
     return result as CallToolResult;
   } finally {
