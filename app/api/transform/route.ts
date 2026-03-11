@@ -1,1 +1,1 @@
-export { POST } from "@/lib/api/transform-route";
+export { POST } from "@/lib/api/transform";

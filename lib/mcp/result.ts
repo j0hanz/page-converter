@@ -3,11 +3,11 @@ import type {
   TransformError,
   TransformResult,
   TransformMetadata,
-} from "@/lib/errors/transform-errors";
+} from "@/lib/errors/transform";
 import {
   createInternalError,
   createTransformError,
-} from "@/lib/errors/transform-errors";
+} from "@/lib/errors/transform";
 
 const METADATA_FIELDS = [
   "description",

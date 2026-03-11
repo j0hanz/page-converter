@@ -1,18 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import TransformForm from "@/components/transform-form";
-import TransformResultPanel from "@/components/transform-result";
+import TransformForm from "@/components/form";
+import TransformResultPanel from "@/components/result";
 import type {
   TransformResult,
   TransformError,
   TransformResponse,
-} from "@/lib/errors/transform-errors";
+} from "@/lib/errors/transform";
 import {
   createNetworkError,
   hasTransformError,
   hasTransformResult,
-} from "@/lib/errors/transform-errors";
+} from "@/lib/errors/transform";
 
 interface RetryOptions {
   forceRefresh: boolean;

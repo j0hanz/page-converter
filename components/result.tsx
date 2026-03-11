@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { TransformResult } from "@/lib/errors/transform-errors";
+import type { TransformResult } from "@/lib/errors/transform";
 
 interface TransformResultProps {
   result: TransformResult;

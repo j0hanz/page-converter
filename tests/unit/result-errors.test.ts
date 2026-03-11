@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseMcpResult } from "@/lib/mcp/runtime";
+import { parseMcpResult } from "@/lib/mcp/result";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 function errorResult(code: string, message: string): CallToolResult {

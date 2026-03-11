@@ -1,12 +1,9 @@
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
-import type { TransformRequest } from "@/lib/validation/transform-request";
-import type {
-  TransformResponse,
-  TransformError,
-} from "@/lib/errors/transform-errors";
-import { createInternalError } from "@/lib/errors/transform-errors";
-import { callFetchUrl } from "@/lib/mcp/mcp-client";
-import { parseMcpResult } from "@/lib/mcp/runtime";
+import type { TransformRequest } from "@/lib/validation/request";
+import type { TransformResponse, TransformError } from "@/lib/errors/transform";
+import { createInternalError } from "@/lib/errors/transform";
+import { callFetchUrl } from "@/lib/mcp/client";
+import { parseMcpResult } from "@/lib/mcp/result";
 
 function isRetryableError(error: TransformError): boolean {
   return error.retryable;

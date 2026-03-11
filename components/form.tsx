@@ -5,13 +5,13 @@ import type {
   TransformResult,
   TransformError,
   TransformResponse,
-} from "@/lib/errors/transform-errors";
+} from "@/lib/errors/transform";
 import {
   createNetworkError,
   createUnexpectedResponseError,
   hasTransformError,
   hasTransformResult,
-} from "@/lib/errors/transform-errors";
+} from "@/lib/errors/transform";
 
 interface TransformFormProps {
   onResult: (result: TransformResult) => void;

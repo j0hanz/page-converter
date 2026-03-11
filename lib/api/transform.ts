@@ -1,13 +1,13 @@
 import {
   validateTransformRequest,
   ValidationError,
-} from "@/lib/validation/transform-request";
-import { transformUrl } from "@/lib/transform/transform-service";
+} from "@/lib/validation/request";
+import { transformUrl } from "@/lib/transform/service";
 import {
   createTransformError,
   type TransformError,
   type TransformErrorCode,
-} from "@/lib/errors/transform-errors";
+} from "@/lib/errors/transform";
 
 const HTTP_STATUS_BY_ERROR_CODE: Record<TransformErrorCode, number> = {
   VALIDATION_ERROR: 400,

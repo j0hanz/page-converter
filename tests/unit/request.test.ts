@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   validateTransformRequest,
   ValidationError,
-} from "@/lib/validation/transform-request";
+} from "@/lib/validation/request";
 
 describe("validateTransformRequest", () => {
   it("accepts a valid request with only url", () => {
