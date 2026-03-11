@@ -10,8 +10,13 @@ import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Grid from "@mui/material/Grid";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import CodeIcon from "@mui/icons-material/Code";
 import type { TransformResult } from "@/lib/errors/transform";
+import MarkdownPreview from "@/components/markdown-preview";
 
 interface TransformResultProps {
   result: TransformResult;
@@ -26,6 +31,7 @@ interface DetailField {
 
 export default function TransformResultPanel({ result }: TransformResultProps) {
   const [copied, setCopied] = useState(false);
+  const [viewMode, setViewMode] = useState<"preview" | "code">("preview");
   const copyResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -95,7 +101,27 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
           alignItems="center"
           sx={{ mb: 2 }}
         >
-          <Typography variant="overline">Markdown</Typography>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Typography variant="overline">Markdown</Typography>
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              size="small"
+              onChange={(_event, value: "preview" | "code" | null) => {
+                if (value !== null) setViewMode(value);
+              }}
+              aria-label="markdown view mode"
+            >
+              <ToggleButton value="preview" aria-label="preview">
+                <VisibilityIcon fontSize="small" sx={{ mr: 0.5 }} />
+                Preview
+              </ToggleButton>
+              <ToggleButton value="code" aria-label="code">
+                <CodeIcon fontSize="small" sx={{ mr: 0.5 }} />
+                Code
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Stack>
           <Button variant="outlined" size="small" onClick={handleCopy}>
             {copied ? "Copied!" : "Copy Markdown"}
           </Button>
@@ -104,17 +130,21 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
           variant="outlined"
           sx={{ p: 2, maxHeight: 600, overflow: "auto" }}
         >
-          <Typography
-            component="pre"
-            variant="body2"
-            sx={{
-              fontFamily: "var(--font-geist-mono), monospace",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-            }}
-          >
-            {result.markdown}
-          </Typography>
+          {viewMode === "preview" ? (
+            <MarkdownPreview>{result.markdown}</MarkdownPreview>
+          ) : (
+            <Typography
+              component="pre"
+              variant="body2"
+              sx={{
+                fontFamily: "var(--font-geist-mono), monospace",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+              }}
+            >
+              {result.markdown}
+            </Typography>
+          )}
         </Paper>
       </section>
     </Stack>

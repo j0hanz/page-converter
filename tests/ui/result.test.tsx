@@ -48,8 +48,18 @@ describe("TransformResultPanel", () => {
     expect(metadataButton).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("renders markdown content in a pre element", () => {
+  it("renders markdown preview by default", () => {
     renderPanel();
+
+    expect(screen.getByText("Example")).toBeInTheDocument();
+    expect(screen.getByText("This is an example.")).toBeInTheDocument();
+    expect(document.querySelector("pre")).not.toBeInTheDocument();
+  });
+
+  it("renders raw markdown in code view", () => {
+    renderPanel();
+
+    fireEvent.click(screen.getByRole("button", { name: /code/i }));
 
     const pre = document.querySelector("pre");
     expect(pre).toBeInTheDocument();
