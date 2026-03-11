@@ -20,32 +20,26 @@ const baseResult: TransformResult = {
 };
 
 describe("TransformResultPanel", () => {
-  it("renders summary accordion collapsed by default", () => {
+  it("renders details accordion collapsed by default", () => {
     renderPanel();
 
-    const summaryButton = screen.getByRole("button", { name: /summary/i });
-    expect(summaryButton).toBeInTheDocument();
-    expect(summaryButton).toHaveAttribute("aria-expanded", "false");
+    const detailsButton = screen.getByRole("button", { name: /details/i });
+    expect(detailsButton).toBeInTheDocument();
+    expect(detailsButton).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("renders summary data when expanded", () => {
+  it("renders summary and metadata data when expanded", () => {
     renderPanel();
 
-    const summaryButton = screen.getByRole("button", { name: /summary/i });
-    fireEvent.click(summaryButton);
+    const detailsButton = screen.getByRole("button", { name: /details/i });
+    fireEvent.click(detailsButton);
 
     expect(screen.getByText("Example Domain")).toBeInTheDocument();
     expect(screen.getByText("https://example.com")).toBeInTheDocument();
     expect(screen.getByText("Fresh")).toBeInTheDocument();
     expect(screen.getByText("42 chars")).toBeInTheDocument();
-  });
-
-  it("renders metadata accordion collapsed by default", () => {
-    renderPanel();
-
-    const metadataButton = screen.getByRole("button", { name: /metadata/i });
-    expect(metadataButton).toBeInTheDocument();
-    expect(metadataButton).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByText("An example page")).toBeInTheDocument();
+    expect(screen.getByText("IANA")).toBeInTheDocument();
   });
 
   it("renders markdown preview by default", () => {
@@ -99,6 +93,10 @@ describe("TransformResultPanel", () => {
   it("hides metadata section when empty", () => {
     const noMeta = { ...baseResult, metadata: {} };
     renderPanel({ result: noMeta });
+
+    const detailsButton = screen.getByRole("button", { name: /details/i });
+    fireEvent.click(detailsButton);
+
     expect(screen.queryByText("Metadata")).not.toBeInTheDocument();
   });
 });

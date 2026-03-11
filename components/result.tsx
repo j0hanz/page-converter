@@ -9,7 +9,11 @@ import AccordionDetails from "@mui/material/AccordionDetails";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import ButtonGroup from "@mui/material/ButtonGroup";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DownloadIcon from "@mui/icons-material/Download";
+import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
+import Tooltip from "@mui/material/Tooltip";
 import Grid from "@mui/material/Grid";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { TransformResult } from "@/lib/errors/transform";
@@ -152,6 +156,18 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
     }
   }
 
+  function handleDownload() {
+    const blob = new Blob([result.markdown], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${result.title || "page"}.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <Stack spacing={3}>
       {/* Truncation Warning */}
@@ -162,13 +178,16 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
         </Alert>
       )}
 
-      {/* Summary Accordion */}
-      <DetailAccordion title="Summary" fields={summaryFields} />
-
-      {/* Metadata Accordion */}
-      {metadataFields.length > 0 && (
-        <DetailAccordion title="Metadata" fields={metadataFields} />
-      )}
+      {/* Details Accordion */}
+      <DetailAccordion
+        title="Details"
+        sections={[
+          { label: "Summary", fields: summaryFields },
+          ...(metadataFields.length > 0
+            ? [{ label: "Metadata", fields: metadataFields }]
+            : []),
+        ]}
+      />
 
       {/* Markdown Section */}
       <section>
@@ -194,9 +213,22 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
               Code
             </Button>
           </ButtonGroup>
-          <Button variant="outlined" size="small" onClick={handleCopy}>
-            {copied ? "Copied!" : "Copy Markdown"}
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Tooltip title={copied ? "Copied!" : "Copy Markdown"}>
+              <IconButton
+                size="small"
+                onClick={handleCopy}
+                color={copied ? "success" : "default"}
+              >
+                <ContentCopyIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Download Markdown">
+              <IconButton size="small" onClick={handleDownload}>
+                <DownloadIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
         </Stack>
         <Paper
           variant="outlined"
@@ -223,12 +255,17 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
   );
 }
 
+interface DetailSection {
+  label: string;
+  fields: DetailField[];
+}
+
 function DetailAccordion({
   title,
-  fields,
+  sections,
 }: {
   title: string;
-  fields: DetailField[];
+  sections: DetailSection[];
 }) {
   return (
     <Accordion>
@@ -236,7 +273,20 @@ function DetailAccordion({
         <Typography variant="overline">{title}</Typography>
       </AccordionSummary>
       <AccordionDetails>
-        <DetailList fields={fields} />
+        <Stack spacing={2}>
+          {sections.map((section) => (
+            <div key={section.label}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mb: 0.5, display: "block" }}
+              >
+                {section.label}
+              </Typography>
+              <DetailList fields={section.fields} />
+            </div>
+          ))}
+        </Stack>
       </AccordionDetails>
     </Accordion>
   );
