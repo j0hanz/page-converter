@@ -7,6 +7,7 @@ import Link from "@mui/material/Link";
 import Divider from "@mui/material/Divider";
 import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
+import Checkbox from "@mui/material/Checkbox";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -14,10 +15,13 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import type { Components } from "react-markdown";
+import type { CSSProperties } from "react";
 
 interface MarkdownPreviewProps {
   children: string;
 }
+
+const remarkPlugins = [remarkGfm];
 
 const components: Components = {
   h1: ({ children }) => (
@@ -81,8 +85,10 @@ const components: Components = {
       {children}
     </Box>
   ),
-  code: ({ className, children }) => {
-    const isBlock = className?.startsWith("language-");
+  code: ({ className, children, node }) => {
+    const isBlock =
+      className?.startsWith("language-") ||
+      node?.position?.start.line !== node?.position?.end.line;
     if (isBlock) {
       return (
         <Paper
@@ -118,6 +124,19 @@ const components: Components = {
     );
   },
   pre: ({ children }) => <>{children}</>,
+  del: ({ children }) => (
+    <Typography component="del" variant="inherit">
+      {children}
+    </Typography>
+  ),
+  input: ({ checked, disabled }) => (
+    <Checkbox
+      checked={checked ?? false}
+      disabled={disabled}
+      size="small"
+      sx={{ p: 0, mr: 0.5 }}
+    />
+  ),
   hr: () => <Divider sx={{ my: 2 }} />,
   img: ({ src, alt }) => (
     <Box
@@ -135,10 +154,21 @@ const components: Components = {
   thead: ({ children }) => <TableHead>{children}</TableHead>,
   tbody: ({ children }) => <TableBody>{children}</TableBody>,
   tr: ({ children }) => <TableRow>{children}</TableRow>,
-  th: ({ children }) => (
-    <TableCell sx={{ fontWeight: "bold" }}>{children}</TableCell>
+  th: ({ children, style }) => (
+    <TableCell
+      sx={{
+        fontWeight: "bold",
+        textAlign: (style as CSSProperties)?.textAlign,
+      }}
+    >
+      {children}
+    </TableCell>
   ),
-  td: ({ children }) => <TableCell>{children}</TableCell>,
+  td: ({ children, style }) => (
+    <TableCell sx={{ textAlign: (style as CSSProperties)?.textAlign }}>
+      {children}
+    </TableCell>
+  ),
   ul: ({ children }) => (
     <Box component="ul" sx={{ pl: 3, my: 1 }}>
       {children}
@@ -158,7 +188,7 @@ const components: Components = {
 
 export default function MarkdownPreview({ children }: MarkdownPreviewProps) {
   return (
-    <Markdown remarkPlugins={[remarkGfm]} components={components}>
+    <Markdown remarkPlugins={remarkPlugins} components={components}>
       {children}
     </Markdown>
   );
