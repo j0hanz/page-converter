@@ -8,6 +8,7 @@ export interface FetchUrlArgs {
 }
 
 const CLIENT_INFO = { name: "page-converter", version: "1.0.0" };
+const FETCH_URL_TOOL_NAME = "fetch-url";
 const FETCH_URL_TRANSPORT_COMMAND = getFetchUrlTransportCommand();
 const FETCH_URL_TRANSPORT_ARGS: string[] = [];
 
@@ -36,8 +37,8 @@ export async function callFetchUrl(
     await client.connect(transport);
 
     const result = await client.callTool({
-      name: "fetch-url",
-      arguments: buildToolArguments(args),
+      name: FETCH_URL_TOOL_NAME,
+      arguments: { url: args.url },
     });
 
     return result as CallToolResult;
@@ -58,8 +59,4 @@ function getFetchUrlTransportCommand(): string {
     ".bin",
     process.platform === "win32" ? "fetch-url-mcp.cmd" : "fetch-url-mcp",
   );
-}
-
-function buildToolArguments(args: FetchUrlArgs): Record<string, unknown> {
-  return { url: args.url };
 }

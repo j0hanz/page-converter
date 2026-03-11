@@ -17,6 +17,7 @@ const METADATA_FIELDS = [
   "image",
   "favicon",
 ] as const;
+const HTTP_ERROR_CODE_PREFIX = "HTTP_";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -39,16 +40,23 @@ function mapMcpError(errorPayload: JsonRecord): TransformError {
     case "queue_full":
       return createTransformError("QUEUE_FULL", message, { retryable: true });
     default:
-      if (code.startsWith("HTTP_")) {
-        const statusCode = Number.parseInt(code.slice(5), 10);
-        return createTransformError("HTTP_ERROR", message, {
-          retryable: !Number.isNaN(statusCode) && statusCode >= 500,
-          statusCode: Number.isNaN(statusCode) ? undefined : statusCode,
-        });
-      }
-
-      return createInternalError(message);
+      return mapUnknownMcpError(code, message);
   }
+}
+
+function mapUnknownMcpError(code: string, message: string): TransformError {
+  if (!code.startsWith(HTTP_ERROR_CODE_PREFIX)) {
+    return createInternalError(message);
+  }
+
+  const statusCode = Number.parseInt(
+    code.slice(HTTP_ERROR_CODE_PREFIX.length),
+    10,
+  );
+  return createTransformError("HTTP_ERROR", message, {
+    retryable: !Number.isNaN(statusCode) && statusCode >= 500,
+    statusCode: Number.isNaN(statusCode) ? undefined : statusCode,
+  });
 }
 
 function extractMetadata(data: JsonRecord): TransformMetadata {
@@ -89,37 +97,41 @@ export type ParsedMcpResult =
   | { ok: false; error: TransformError };
 
 export function parseMcpResult(raw: CallToolResult): ParsedMcpResult {
-  // Handle error responses
   if (raw.isError) {
-    const errorPayload =
-      asRecord(raw.structuredContent) ?? parseFirstTextRecord(raw);
-    if (errorPayload) {
-      return {
-        ok: false,
-        error: mapMcpError(unwrapRecord(errorPayload, "error")),
-      };
-    }
+    return parseErrorResult(raw);
+  }
 
+  const payload = readPayloadRecord(raw);
+  if (payload) {
+    return {
+      ok: true,
+      result: mapToTransformResult(unwrapRecord(payload, "result")),
+    };
+  }
+
+  return getContentParseFailure(raw);
+}
+
+function parseErrorResult(raw: CallToolResult): ParsedMcpResult {
+  const payload = readPayloadRecord(raw);
+  if (!payload) {
     return {
       ok: false,
       error: createInternalError("Failed to parse MCP error response"),
     };
   }
 
-  // Try structuredContent first (REQ-006)
-  const structuredContent = asRecord(raw.structuredContent);
-  if (structuredContent) {
-    const data = unwrapRecord(structuredContent, "result");
-    return { ok: true, result: mapToTransformResult(data) };
-  }
+  return {
+    ok: false,
+    error: mapMcpError(unwrapRecord(payload, "error")),
+  };
+}
 
-  // Fallback: parse first text content block as JSON
-  const parsedContent = parseFirstTextRecord(raw);
-  if (parsedContent) {
-    const data = unwrapRecord(parsedContent, "result");
-    return { ok: true, result: mapToTransformResult(data) };
-  }
+function readPayloadRecord(raw: CallToolResult): JsonRecord | null {
+  return asRecord(raw.structuredContent) ?? parseFirstTextRecord(raw);
+}
 
+function getContentParseFailure(raw: CallToolResult): ParsedMcpResult {
   if (getFirstTextBlock(raw) !== null) {
     return {
       ok: false,

@@ -7,6 +7,7 @@ import {
   createTransformError,
   type TransformError,
   type TransformErrorCode,
+  type TransformResult,
 } from "@/lib/errors/transform";
 
 const HTTP_STATUS_BY_ERROR_CODE: Record<TransformErrorCode, number> = {
@@ -17,6 +18,7 @@ const HTTP_STATUS_BY_ERROR_CODE: Record<TransformErrorCode, number> = {
   QUEUE_FULL: 503,
   INTERNAL_ERROR: 500,
 };
+const SUCCESS_STATUS = 200;
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -38,13 +40,14 @@ export async function POST(request: Request) {
   const response = await transformUrl(validated);
 
   if (response.ok) {
-    return Response.json(
-      { ok: true, result: response.result },
-      { status: 200 },
-    );
+    return createSuccessResponse(response.result);
   }
 
   return createErrorResponse(response.error);
+}
+
+function createSuccessResponse(result: TransformResult): Response {
+  return Response.json({ ok: true, result }, { status: SUCCESS_STATUS });
 }
 
 function createValidationErrorResponse(message: string): Response {

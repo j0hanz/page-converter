@@ -3,6 +3,7 @@ export interface TransformRequest {
 }
 
 const ALLOWED_FIELDS = new Set<keyof TransformRequest>(["url"]);
+const SUPPORTED_PROTOCOLS = new Set(["http:", "https:"]);
 
 type TransformRequestRecord = Record<string, unknown>;
 
@@ -14,23 +15,27 @@ export class ValidationError extends Error {
 }
 
 export function validateTransformRequest(body: unknown): TransformRequest {
+  const record = asTransformRequestRecord(body);
+  validateAllowedFields(record);
+  const url = validateUrl(record.url);
+
+  return { url };
+}
+
+function asTransformRequestRecord(body: unknown): TransformRequestRecord {
   if (body === null || typeof body !== "object" || Array.isArray(body)) {
     throw new ValidationError("Request body must be a JSON object.");
   }
 
-  const record = body as TransformRequestRecord;
+  return body as TransformRequestRecord;
+}
 
-  // Reject unknown fields
+function validateAllowedFields(record: TransformRequestRecord): void {
   for (const key of Object.keys(record)) {
     if (!ALLOWED_FIELDS.has(key as keyof TransformRequest)) {
       throw new ValidationError(`Unknown field: "${key}".`);
     }
   }
-
-  // Validate url
-  const url = validateUrl(record.url);
-
-  return { url };
 }
 
 function validateUrl(value: unknown): string {
@@ -47,7 +52,7 @@ function validateUrl(value: unknown): string {
     throw new ValidationError('Field "url" must be a valid URL.');
   }
 
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+  if (!SUPPORTED_PROTOCOLS.has(parsed.protocol)) {
     throw new ValidationError('Field "url" must use http: or https: scheme.');
   }
 

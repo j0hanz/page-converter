@@ -1,19 +1,24 @@
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import type { TransformRequest } from "@/lib/validation/request";
-import type { TransformResponse, TransformError } from "@/lib/errors/transform";
+import type {
+  TransformResponse,
+  TransformError,
+  TransformErrorResponse,
+} from "@/lib/errors/transform";
 import { createInternalError } from "@/lib/errors/transform";
 import { callFetchUrl } from "@/lib/mcp/client";
 import { parseMcpResult } from "@/lib/mcp/result";
 
-function isRetryableError(error: TransformError): boolean {
-  return error.retryable;
-}
+const RETRYABLE_TRANSPORT_ERROR_CODES = new Set<ErrorCode>([
+  ErrorCode.RequestTimeout,
+  ErrorCode.ConnectionClosed,
+]);
 
 async function executeTransform(
   request: TransformRequest,
 ): Promise<TransformResponse> {
   try {
-    const raw = await callFetchUrl(buildFetchUrlArgs(request));
+    const raw = await callFetchUrl({ url: request.url });
     return parseMcpResult(raw);
   } catch (error) {
     return {
@@ -26,28 +31,26 @@ async function executeTransform(
 export async function transformUrl(
   request: TransformRequest,
 ): Promise<TransformResponse> {
-  const first = await executeTransform(request);
+  const firstAttempt = await executeTransform(request);
 
-  // Retry once for retryable errors
-  if (!first.ok && isRetryableError(first.error)) {
+  if (shouldRetry(firstAttempt)) {
     return executeTransform(request);
   }
 
-  return first;
+  return firstAttempt;
 }
 
-function buildFetchUrlArgs(request: TransformRequest) {
-  return { url: request.url };
+function shouldRetry(
+  response: TransformResponse,
+): response is TransformErrorResponse {
+  return !response.ok && response.error.retryable;
 }
 
 function mapTransportError(error: unknown): TransformError {
   if (error instanceof McpError) {
     const errorCode = error.code as ErrorCode;
 
-    if (
-      errorCode === ErrorCode.RequestTimeout ||
-      errorCode === ErrorCode.ConnectionClosed
-    ) {
+    if (RETRYABLE_TRANSPORT_ERROR_CODES.has(errorCode)) {
       return createInternalError(error.message, true);
     }
 

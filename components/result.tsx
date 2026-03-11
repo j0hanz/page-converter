@@ -26,33 +26,127 @@ interface DetailField {
   truncate?: boolean;
 }
 
+interface DetailFieldConfig {
+  key: string;
+  label: string;
+  getValue: (result: TransformResult) => string | undefined;
+  truncate?: boolean;
+}
+
+type ViewMode = "preview" | "code";
+
+const COPY_RESET_DELAY_MS = 2000;
+const MARKDOWN_FONT_FAMILY = "var(--font-geist-mono), monospace";
+const SUMMARY_FIELD_CONFIGS: readonly DetailFieldConfig[] = [
+  {
+    key: "title",
+    label: "Title",
+    getValue: (result) => result.title,
+  },
+  {
+    key: "input-url",
+    label: "Input URL",
+    getValue: (result) => result.url,
+    truncate: true,
+  },
+  {
+    key: "resolved-url",
+    label: "Resolved URL",
+    getValue: (result) => result.resolvedUrl,
+    truncate: true,
+  },
+  {
+    key: "final-url",
+    label: "Final URL",
+    getValue: (result) => result.finalUrl,
+    truncate: true,
+  },
+  {
+    key: "cache",
+    label: "Cache",
+    getValue: (result) => (result.fromCache ? "Cached" : "Fresh"),
+  },
+  {
+    key: "fetched",
+    label: "Fetched",
+    getValue: (result) => new Date(result.fetchedAt).toLocaleString(),
+  },
+  {
+    key: "size",
+    label: "Size",
+    getValue: (result) => `${result.contentSize.toLocaleString()} chars`,
+  },
+] as const;
+const METADATA_FIELD_CONFIGS: readonly DetailFieldConfig[] = [
+  {
+    key: "description",
+    label: "Description",
+    getValue: (result) => result.metadata.description,
+  },
+  {
+    key: "author",
+    label: "Author",
+    getValue: (result) => result.metadata.author,
+  },
+  {
+    key: "published",
+    label: "Published",
+    getValue: (result) => result.metadata.publishedDate,
+  },
+  {
+    key: "modified",
+    label: "Modified",
+    getValue: (result) => result.metadata.modifiedDate,
+  },
+  {
+    key: "image",
+    label: "Image",
+    getValue: (result) => result.metadata.image,
+    truncate: true,
+  },
+  {
+    key: "favicon",
+    label: "Favicon",
+    getValue: (result) => result.metadata.favicon,
+    truncate: true,
+  },
+] as const;
+
 export default function TransformResultPanel({ result }: TransformResultProps) {
   const [copied, setCopied] = useState(false);
-  const [viewMode, setViewMode] = useState<"preview" | "code">("preview");
+  const [viewMode, setViewMode] = useState<ViewMode>("preview");
   const copyResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-  const summaryFields = getSummaryFields(result);
-  const metadataFields = getMetadataFields(result);
+  const summaryFields = buildDetailFields(result, SUMMARY_FIELD_CONFIGS);
+  const metadataFields = buildDetailFields(result, METADATA_FIELD_CONFIGS);
+
+  function clearCopyResetTimeout() {
+    if (copyResetTimeoutRef.current === null) {
+      return;
+    }
+
+    clearTimeout(copyResetTimeoutRef.current);
+    copyResetTimeoutRef.current = null;
+  }
+
+  function scheduleCopyReset() {
+    clearCopyResetTimeout();
+    copyResetTimeoutRef.current = setTimeout(() => {
+      copyResetTimeoutRef.current = null;
+      setCopied(false);
+    }, COPY_RESET_DELAY_MS);
+  }
 
   useEffect(() => {
-    return () => {
-      if (copyResetTimeoutRef.current !== null) {
-        clearTimeout(copyResetTimeoutRef.current);
-      }
-    };
+    return clearCopyResetTimeout;
   }, []);
 
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(result.markdown);
       setCopied(true);
-      if (copyResetTimeoutRef.current !== null) {
-        clearTimeout(copyResetTimeoutRef.current);
-      }
-      copyResetTimeoutRef.current = setTimeout(() => {
-        setCopied(false);
-      }, 2000);
+      scheduleCopyReset();
     } catch {
       // Clipboard API may fail in some contexts
     }
@@ -69,25 +163,11 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
       )}
 
       {/* Summary Accordion */}
-      <Accordion>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="overline">Summary</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <DetailList fields={summaryFields} />
-        </AccordionDetails>
-      </Accordion>
+      <DetailAccordion title="Summary" fields={summaryFields} />
 
       {/* Metadata Accordion */}
       {metadataFields.length > 0 && (
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="overline">Metadata</Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <DetailList fields={metadataFields} />
-          </AccordionDetails>
-        </Accordion>
+        <DetailAccordion title="Metadata" fields={metadataFields} />
       )}
 
       {/* Markdown Section */}
@@ -129,7 +209,7 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
               component="pre"
               variant="body2"
               sx={{
-                fontFamily: "var(--font-geist-mono), monospace",
+                fontFamily: MARKDOWN_FONT_FAMILY,
                 whiteSpace: "pre-wrap",
                 wordBreak: "break-word",
               }}
@@ -140,6 +220,25 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
         </Paper>
       </section>
     </Stack>
+  );
+}
+
+function DetailAccordion({
+  title,
+  fields,
+}: {
+  title: string;
+  fields: DetailField[];
+}) {
+  return (
+    <Accordion>
+      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <Typography variant="overline">{title}</Typography>
+      </AccordionSummary>
+      <AccordionDetails>
+        <DetailList fields={fields} />
+      </AccordionDetails>
+    </Accordion>
   );
 }
 
@@ -172,54 +271,23 @@ function DetailListRow({ field }: { field: DetailField }) {
   );
 }
 
-function getSummaryFields(result: TransformResult): DetailField[] {
-  return [
-    createDetailField("title", "Title", result.title),
-    createDetailField("input-url", "Input URL", result.url, true),
-    createDetailField("resolved-url", "Resolved URL", result.resolvedUrl, true),
-    createDetailField("final-url", "Final URL", result.finalUrl, true),
-    createDetailField("cache", "Cache", result.fromCache ? "Cached" : "Fresh"),
-    createDetailField(
-      "fetched",
-      "Fetched",
-      new Date(result.fetchedAt).toLocaleString(),
-    ),
-    createDetailField(
-      "size",
-      "Size",
-      `${result.contentSize.toLocaleString()} chars`,
-    ),
-  ].filter(isDetailField);
-}
+function buildDetailFields(
+  result: TransformResult,
+  configs: readonly DetailFieldConfig[],
+): DetailField[] {
+  return configs.flatMap((config) => {
+    const value = config.getValue(result);
+    if (!value) {
+      return [];
+    }
 
-function getMetadataFields(result: TransformResult): DetailField[] {
-  return [
-    createDetailField(
-      "description",
-      "Description",
-      result.metadata.description,
-    ),
-    createDetailField("author", "Author", result.metadata.author),
-    createDetailField("published", "Published", result.metadata.publishedDate),
-    createDetailField("modified", "Modified", result.metadata.modifiedDate),
-    createDetailField("image", "Image", result.metadata.image, true),
-    createDetailField("favicon", "Favicon", result.metadata.favicon, true),
-  ].filter(isDetailField);
-}
-
-function createDetailField(
-  key: string,
-  label: string,
-  value: string | undefined,
-  truncate = false,
-): DetailField | null {
-  if (!value) {
-    return null;
-  }
-
-  return { key, label, value, truncate };
-}
-
-function isDetailField(field: DetailField | null): field is DetailField {
-  return field !== null;
+    return [
+      {
+        key: config.key,
+        label: config.label,
+        value,
+        truncate: config.truncate,
+      },
+    ];
+  });
 }
