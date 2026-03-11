@@ -16,9 +16,8 @@ import Paper from "@mui/material/Paper";
 import Tooltip from "@mui/material/Tooltip";
 import Grid from "@mui/material/Grid";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import CircularProgress from "@mui/material/CircularProgress";
-import Box from "@mui/material/Box";
 import type { TransformResult } from "@/lib/errors/transform";
+import MarkdownSkeleton from "@/components/skeleton";
 import { lazy, Suspense } from "react";
 
 const MarkdownPreview = lazy(() => import("@/components/markdown-preview"));
@@ -239,13 +238,7 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
           sx={{ p: 2, maxHeight: 600, overflow: "auto" }}
         >
           {viewMode === "preview" ? (
-            <Suspense
-              fallback={
-                <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-                  <CircularProgress />
-                </Box>
-              }
-            >
+            <Suspense fallback={<MarkdownSkeleton />}>
               <MarkdownPreview>{result.markdown}</MarkdownPreview>
             </Suspense>
           ) : (
