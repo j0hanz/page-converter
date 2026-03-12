@@ -34,16 +34,18 @@ export async function transformUrl(
   request: TransformRequest,
   onProgress?: ProgressCallback,
 ): Promise<TransformResponse> {
+  let response: TransformResponse | undefined;
+
   for (let attempt = 1; attempt <= MAX_TRANSFORM_ATTEMPTS; attempt += 1) {
-    const response = await executeTransform(request, onProgress);
+    response = await executeTransform(request, onProgress);
 
     if (!shouldRetry(response) || attempt === MAX_TRANSFORM_ATTEMPTS) {
       return response;
     }
   }
 
-  return createInternalErrorResponse(
-    "Transform attempt loop exited unexpectedly.",
+  return (
+    response ?? createInternalErrorResponse("Transform failed to execute.")
   );
 }
 

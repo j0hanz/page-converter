@@ -15,6 +15,10 @@ import {
   NDJSON_CONTENT_TYPE,
   createNetworkError,
   createUnexpectedResponseError,
+  hasTransformError,
+  hasTransformResult,
+  isTransformError,
+  isTransformErrorResponse,
 } from "@/lib/errors/transform";
 
 interface TransformFormProps {
@@ -30,6 +34,10 @@ interface TransformRequestBody {
 
 const TRANSFORM_ENDPOINT = "/api/transform";
 const JSON_HEADERS = { "Content-Type": "application/json" } as const;
+
+function createRequestBody(url: string): TransformRequestBody {
+  return { url: url.trim() };
+}
 
 function isNdjsonResponse(response: Response): boolean {
   return (response.headers.get("Content-Type") ?? "").includes(
@@ -121,12 +129,13 @@ export default function TransformForm({
       return;
     }
 
-    if (event.type === "result") {
-      if (event.ok) {
-        onResult(event.result);
-      } else {
-        onError(event.error);
-      }
+    if (hasTransformResult(event)) {
+      onResult(event.result);
+      return;
+    }
+
+    if (hasTransformError(event)) {
+      onError(event.error);
       return;
     }
 
@@ -146,11 +155,10 @@ export default function TransformForm({
     abortControllerRef.current = abortController;
 
     try {
-      const requestBody: TransformRequestBody = { url: url.trim() };
       const res = await fetch(TRANSFORM_ENDPOINT, {
         method: "POST",
         headers: JSON_HEADERS,
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(createRequestBody(url)),
         signal: abortController.signal,
       });
 
@@ -223,35 +231,4 @@ export default function TransformForm({
 
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "AbortError";
-}
-
-function isTransformErrorResponse(
-  value: unknown,
-): value is { ok: false; error: TransformError } {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const candidate = value as {
-    ok?: unknown;
-    error?: { code?: unknown; message?: unknown; retryable?: unknown };
-  };
-
-  return (
-    candidate.ok === false &&
-    candidate.error !== undefined &&
-    typeof candidate.error.code === "string" &&
-    typeof candidate.error.message === "string" &&
-    typeof candidate.error.retryable === "boolean"
-  );
-}
-
-function isTransformError(error: unknown): error is TransformError {
-  return (
-    error !== null &&
-    typeof error === "object" &&
-    "code" in error &&
-    "message" in error &&
-    "retryable" in error
-  );
 }

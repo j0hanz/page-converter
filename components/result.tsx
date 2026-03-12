@@ -18,6 +18,7 @@ import CodeIcon from "@mui/icons-material/Code";
 import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Tooltip from "@mui/material/Tooltip";
+import { MARKDOWN_PANEL_MAX_HEIGHT } from "@/components/markdown-panel.constants";
 import type { TransformResult } from "@/lib/errors/transform";
 import MarkdownSkeleton from "@/components/skeleton";
 
@@ -28,9 +29,28 @@ interface TransformResultProps {
 }
 
 type ViewMode = "preview" | "code";
+type ActionButton = {
+  label: string;
+  copiedLabel?: string;
+  icon: typeof ContentCopyIcon;
+};
 
 const COPY_RESET_DELAY_MS = 2000;
 const MARKDOWN_FONT_FAMILY = "var(--font-geist-mono), monospace";
+
+const VIEW_MODE_BUTTONS = [
+  { mode: "preview", label: "Preview", icon: VisibilityIcon },
+  { mode: "code", label: "Code", icon: CodeIcon },
+] as const satisfies readonly {
+  mode: ViewMode;
+  label: string;
+  icon: typeof VisibilityIcon;
+}[];
+
+const ACTION_BUTTONS: readonly ActionButton[] = [
+  { label: "Copy Markdown", copiedLabel: "Copied!", icon: ContentCopyIcon },
+  { label: "Download Markdown", icon: DownloadIcon },
+];
 
 function clearScheduledTimeout(
   timeoutRef: MutableRefObject<ReturnType<typeof setTimeout> | null>,
@@ -117,53 +137,45 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
           alignItems="center"
         >
           <Stack direction="row">
-            <Tooltip title="Preview">
-              <IconButton
-                size="large"
-                aria-label="Preview"
-                onClick={() => setViewMode("preview")}
-                color={viewMode === "preview" ? "success" : "default"}
-              >
-                <VisibilityIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Code">
-              <IconButton
-                size="large"
-                aria-label="Code"
-                onClick={() => setViewMode("code")}
-                color={viewMode === "code" ? "success" : "default"}
-              >
-                <CodeIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            {VIEW_MODE_BUTTONS.map(({ mode, label, icon: Icon }) => (
+              <Tooltip key={mode} title={label}>
+                <IconButton
+                  size="large"
+                  aria-label={label}
+                  onClick={() => setViewMode(mode)}
+                  color={viewMode === mode ? "success" : "default"}
+                >
+                  <Icon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            ))}
           </Stack>
           <Stack direction="row">
-            <Tooltip title={copied ? "Copied!" : "Copy Markdown"}>
-              <IconButton
-                size="large"
-                aria-label="Copy Markdown"
-                onClick={handleCopy}
-                color={copied ? "success" : "default"}
-              >
-                <ContentCopyIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Download Markdown">
-              <IconButton
-                size="large"
-                aria-label="Download Markdown"
-                onClick={handleDownload}
-              >
-                <DownloadIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            {ACTION_BUTTONS.map(({ label, copiedLabel, icon: Icon }) => {
+              const isCopyAction = label === "Copy Markdown";
+
+              return (
+                <Tooltip
+                  key={label}
+                  title={isCopyAction && copied ? copiedLabel : label}
+                >
+                  <IconButton
+                    size="large"
+                    aria-label={label}
+                    onClick={isCopyAction ? handleCopy : handleDownload}
+                    color={isCopyAction && copied ? "success" : "default"}
+                  >
+                    <Icon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              );
+            })}
           </Stack>
         </Stack>
         <Paper
           sx={{
             p: 2.5,
-            maxHeight: 600,
+            maxHeight: MARKDOWN_PANEL_MAX_HEIGHT,
             overflow: "auto",
             border: "1px solid",
             borderColor: "divider",

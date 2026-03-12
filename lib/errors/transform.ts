@@ -72,6 +72,8 @@ export const UNEXPECTED_RESPONSE_MESSAGE = "Unexpected response format.";
 
 type TransformErrorOptions = Omit<TransformError, "code" | "message">;
 
+type JsonRecord = Record<string, unknown>;
+
 export function createTransformError(
   code: TransformErrorCode,
   message: string,
@@ -159,4 +161,30 @@ export function hasTransformError(
   response: TransformResponse,
 ): response is TransformErrorResponse {
   return !response.ok && response.error != null;
+}
+
+function isRecord(value: unknown): value is JsonRecord {
+  return typeof value === "object" && value !== null;
+}
+
+export function isTransformError(value: unknown): value is TransformError {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.code === "string" &&
+    typeof value.message === "string" &&
+    typeof value.retryable === "boolean"
+  );
+}
+
+export function isTransformErrorResponse(
+  value: unknown,
+): value is TransformErrorResponse {
+  if (!isRecord(value) || value.ok !== false) {
+    return false;
+  }
+
+  return isTransformError(value.error);
 }

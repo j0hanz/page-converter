@@ -1,8 +1,8 @@
 import Skeleton from "@mui/material/Skeleton";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
+import { MARKDOWN_PANEL_MAX_HEIGHT } from "@/components/markdown-panel.constants";
 
-const MARKDOWN_PANEL_MAX_HEIGHT = 600;
 const SKELETON_PADDING_OFFSET = 25;
 const INTRO_LINE_WIDTHS = ["100%", "100%", "75%"] as const;
 const OUTRO_LINE_WIDTHS = ["100%", "85%", "50%"] as const;

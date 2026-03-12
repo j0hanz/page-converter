@@ -2,7 +2,10 @@ import { describe, it, expect } from "vitest";
 import { parseMcpResult } from "@/lib/mcp/result";
 import {
   createStreamProgressEvent,
+  createTransformError,
   isTerminalStreamProgressEvent,
+  isTransformError,
+  isTransformErrorResponse,
   normalizeStreamProgressEvent,
   STREAM_PROGRESS_TOTAL,
 } from "@/lib/errors/transform";
@@ -147,5 +150,29 @@ describe("error mapper", () => {
     expect(isTerminalStreamProgressEvent(createStreamProgressEvent(7, 8))).toBe(
       false,
     );
+  });
+
+  it("recognizes valid transform error objects", () => {
+    expect(
+      isTransformError(createTransformError("FETCH_ERROR", "Upstream failed")),
+    ).toBe(true);
+    expect(isTransformError({ code: "FETCH_ERROR", retryable: true })).toBe(
+      false,
+    );
+  });
+
+  it("recognizes valid transform error responses", () => {
+    expect(
+      isTransformErrorResponse({
+        ok: false,
+        error: createTransformError("VALIDATION_ERROR", "Invalid URL"),
+      }),
+    ).toBe(true);
+    expect(
+      isTransformErrorResponse({
+        ok: false,
+        error: { code: "VALIDATION_ERROR" },
+      }),
+    ).toBe(false);
   });
 });

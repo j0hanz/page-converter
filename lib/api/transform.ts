@@ -1,6 +1,7 @@
 import {
   validateTransformRequest,
   ValidationError,
+  type TransformRequest,
 } from "@/lib/validation/request";
 import { transformUrl } from "@/lib/transform/service";
 import {
@@ -28,6 +29,26 @@ const NDJSON_HEADERS = {
   "Cache-Control": "no-cache",
   "Transfer-Encoding": "chunked",
 } as const;
+
+function readValidationErrorMessage(error: unknown): string {
+  return error instanceof ValidationError ? error.message : "Invalid request.";
+}
+
+async function readRequestBody(request: Request): Promise<unknown> {
+  try {
+    return await request.json();
+  } catch {
+    throw new ValidationError("Invalid JSON body.");
+  }
+}
+
+function validateRequestBody(body: unknown): TransformRequest {
+  try {
+    return validateTransformRequest(body);
+  } catch (error) {
+    throw new ValidationError(readValidationErrorMessage(error));
+  }
+}
 
 function createValidationErrorResponse(message: string): Response {
   return createErrorResponse(
@@ -100,25 +121,16 @@ function createNdjsonResponseStream(
 }
 
 export async function POST(request: Request) {
-  let body: unknown;
   try {
-    body = await request.json();
-  } catch {
-    return createValidationErrorResponse("Invalid JSON body.");
-  }
+    const body = await readRequestBody(request);
+    const validated = validateRequestBody(body);
 
-  let validated;
-  try {
-    validated = validateTransformRequest(body);
+    const stream = createNdjsonResponseStream(request, (onProgress) =>
+      transformUrl(validated, onProgress),
+    );
+
+    return new Response(stream, { headers: NDJSON_HEADERS });
   } catch (error) {
-    const message =
-      error instanceof ValidationError ? error.message : "Invalid request.";
-    return createValidationErrorResponse(message);
+    return createValidationErrorResponse(readValidationErrorMessage(error));
   }
-
-  const stream = createNdjsonResponseStream(request, (onProgress) =>
-    transformUrl(validated, onProgress),
-  );
-
-  return new Response(stream, { headers: NDJSON_HEADERS });
 }

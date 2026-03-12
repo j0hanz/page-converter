@@ -16,6 +16,9 @@ const FETCH_URL_TRANSPORT_COMMAND = getFetchUrlTransportCommand();
 const FETCH_URL_TRANSPORT_ARGS: string[] = [];
 
 export type ProgressCallback = (progress: Progress) => void;
+type FetchUrlClient = { client: Client; transport: StdioClientTransport };
+
+function noop() {}
 
 function createTransport() {
   return new StdioClientTransport({
@@ -24,16 +27,23 @@ function createTransport() {
   });
 }
 
-function createProgressOptions(onProgress?: ProgressCallback) {
-  if (!onProgress) {
-    return undefined;
-  }
+function createClient(): Client {
+  const client = new Client(CLIENT_INFO);
+  client.onerror = noop;
+  client.onclose = noop;
 
+  return client;
+}
+
+function createFetchUrlClient(): FetchUrlClient {
   return {
-    onprogress: (progress: Progress) => {
-      onProgress(progress);
-    },
+    client: createClient(),
+    transport: createTransport(),
   };
+}
+
+function createProgressOptions(onProgress?: ProgressCallback) {
+  return onProgress ? { onprogress: onProgress } : undefined;
 }
 
 async function closeClientSafely(client: Client) {
@@ -48,8 +58,7 @@ export async function callFetchUrl(
   args: FetchUrlArgs,
   onProgress?: ProgressCallback,
 ): Promise<CallToolResult> {
-  const client = new Client(CLIENT_INFO);
-  const transport = createTransport();
+  const { client, transport } = createFetchUrlClient();
 
   try {
     await client.connect(transport);
