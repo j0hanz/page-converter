@@ -196,7 +196,7 @@ export default function TransformForm({
       <Stack spacing={2}>
         <TextField
           id="url"
-          label="URL"
+          label="Paste a public URL to convert"
           type="url"
           required
           fullWidth

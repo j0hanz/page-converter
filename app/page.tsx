@@ -16,9 +16,6 @@ export default function Home() {
             <Typography variant="subtitle1" color="text.secondary">
               Turn web pages into clean Markdown
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Paste a public URL to extract clean Markdown.
-            </Typography>
           </div>
 
           <HomeClient />
