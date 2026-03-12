@@ -1,6 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { validateTransformRequest, ValidationError } from "@/lib/validate";
 
+const UNKNOWN_FIELDS = [
+  { extra: true },
+  { skipNoiseRemoval: true },
+  { forceRefresh: true },
+  { maxInlineChars: 100 },
+] as const;
+
+const INVALID_BODIES = [null, [], "string"] as const;
+
 describe("validateTransformRequest", () => {
   it("accepts a valid request with only url", () => {
     const result = validateTransformRequest({ url: "https://example.com" });
@@ -39,51 +48,22 @@ describe("validateTransformRequest", () => {
     );
   });
 
-  it("rejects unknown fields", () => {
+  it.each(UNKNOWN_FIELDS)("rejects unknown fields: %j", (field) => {
     expect(() =>
-      validateTransformRequest({ url: "https://example.com", extra: true }),
+      validateTransformRequest({
+        url: "https://example.com",
+        ...field,
+      }),
     ).toThrow(ValidationError);
     expect(() =>
-      validateTransformRequest({ url: "https://example.com", extra: true }),
-    ).toThrow(/Unknown field/);
-  });
-
-  it("rejects skipNoiseRemoval as unknown field", () => {
-    expect(() =>
       validateTransformRequest({
         url: "https://example.com",
-        skipNoiseRemoval: true,
+        ...field,
       }),
     ).toThrow(/Unknown field/);
   });
 
-  it("rejects forceRefresh as unknown field", () => {
-    expect(() =>
-      validateTransformRequest({
-        url: "https://example.com",
-        forceRefresh: true,
-      }),
-    ).toThrow(/Unknown field/);
-  });
-
-  it("rejects maxInlineChars as unknown field", () => {
-    expect(() =>
-      validateTransformRequest({
-        url: "https://example.com",
-        maxInlineChars: 100,
-      }),
-    ).toThrow(/Unknown field/);
-  });
-
-  it("rejects null body", () => {
-    expect(() => validateTransformRequest(null)).toThrow(ValidationError);
-  });
-
-  it("rejects array body", () => {
-    expect(() => validateTransformRequest([])).toThrow(ValidationError);
-  });
-
-  it("rejects non-object body", () => {
-    expect(() => validateTransformRequest("string")).toThrow(ValidationError);
+  it.each(INVALID_BODIES)("rejects invalid body: %j", (body) => {
+    expect(() => validateTransformRequest(body)).toThrow(ValidationError);
   });
 });

@@ -144,13 +144,12 @@ export function normalizeStreamProgressEvent(
   previous?: StreamProgressEvent | null,
 ): StreamProgressEvent {
   const total = resolveProgressTotal(event.total, previous?.total);
-  const progress = Math.max(event.progress, previous?.progress ?? 0);
 
-  return {
-    ...event,
-    progress,
+  return createStreamProgressEvent(
+    Math.max(event.progress, previous?.progress ?? 0),
     total,
-  };
+    event.message,
+  );
 }
 
 export function isTerminalStreamProgressEvent(

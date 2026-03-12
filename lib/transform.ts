@@ -33,19 +33,15 @@ export async function transformUrl(
   request: TransformRequest,
   onProgress?: ProgressCallback,
 ): Promise<TransformResponse> {
-  let response: TransformResponse | undefined;
-
   for (let attempt = 1; attempt <= MAX_TRANSFORM_ATTEMPTS; attempt += 1) {
-    response = await executeTransform(request, onProgress);
+    const response = await executeTransform(request, onProgress);
 
     if (!shouldRetry(response) || attempt === MAX_TRANSFORM_ATTEMPTS) {
       return response;
     }
   }
 
-  return (
-    response ?? createInternalErrorResponse("Transform failed to execute.")
-  );
+  return createInternalErrorResponse("Transform failed to execute.");
 }
 
 function shouldRetry(

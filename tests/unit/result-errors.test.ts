@@ -11,6 +11,8 @@ import {
 } from "@/lib/api";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
+type ParsedResult = ReturnType<typeof parseMcpResult>;
+
 function errorResult(code: string, message: string): CallToolResult {
   return {
     content: [
@@ -23,78 +25,84 @@ function errorResult(code: string, message: string): CallToolResult {
   };
 }
 
+function expectErrorResult(parsed: ParsedResult) {
+  expect(parsed.ok).toBe(false);
+  if (parsed.ok) {
+    throw new Error("Expected parseMcpResult to return an error result.");
+  }
+
+  return parsed.error;
+}
+
 describe("error mapper", () => {
-  it("maps VALIDATION_ERROR to non-retryable", () => {
-    const parsed = parseMcpResult(errorResult("VALIDATION_ERROR", "Blocked"));
-    expect(parsed.ok).toBe(false);
-    if (parsed.ok) return;
-    expect(parsed.error.code).toBe("VALIDATION_ERROR");
-    expect(parsed.error.retryable).toBe(false);
-  });
+  it.each([
+    {
+      code: "VALIDATION_ERROR",
+      message: "Blocked",
+      expectedCode: "VALIDATION_ERROR",
+      retryable: false,
+    },
+    {
+      code: "FETCH_ERROR",
+      message: "Network",
+      expectedCode: "FETCH_ERROR",
+      retryable: true,
+    },
+    {
+      code: "HTTP_503",
+      message: "Service Unavailable",
+      expectedCode: "HTTP_ERROR",
+      retryable: true,
+      statusCode: 503,
+    },
+    {
+      code: "HTTP_404",
+      message: "Not Found",
+      expectedCode: "HTTP_ERROR",
+      retryable: false,
+      statusCode: 404,
+    },
+    {
+      code: "ABORTED",
+      message: "Cancelled",
+      expectedCode: "ABORTED",
+      retryable: true,
+    },
+    {
+      code: "queue_full",
+      message: "Worker pool busy",
+      expectedCode: "QUEUE_FULL",
+      retryable: true,
+    },
+    {
+      code: "SOMETHING_ELSE",
+      message: "Unknown",
+      expectedCode: "INTERNAL_ERROR",
+      retryable: false,
+    },
+  ])(
+    "maps $code to $expectedCode",
+    ({ code, message, expectedCode, retryable, statusCode }) => {
+      const error = expectErrorResult(
+        parseMcpResult(errorResult(code, message)),
+      );
 
-  it("maps FETCH_ERROR to retryable", () => {
-    const parsed = parseMcpResult(errorResult("FETCH_ERROR", "Network"));
-    expect(parsed.ok).toBe(false);
-    if (parsed.ok) return;
-    expect(parsed.error.code).toBe("FETCH_ERROR");
-    expect(parsed.error.retryable).toBe(true);
-  });
+      expect(error.code).toBe(expectedCode);
+      expect(error.retryable).toBe(retryable);
 
-  it("maps HTTP_503 to retryable HTTP_ERROR", () => {
-    const parsed = parseMcpResult(
-      errorResult("HTTP_503", "Service Unavailable"),
-    );
-    expect(parsed.ok).toBe(false);
-    if (parsed.ok) return;
-    expect(parsed.error.code).toBe("HTTP_ERROR");
-    expect(parsed.error.statusCode).toBe(503);
-    expect(parsed.error.retryable).toBe(true);
-  });
-
-  it("maps HTTP_404 to non-retryable HTTP_ERROR", () => {
-    const parsed = parseMcpResult(errorResult("HTTP_404", "Not Found"));
-    expect(parsed.ok).toBe(false);
-    if (parsed.ok) return;
-    expect(parsed.error.code).toBe("HTTP_ERROR");
-    expect(parsed.error.statusCode).toBe(404);
-    expect(parsed.error.retryable).toBe(false);
-  });
-
-  it("maps ABORTED to retryable", () => {
-    const parsed = parseMcpResult(errorResult("ABORTED", "Cancelled"));
-    expect(parsed.ok).toBe(false);
-    if (parsed.ok) return;
-    expect(parsed.error.code).toBe("ABORTED");
-    expect(parsed.error.retryable).toBe(true);
-  });
-
-  it("maps queue_full to retryable QUEUE_FULL", () => {
-    const parsed = parseMcpResult(
-      errorResult("queue_full", "Worker pool busy"),
-    );
-    expect(parsed.ok).toBe(false);
-    if (parsed.ok) return;
-    expect(parsed.error.code).toBe("QUEUE_FULL");
-    expect(parsed.error.retryable).toBe(true);
-  });
-
-  it("maps unknown error to non-retryable INTERNAL_ERROR", () => {
-    const parsed = parseMcpResult(errorResult("SOMETHING_ELSE", "Unknown"));
-    expect(parsed.ok).toBe(false);
-    if (parsed.ok) return;
-    expect(parsed.error.code).toBe("INTERNAL_ERROR");
-    expect(parsed.error.retryable).toBe(false);
-  });
+      if (statusCode !== undefined) {
+        expect(error.statusCode).toBe(statusCode);
+      }
+    },
+  );
 
   it("handles unparseable error response gracefully", () => {
     const raw: CallToolResult = {
       content: [{ type: "text" as const, text: "not json at all" }],
       isError: true,
     };
-    const parsed = parseMcpResult(raw);
-    expect(parsed.ok).toBe(false);
-    if (parsed.ok) return;
-    expect(parsed.error.code).toBe("INTERNAL_ERROR");
+    const error = expectErrorResult(parseMcpResult(raw));
+    expect(error.code).toBe("INTERNAL_ERROR");
   });
 
   it("reads machine-readable error payloads from structuredContent", () => {
@@ -106,11 +114,9 @@ describe("error mapper", () => {
       },
     };
 
-    const parsed = parseMcpResult(raw);
-    expect(parsed.ok).toBe(false);
-    if (parsed.ok) return;
-    expect(parsed.error.code).toBe("FETCH_ERROR");
-    expect(parsed.error.retryable).toBe(true);
+    const error = expectErrorResult(parseMcpResult(raw));
+    expect(error.code).toBe("FETCH_ERROR");
+    expect(error.retryable).toBe(true);
   });
 
   it("defaults streamed progress events to the shared total", () => {
