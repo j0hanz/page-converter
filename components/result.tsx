@@ -19,12 +19,13 @@ import CodeIcon from "@mui/icons-material/Code";
 import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Tooltip from "@mui/material/Tooltip";
-import { MARKDOWN_PANEL_MAX_HEIGHT } from "@/components/markdown-panel.constants";
-import type { TransformResult } from "@/lib/errors/transform";
-import MarkdownErrorBoundary from "@/components/markdown-error-boundary";
-import MarkdownSkeleton from "@/components/skeleton";
+import type { TransformResult } from "@/lib/api";
+import { MarkdownErrorBoundary } from "@/components/error";
+import { MarkdownSkeleton } from "@/components/loading";
 
 const MarkdownPreview = lazy(() => import("@/components/markdown-preview"));
+
+export const MARKDOWN_PANEL_MAX_HEIGHT = 600;
 
 interface TransformResultProps {
   result: TransformResult;

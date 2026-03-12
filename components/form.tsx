@@ -10,7 +10,7 @@ import type {
   TransformError,
   StreamEvent,
   StreamProgressEvent,
-} from "@/lib/errors/transform";
+} from "@/lib/api";
 import {
   NDJSON_CONTENT_TYPE,
   createNetworkError,
@@ -20,7 +20,7 @@ import {
   hasTransformResult,
   isTransformError,
   isTransformErrorResponse,
-} from "@/lib/errors/transform";
+} from "@/lib/api";
 
 interface TransformFormProps {
   onResult: (result: TransformResult) => void;

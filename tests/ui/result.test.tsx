@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import TransformResultPanel from "@/components/result";
-import type { TransformResult } from "@/lib/errors/transform";
+import type { TransformResult } from "@/lib/api";
 
 const baseResult: TransformResult = {
   url: "https://example.com",

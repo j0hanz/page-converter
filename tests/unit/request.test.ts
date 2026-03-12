@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  validateTransformRequest,
-  ValidationError,
-} from "@/lib/validation/request";
+import { validateTransformRequest, ValidationError } from "@/lib/validate";
 
 describe("validateTransformRequest", () => {
   it("accepts a valid request with only url", () => {

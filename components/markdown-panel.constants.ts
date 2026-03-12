@@ -1,1 +1,0 @@
-export const MARKDOWN_PANEL_MAX_HEIGHT = 600;

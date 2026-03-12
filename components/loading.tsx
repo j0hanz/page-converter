@@ -1,7 +1,52 @@
-import Skeleton from "@mui/material/Skeleton";
+"use client";
+
 import Box from "@mui/material/Box";
+import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
-import { MARKDOWN_PANEL_MAX_HEIGHT } from "@/components/markdown-panel.constants";
+import Typography from "@mui/material/Typography";
+import Skeleton from "@mui/material/Skeleton";
+import { MARKDOWN_PANEL_MAX_HEIGHT } from "@/components/result";
+
+export interface TransformProgressProps {
+  progress: number;
+  total: number;
+  message?: string;
+}
+
+function computePercentage(progress: number, total: number): number {
+  if (total <= 0) return 0;
+
+  const percentage = Math.round((progress / total) * 100);
+  return Math.min(Math.max(percentage, 0), 100);
+}
+
+export function TransformProgress({
+  progress,
+  total,
+  message,
+}: TransformProgressProps) {
+  const percentage = computePercentage(progress, total);
+
+  return (
+    <Stack spacing={1.5} sx={{ py: 2 }}>
+      <Stack direction="row" spacing={2} alignItems="center">
+        <Box sx={{ flex: 1 }}>
+          <LinearProgress
+            aria-label="Transform progress"
+            variant="determinate"
+            value={percentage}
+            color="inherit"
+          />
+        </Box>
+      </Stack>
+      {message && (
+        <Typography variant="caption" color="text.disabled">
+          {message}
+        </Typography>
+      )}
+    </Stack>
+  );
+}
 
 const SKELETON_PADDING_OFFSET = 25;
 const INTRO_LINE_WIDTHS = ["100%", "100%", "75%"] as const;
@@ -25,7 +70,7 @@ function renderTextLines(widths: readonly string[]) {
   ));
 }
 
-export default function MarkdownSkeleton() {
+export function MarkdownSkeleton() {
   return (
     <Stack
       spacing={1}

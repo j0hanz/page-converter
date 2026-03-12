@@ -4,12 +4,16 @@ import {
   McpError,
   type CallToolResult,
 } from "@modelcontextprotocol/sdk/types.js";
-import { transformUrl } from "@/lib/transform/service";
-import { callFetchUrl } from "@/lib/mcp/client";
+import { transformUrl } from "@/lib/transform";
+import { callFetchUrl } from "@/lib/mcp";
 
-vi.mock("@/lib/mcp/client", () => ({
-  callFetchUrl: vi.fn(),
-}));
+vi.mock("@/lib/mcp", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/mcp")>();
+  return {
+    ...actual,
+    callFetchUrl: vi.fn(),
+  };
+});
 
 const callFetchUrlMock = vi.mocked(callFetchUrl);
 

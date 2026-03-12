@@ -5,16 +5,16 @@ import Alert from "@mui/material/Alert";
 import Typography from "@mui/material/Typography";
 import TransformForm from "@/components/form";
 import TransformResultPanel from "@/components/result";
-import TransformProgress from "@/components/progress";
+import { TransformProgress } from "@/components/loading";
 import type {
   TransformResult,
   TransformError,
   StreamProgressEvent,
-} from "@/lib/errors/transform";
+} from "@/lib/api";
 import {
   isTerminalStreamProgressEvent,
   normalizeStreamProgressEvent,
-} from "@/lib/errors/transform";
+} from "@/lib/api";
 
 interface State {
   result: TransformResult | null;

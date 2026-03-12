@@ -1,13 +1,12 @@
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
-import type { TransformRequest } from "@/lib/validation/request";
+import type { TransformRequest } from "@/lib/validate";
 import type {
   TransformResponse,
   TransformError,
   TransformErrorResponse,
-} from "@/lib/errors/transform";
-import { createInternalError } from "@/lib/errors/transform";
-import { callFetchUrl, type ProgressCallback } from "@/lib/mcp/client";
-import { parseMcpResult } from "@/lib/mcp/result";
+} from "@/lib/api";
+import { createInternalError } from "@/lib/api";
+import { callFetchUrl, type ProgressCallback, parseMcpResult } from "@/lib/mcp";
 
 const RETRYABLE_TRANSPORT_ERROR_CODES = new Set<ErrorCode>([
   ErrorCode.RequestTimeout,

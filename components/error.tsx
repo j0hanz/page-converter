@@ -1,18 +1,20 @@
 "use client";
 
+import { Component, type ReactNode } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import Alert from "@mui/material/Alert";
 
-interface ErrorStateProps {
+export interface ErrorStateProps {
   error: Error & { digest?: string };
   fallbackMessage: string;
   minHeight: string;
   reset: () => void;
 }
 
-export default function ErrorState({
+export function ErrorState({
   error,
   fallbackMessage,
   minHeight,
@@ -51,4 +53,35 @@ export default function ErrorState({
       </Stack>
     </Box>
   );
+}
+
+interface MarkdownErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface MarkdownErrorBoundaryState {
+  hasError: boolean;
+}
+
+export class MarkdownErrorBoundary extends Component<
+  MarkdownErrorBoundaryProps,
+  MarkdownErrorBoundaryState
+> {
+  override state: MarkdownErrorBoundaryState = { hasError: false };
+
+  static getDerivedStateFromError(): MarkdownErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  override render() {
+    if (this.state.hasError) {
+      return (
+        <Alert severity="error" variant="outlined">
+          Failed to render markdown preview.
+        </Alert>
+      );
+    }
+
+    return this.props.children;
+  }
 }
