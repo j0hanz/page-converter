@@ -147,7 +147,7 @@ describe("TransformForm", () => {
     });
   });
 
-  it("disables form during submission", async () => {
+  it("disables URL input and shows Cancel button during submission", async () => {
     let resolveFetch: ((value: unknown) => void) | undefined;
     global.fetch = vi.fn().mockReturnValue(
       new Promise((resolve) => {
@@ -160,8 +160,12 @@ describe("TransformForm", () => {
 
     await waitFor(() => {
       expect(screen.getByLabelText(/URL/i)).toBeDisabled();
-      expect(screen.getByRole("button")).toBeDisabled();
+      expect(screen.getByRole("button", { name: /cancel/i })).toBeEnabled();
     });
+
+    expect(
+      screen.queryByRole("button", { name: /convert/i }),
+    ).not.toBeInTheDocument();
 
     // Resolve to clean up
     if (!resolveFetch) {
@@ -171,6 +175,45 @@ describe("TransformForm", () => {
     resolveFetch(
       createMockStreamResponse([{ type: "result", ok: true, result: {} }]),
     );
+  });
+
+  it("aborts request and reverts to Convert when Cancel is clicked", async () => {
+    let resolveFetch: ((value: unknown) => void) | undefined;
+    global.fetch = vi.fn().mockImplementation(
+      (_url: string, init: { signal: AbortSignal }) =>
+        new Promise((resolve, reject) => {
+          resolveFetch = resolve;
+          init.signal.addEventListener("abort", () => {
+            reject(
+              new DOMException("The user aborted a request.", "AbortError"),
+            );
+          });
+        }),
+    );
+
+    renderForm();
+    submitUrl("https://example.com");
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /cancel/i }),
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    await waitFor(() => {
+      expect(onLoading).toHaveBeenLastCalledWith(false);
+      expect(
+        screen.getByRole("button", { name: /convert/i }),
+      ).toBeInTheDocument();
+    });
+
+    expect(onError).not.toHaveBeenCalled();
+    expect(onResult).not.toHaveBeenCalled();
+
+    // Suppress unused variable warning
+    void resolveFetch;
   });
 });
 

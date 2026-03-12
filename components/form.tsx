@@ -142,6 +142,11 @@ export default function TransformForm({
     onError(createUnexpectedResponseError());
   }
 
+  function handleCancel(event: React.MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    abortControllerRef.current?.abort();
+  }
+
   function handleUrlChange(event: React.ChangeEvent<HTMLInputElement>) {
     setUrl(event.target.value);
   }
@@ -215,15 +220,27 @@ export default function TransformForm({
           variant="outlined"
           size="small"
         />
-        <Button
-          type="submit"
-          variant="contained"
-          fullWidth
-          loading={submitting}
-          sx={{ alignSelf: "flex-start" }}
-        >
-          Convert
-        </Button>
+        {submitting ? (
+          <Button
+            type="button"
+            variant="contained"
+            fullWidth
+            color="error"
+            onClick={handleCancel}
+            sx={{ alignSelf: "flex-start" }}
+          >
+            Cancel
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            variant="contained"
+            fullWidth
+            sx={{ alignSelf: "flex-start" }}
+          >
+            Convert
+          </Button>
+        )}
       </Stack>
     </Box>
   );
