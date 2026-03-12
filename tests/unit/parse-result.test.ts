@@ -2,8 +2,28 @@ import { describe, it, expect } from "vitest";
 import { parseMcpResult } from "@/lib/mcp";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
+type ParsedResult = ReturnType<typeof parseMcpResult>;
+
 function textContent(text: string): CallToolResult["content"] {
   return [{ type: "text" as const, text }];
+}
+
+function expectSuccessResult(parsed: ParsedResult) {
+  expect(parsed.ok).toBe(true);
+  if (!parsed.ok) {
+    throw new Error("Expected parseMcpResult to return a success result.");
+  }
+
+  return parsed.result;
+}
+
+function expectErrorResult(parsed: ParsedResult) {
+  expect(parsed.ok).toBe(false);
+  if (parsed.ok) {
+    throw new Error("Expected parseMcpResult to return an error result.");
+  }
+
+  return parsed.error;
 }
 
 const sampleResult = {
@@ -32,21 +52,19 @@ describe("parseMcpResult", () => {
       structuredContent: sampleResult,
     };
 
-    const parsed = parseMcpResult(raw);
-    expect(parsed.ok).toBe(true);
-    if (!parsed.ok) return;
+    const result = expectSuccessResult(parseMcpResult(raw));
 
-    expect(parsed.result.url).toBe("https://example.com");
-    expect(parsed.result.resolvedUrl).toBe("https://example.com/");
-    expect(parsed.result.finalUrl).toBe("https://example.com/");
-    expect(parsed.result.title).toBe("Example Domain");
-    expect(parsed.result.metadata.description).toBe("An example page");
-    expect(parsed.result.metadata.author).toBe("IANA");
-    expect(parsed.result.markdown).toBe("# Example\n\nThis is an example.");
-    expect(parsed.result.fromCache).toBe(true);
-    expect(parsed.result.fetchedAt).toBe("2026-03-10T12:00:00.000Z");
-    expect(parsed.result.contentSize).toBe(42);
-    expect(parsed.result.truncated).toBe(false);
+    expect(result.url).toBe("https://example.com");
+    expect(result.resolvedUrl).toBe("https://example.com/");
+    expect(result.finalUrl).toBe("https://example.com/");
+    expect(result.title).toBe("Example Domain");
+    expect(result.metadata.description).toBe("An example page");
+    expect(result.metadata.author).toBe("IANA");
+    expect(result.markdown).toBe("# Example\n\nThis is an example.");
+    expect(result.fromCache).toBe(true);
+    expect(result.fetchedAt).toBe("2026-03-10T12:00:00.000Z");
+    expect(result.contentSize).toBe(42);
+    expect(result.truncated).toBe(false);
   });
 
   it("maps isError: true to TransformError", () => {
@@ -60,12 +78,9 @@ describe("parseMcpResult", () => {
       isError: true,
     };
 
-    const parsed = parseMcpResult(raw);
-    expect(parsed.ok).toBe(false);
-    if (parsed.ok) return;
-
-    expect(parsed.error.code).toBe("VALIDATION_ERROR");
-    expect(parsed.error.retryable).toBe(false);
+    const error = expectErrorResult(parseMcpResult(raw));
+    expect(error.code).toBe("VALIDATION_ERROR");
+    expect(error.retryable).toBe(false);
   });
 
   it("falls back to text content parsing when structuredContent is absent", () => {
@@ -73,27 +88,20 @@ describe("parseMcpResult", () => {
       content: textContent(JSON.stringify(sampleResult)),
     };
 
-    const parsed = parseMcpResult(raw);
-    expect(parsed.ok).toBe(true);
-    if (!parsed.ok) return;
-
-    expect(parsed.result.url).toBe("https://example.com");
-    expect(parsed.result.markdown).toBe("# Example\n\nThis is an example.");
+    const result = expectSuccessResult(parseMcpResult(raw));
+    expect(result.url).toBe("https://example.com");
+    expect(result.markdown).toBe("# Example\n\nThis is an example.");
   });
 
   it("returns INTERNAL_ERROR for empty content", () => {
     const raw: CallToolResult = { content: [] };
-    const parsed = parseMcpResult(raw);
-    expect(parsed.ok).toBe(false);
-    if (parsed.ok) return;
-    expect(parsed.error.code).toBe("INTERNAL_ERROR");
+    const error = expectErrorResult(parseMcpResult(raw));
+    expect(error.code).toBe("INTERNAL_ERROR");
   });
 
   it("returns INTERNAL_ERROR for unparseable text content", () => {
     const raw: CallToolResult = { content: textContent("not json") };
-    const parsed = parseMcpResult(raw);
-    expect(parsed.ok).toBe(false);
-    if (parsed.ok) return;
-    expect(parsed.error.code).toBe("INTERNAL_ERROR");
+    const error = expectErrorResult(parseMcpResult(raw));
+    expect(error.code).toBe("INTERNAL_ERROR");
   });
 });

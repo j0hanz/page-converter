@@ -219,21 +219,25 @@ export function parseMcpResult(raw: CallToolResult): ParsedMcpResult {
     return getContentParseFailure(raw);
   }
 
-  if (raw.isError) {
-    return {
-      ok: false,
-      error: mapMcpError(unwrapRecord(payload, "error")),
-    };
-  }
-
-  return {
-    ok: true,
-    result: mapToTransformResult(unwrapRecord(payload, "result")),
-  };
+  return raw.isError ? parseErrorResult(payload) : parseSuccessResult(payload);
 }
 
 function readPayloadRecord(raw: CallToolResult): JsonRecord | null {
   return asRecord(raw.structuredContent) ?? parseFirstTextRecord(raw);
+}
+
+function parseErrorResult(payload: JsonRecord): ParsedMcpResult {
+  return {
+    ok: false,
+    error: mapMcpError(unwrapRecord(payload, "error")),
+  };
+}
+
+function parseSuccessResult(payload: JsonRecord): ParsedMcpResult {
+  return {
+    ok: true,
+    result: mapToTransformResult(unwrapRecord(payload, "result")),
+  };
 }
 
 function getContentParseFailure(raw: CallToolResult): ParsedMcpResult {
@@ -263,11 +267,7 @@ function parseFirstTextRecord(raw: CallToolResult): JsonRecord | null {
     return null;
   }
 
-  try {
-    return asRecord(JSON.parse(text));
-  } catch {
-    return null;
-  }
+  return parseJsonRecord(text);
 }
 
 function getFirstTextBlock(raw: CallToolResult): string | null {
@@ -281,6 +281,14 @@ function getFirstTextBlock(raw: CallToolResult): string | null {
 
 function unwrapRecord(record: JsonRecord, key: string): JsonRecord {
   return asRecord(record[key]) ?? record;
+}
+
+function parseJsonRecord(value: string): JsonRecord | null {
+  try {
+    return asRecord(JSON.parse(value));
+  } catch {
+    return null;
+  }
 }
 
 function asRecord(value: unknown): JsonRecord | null {

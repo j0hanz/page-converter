@@ -69,6 +69,7 @@ export const NDJSON_CONTENT_TYPE = "application/x-ndjson";
 export const STREAM_PROGRESS_TOTAL = 8;
 export const NETWORK_ERROR_MESSAGE = "Network error. Please try again.";
 export const UNEXPECTED_RESPONSE_MESSAGE = "Unexpected response format.";
+const EMPTY_STREAM_MESSAGE = "";
 
 type TransformErrorOptions = Omit<TransformError, "code" | "message">;
 
@@ -79,21 +80,33 @@ export function createTransformError(
   message: string,
   options: Partial<TransformErrorOptions> = {},
 ): TransformError {
-  const error: TransformError = {
-    code,
-    message,
-    retryable: options.retryable ?? false,
+  return withTransformErrorOptions(
+    {
+      code,
+      message,
+      retryable: options.retryable ?? false,
+    },
+    options,
+  );
+}
+
+function withTransformErrorOptions(
+  error: TransformError,
+  options: Partial<TransformErrorOptions>,
+): TransformError {
+  const result: TransformError = {
+    ...error,
   };
 
   if (options.statusCode !== undefined) {
-    error.statusCode = options.statusCode;
+    result.statusCode = options.statusCode;
   }
 
   if (options.details !== undefined) {
-    error.details = options.details;
+    result.details = options.details;
   }
 
-  return error;
+  return result;
 }
 
 export function createInternalError(
@@ -135,7 +148,7 @@ export function createStreamProgressEvent(
     type: "progress",
     progress,
     total: resolveProgressTotal(total),
-    message: message ?? "",
+    message: message ?? EMPTY_STREAM_MESSAGE,
   };
 }
 

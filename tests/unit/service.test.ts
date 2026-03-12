@@ -16,6 +16,7 @@ vi.mock("@/lib/mcp", async (importOriginal) => {
 });
 
 const callFetchUrlMock = vi.mocked(callFetchUrl);
+const VALID_REQUEST = { url: "https://example.com" };
 
 const successResult: CallToolResult = {
   content: [],
@@ -44,7 +45,7 @@ describe("transformUrl", () => {
       )
       .mockResolvedValueOnce(successResult);
 
-    const response = await transformUrl({ url: "https://example.com" });
+    const response = await transformUrl(VALID_REQUEST);
 
     expect(callFetchUrlMock).toHaveBeenCalledTimes(2);
     expect(response.ok).toBe(true);
@@ -55,11 +56,14 @@ describe("transformUrl", () => {
       new McpError(ErrorCode.MethodNotFound, "tools/call not supported"),
     );
 
-    const response = await transformUrl({ url: "https://example.com" });
+    const response = await transformUrl(VALID_REQUEST);
 
     expect(callFetchUrlMock).toHaveBeenCalledTimes(1);
     expect(response.ok).toBe(false);
-    if (response.ok) return;
+    if (response.ok) {
+      throw new Error("Expected transformUrl to return an error response.");
+    }
+
     expect(response.error.code).toBe("INTERNAL_ERROR");
     expect(response.error.retryable).toBe(false);
   });

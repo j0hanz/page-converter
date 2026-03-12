@@ -62,6 +62,36 @@ function createErrorResponse(error: TransformError): Response {
   );
 }
 
+function createAbortHandler(
+  request: Request,
+  controller: ReadableStreamDefaultController<Uint8Array>,
+) {
+  let closed = false;
+
+  const closeStream = () => {
+    if (closed) {
+      return;
+    }
+
+    closed = true;
+    request.signal.removeEventListener("abort", closeStream);
+    controller.close();
+  };
+
+  return {
+    closeStream,
+    isClosed: () => closed,
+  };
+}
+
+function writeNdjsonEvent(
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  encoder: TextEncoder,
+  event: StreamEvent,
+): void {
+  controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
+}
+
 function createNdjsonResponseStream(
   request: Request,
   handleTransform: (
@@ -70,29 +100,20 @@ function createNdjsonResponseStream(
 ) {
   const encoder = new TextEncoder();
 
-  return new ReadableStream({
-    async start(controller) {
-      let closed = false;
-
-      const closeStream = () => {
-        if (closed) {
-          return;
-        }
-
-        closed = true;
-        request.signal.removeEventListener("abort", closeStream);
-        controller.close();
-      };
-
+  return new ReadableStream<Uint8Array>({
+    async start(controller: ReadableStreamDefaultController<Uint8Array>) {
+      const abortHandler = createAbortHandler(request, controller);
       const writeLine = (event: StreamEvent) => {
-        if (closed) {
+        if (abortHandler.isClosed()) {
           return;
         }
 
-        controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
+        writeNdjsonEvent(controller, encoder, event);
       };
 
-      request.signal.addEventListener("abort", closeStream, { once: true });
+      request.signal.addEventListener("abort", abortHandler.closeStream, {
+        once: true,
+      });
 
       try {
         if (request.signal.aborted) {
@@ -113,7 +134,7 @@ function createNdjsonResponseStream(
           writeLine({ type: "result", ...response });
         }
       } finally {
-        closeStream();
+        abortHandler.closeStream();
       }
     },
   });

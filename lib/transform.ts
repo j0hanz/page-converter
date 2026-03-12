@@ -13,6 +13,7 @@ const RETRYABLE_TRANSPORT_ERROR_CODES = new Set<ErrorCode>([
   ErrorCode.ConnectionClosed,
 ]);
 const MAX_TRANSFORM_ATTEMPTS = 2;
+const FALLBACK_INTERNAL_ERROR_MESSAGE = "Transform failed to execute.";
 
 async function executeTransform(
   request: TransformRequest,
@@ -36,18 +37,25 @@ export async function transformUrl(
   for (let attempt = 1; attempt <= MAX_TRANSFORM_ATTEMPTS; attempt += 1) {
     const response = await executeTransform(request, onProgress);
 
-    if (!shouldRetry(response) || attempt === MAX_TRANSFORM_ATTEMPTS) {
+    if (shouldReturnResponse(response, attempt)) {
       return response;
     }
   }
 
-  return createInternalErrorResponse("Transform failed to execute.");
+  return createInternalErrorResponse(FALLBACK_INTERNAL_ERROR_MESSAGE);
 }
 
 function shouldRetry(
   response: TransformResponse,
 ): response is TransformErrorResponse {
   return !response.ok && response.error.retryable;
+}
+
+function shouldReturnResponse(
+  response: TransformResponse,
+  attempt: number,
+): boolean {
+  return !shouldRetry(response) || attempt === MAX_TRANSFORM_ATTEMPTS;
 }
 
 function createInternalErrorResponse(message: string): TransformErrorResponse {
