@@ -1,5 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { POST } from "@/app/api/transform/route";
 import { validateTransformRequest, ValidationError } from "@/lib/validate";
+import { transformUrl } from "@/lib/transform";
+import type { TransformResponse } from "@/lib/api";
+
+vi.mock("@/lib/transform", () => ({
+  transformUrl: vi.fn(),
+}));
 
 const UNKNOWN_FIELDS = [
   { extra: true },
@@ -9,6 +16,19 @@ const UNKNOWN_FIELDS = [
 ] as const;
 const INVALID_BODIES = [null, [], "string"] as const;
 const VALID_URL = "https://example.com";
+const transformUrlMock = vi.mocked(transformUrl);
+const SUCCESS_RESPONSE: TransformResponse = {
+  ok: true,
+  result: {
+    url: VALID_URL,
+    metadata: {},
+    markdown: "# Example",
+    fromCache: false,
+    fetchedAt: "2026-03-11T00:00:00.000Z",
+    contentSize: 9,
+    truncated: false,
+  },
+};
 
 function expectValidationError(body: unknown, matcher?: RegExp): void {
   expect(() => validateTransformRequest(body)).toThrow(ValidationError);
@@ -18,7 +38,23 @@ function expectValidationError(body: unknown, matcher?: RegExp): void {
   }
 }
 
+function createJsonRequest(body: string): Request {
+  return new Request("http://localhost/api/transform", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+  });
+}
+
+function parseNdjsonLine(line: string): unknown {
+  return JSON.parse(line) as unknown;
+}
+
 describe("validateTransformRequest", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
   it("accepts a valid request with only url", () => {
     const result = validateTransformRequest({ url: VALID_URL });
     expect(result).toEqual({ url: VALID_URL });
@@ -60,5 +96,65 @@ describe("validateTransformRequest", () => {
 
   it.each(INVALID_BODIES)("rejects invalid body: %j", (body) => {
     expectValidationError(body);
+  });
+});
+
+describe("POST /api/transform", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("returns a validation error for invalid JSON payloads", async () => {
+    const response = await POST(createJsonRequest("not json"));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      ok: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid JSON body.",
+        retryable: false,
+      },
+    });
+  });
+
+  it("streams progress and the final result as NDJSON", async () => {
+    transformUrlMock.mockImplementation((_request, onProgress) => {
+      onProgress?.({
+        progress: 2,
+        total: 8,
+        message: "Fetching page",
+      });
+      return Promise.resolve(SUCCESS_RESPONSE);
+    });
+
+    const response = await POST(
+      createJsonRequest(JSON.stringify({ url: VALID_URL })),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("application/x-ndjson");
+    expect(transformUrlMock).toHaveBeenCalledWith(
+      { url: VALID_URL },
+      expect.any(Function),
+    );
+
+    const lines = (await response.text())
+      .trim()
+      .split("\n")
+      .map(parseNdjsonLine);
+
+    expect(lines).toEqual([
+      {
+        type: "progress",
+        progress: 2,
+        total: 8,
+        message: "Fetching page",
+      },
+      {
+        type: "result",
+        ...SUCCESS_RESPONSE,
+      },
+    ]);
   });
 });

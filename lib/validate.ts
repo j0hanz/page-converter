@@ -20,14 +20,14 @@ export class ValidationError extends Error {
 }
 
 export function validateTransformRequest(body: unknown): TransformRequest {
-  const record = asTransformRequestRecord(body);
-  validateAllowedFields(record);
-  const url = validateUrl(record.url);
+  const record = requireTransformRequestRecord(body);
+  assertAllowedFields(record);
+  const url = parseValidatedUrl(record.url);
 
   return { url };
 }
 
-function asTransformRequestRecord(body: unknown): TransformRequestRecord {
+function requireTransformRequestRecord(body: unknown): TransformRequestRecord {
   if (body === null || typeof body !== "object" || Array.isArray(body)) {
     throw new ValidationError(BODY_MUST_BE_OBJECT_MESSAGE);
   }
@@ -35,19 +35,25 @@ function asTransformRequestRecord(body: unknown): TransformRequestRecord {
   return body as TransformRequestRecord;
 }
 
-function validateAllowedFields(record: TransformRequestRecord): void {
+function assertAllowedFields(record: TransformRequestRecord): void {
   for (const key of Object.keys(record)) {
     assertAllowedField(key);
   }
 }
 
 function assertAllowedField(key: string): void {
-  if (!ALLOWED_FIELDS.has(key as keyof TransformRequest)) {
-    throw new ValidationError(`Unknown field: "${key}".`);
+  if (isAllowedField(key)) {
+    return;
   }
+
+  throw new ValidationError(`Unknown field: "${key}".`);
 }
 
-function validateUrl(value: unknown): string {
+function isAllowedField(key: string): key is keyof TransformRequest {
+  return ALLOWED_FIELDS.has(key as keyof TransformRequest);
+}
+
+function parseValidatedUrl(value: unknown): string {
   if (typeof value !== "string" || value.trim() === "") {
     throw new ValidationError(URL_REQUIRED_MESSAGE);
   }

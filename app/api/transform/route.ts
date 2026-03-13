@@ -29,6 +29,12 @@ const NDJSON_HEADERS = {
   "Cache-Control": "no-cache",
 } as const;
 
+interface StreamGuard {
+  close: () => void;
+  isClosed: () => boolean;
+  write: (event: StreamEvent) => void;
+}
+
 function readValidationErrorMessage(error: unknown): string {
   return error instanceof ValidationError ? error.message : "Invalid request.";
 }
@@ -84,12 +90,35 @@ function createAbortHandler(
   };
 }
 
-function writeNdjsonEvent(
-  controller: ReadableStreamDefaultController<Uint8Array>,
+function encodeNdjsonEvent(
   encoder: TextEncoder,
   event: StreamEvent,
-): void {
-  controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
+): Uint8Array {
+  return encoder.encode(JSON.stringify(event) + "\n");
+}
+
+function createStreamGuard(
+  request: Request,
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  encoder: TextEncoder,
+): StreamGuard {
+  const abortHandler = createAbortHandler(request, controller);
+
+  request.signal.addEventListener("abort", abortHandler.closeStream, {
+    once: true,
+  });
+
+  return {
+    close: abortHandler.closeStream,
+    isClosed: abortHandler.isClosed,
+    write(event: StreamEvent) {
+      if (abortHandler.isClosed()) {
+        return;
+      }
+
+      controller.enqueue(encodeNdjsonEvent(encoder, event));
+    },
+  };
 }
 
 function createNdjsonResponseStream(
@@ -102,18 +131,7 @@ function createNdjsonResponseStream(
 
   return new ReadableStream<Uint8Array>({
     async start(controller: ReadableStreamDefaultController<Uint8Array>) {
-      const abortHandler = createAbortHandler(request, controller);
-      const writeLine = (event: StreamEvent) => {
-        if (abortHandler.isClosed()) {
-          return;
-        }
-
-        writeNdjsonEvent(controller, encoder, event);
-      };
-
-      request.signal.addEventListener("abort", abortHandler.closeStream, {
-        once: true,
-      });
+      const streamGuard = createStreamGuard(request, controller, encoder);
 
       try {
         if (request.signal.aborted) {
@@ -121,7 +139,7 @@ function createNdjsonResponseStream(
         }
 
         const response = await handleTransform((progress) => {
-          writeLine(
+          streamGuard.write(
             createStreamProgressEvent(
               progress.progress,
               progress.total,
@@ -131,10 +149,10 @@ function createNdjsonResponseStream(
         });
 
         if (!request.signal.aborted) {
-          writeLine({ type: "result", ...response });
+          streamGuard.write({ type: "result", ...response });
         }
       } finally {
-        abortHandler.closeStream();
+        streamGuard.close();
       }
     },
   });

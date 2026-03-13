@@ -37,7 +37,7 @@ export async function transformUrl(
   for (let attempt = 1; attempt <= MAX_TRANSFORM_ATTEMPTS; attempt += 1) {
     const response = await executeTransform(request, onProgress);
 
-    if (shouldReturnResponse(response, attempt)) {
+    if (!shouldRetryResponse(response, attempt)) {
       return response;
     }
   }
@@ -45,17 +45,17 @@ export async function transformUrl(
   return createInternalErrorResponse(FALLBACK_INTERNAL_ERROR_MESSAGE);
 }
 
-function shouldRetry(
+function isRetryableErrorResponse(
   response: TransformResponse,
 ): response is TransformErrorResponse {
   return !response.ok && response.error.retryable;
 }
 
-function shouldReturnResponse(
+function shouldRetryResponse(
   response: TransformResponse,
   attempt: number,
 ): boolean {
-  return !shouldRetry(response) || attempt === MAX_TRANSFORM_ATTEMPTS;
+  return isRetryableErrorResponse(response) && attempt < MAX_TRANSFORM_ATTEMPTS;
 }
 
 function createInternalErrorResponse(message: string): TransformErrorResponse {

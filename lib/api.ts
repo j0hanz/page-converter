@@ -72,6 +72,7 @@ export const UNEXPECTED_RESPONSE_MESSAGE = "Unexpected response format.";
 const EMPTY_STREAM_MESSAGE = "";
 
 type TransformErrorOptions = Omit<TransformError, "code" | "message">;
+type TransformErrorOverrides = Pick<TransformError, "statusCode" | "details">;
 
 type JsonRecord = Record<string, unknown>;
 
@@ -94,19 +95,17 @@ function withTransformErrorOptions(
   error: TransformError,
   options: Partial<TransformErrorOptions>,
 ): TransformError {
-  const result: TransformError = {
-    ...error,
-  };
+  const overrides: TransformErrorOverrides = {};
 
   if (options.statusCode !== undefined) {
-    result.statusCode = options.statusCode;
+    overrides.statusCode = options.statusCode;
   }
 
   if (options.details !== undefined) {
-    result.details = options.details;
+    overrides.details = options.details;
   }
 
-  return result;
+  return { ...error, ...overrides };
 }
 
 export function createInternalError(
@@ -157,9 +156,10 @@ export function normalizeStreamProgressEvent(
   previous?: StreamProgressEvent | null,
 ): StreamProgressEvent {
   const total = resolveProgressTotal(event.total, previous?.total);
+  const previousProgress = previous?.progress ?? 0;
 
   return createStreamProgressEvent(
-    Math.max(event.progress, previous?.progress ?? 0),
+    Math.max(event.progress, previousProgress),
     total,
     event.message,
   );

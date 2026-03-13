@@ -5,6 +5,12 @@ import type {
   Progress,
 } from "@modelcontextprotocol/sdk/types.js";
 import path from "node:path";
+import type {
+  TransformError,
+  TransformMetadata,
+  TransformResult,
+} from "@/lib/api";
+import { createInternalError, createTransformError } from "@/lib/api";
 
 export interface FetchUrlArgs {
   url: string;
@@ -108,13 +114,6 @@ function getFetchUrlTransportCommand(): string {
   );
 }
 
-import type {
-  TransformError,
-  TransformResult,
-  TransformMetadata,
-} from "@/lib/api";
-import { createInternalError, createTransformError } from "@/lib/api";
-
 const METADATA_FIELDS = [
   "description",
   "author",
@@ -138,8 +137,9 @@ const KNOWN_MCP_ERRORS = {
 
 type JsonRecord = Record<string, unknown>;
 type KnownMcpErrorCode = keyof typeof KNOWN_MCP_ERRORS;
+type KnownMcpErrorDefinition = (typeof KNOWN_MCP_ERRORS)[KnownMcpErrorCode];
 
-function readKnownMcpError(code: string) {
+function readKnownMcpError(code: string): KnownMcpErrorDefinition | undefined {
   return KNOWN_MCP_ERRORS[code as KnownMcpErrorCode];
 }
 
@@ -167,13 +167,17 @@ function mapUnknownMcpError(code: string, message: string): TransformError {
 
   const statusCode = readHttpStatusCode(code);
   return createTransformError("HTTP_ERROR", message, {
-    retryable: !Number.isNaN(statusCode) && statusCode >= 500,
-    statusCode: Number.isNaN(statusCode) ? undefined : statusCode,
+    retryable: statusCode !== undefined && statusCode >= 500,
+    statusCode,
   });
 }
 
-function readHttpStatusCode(code: string): number {
-  return Number.parseInt(code.slice(HTTP_ERROR_CODE_PREFIX.length), 10);
+function readHttpStatusCode(code: string): number | undefined {
+  const statusCode = Number.parseInt(
+    code.slice(HTTP_ERROR_CODE_PREFIX.length),
+    10,
+  );
+  return Number.isNaN(statusCode) ? undefined : statusCode;
 }
 
 function extractMetadata(data: JsonRecord): TransformMetadata {
@@ -216,31 +220,33 @@ export type ParsedMcpResult =
 export function parseMcpResult(raw: CallToolResult): ParsedMcpResult {
   const payload = readPayloadRecord(raw);
   if (!payload) {
-    return getContentParseFailure(raw);
+    return createPayloadParseFailure(raw);
   }
 
-  return raw.isError ? parseErrorResult(payload) : parseSuccessResult(payload);
+  return raw.isError
+    ? createErrorResult(payload)
+    : createSuccessResult(payload);
 }
 
 function readPayloadRecord(raw: CallToolResult): JsonRecord | null {
   return asRecord(raw.structuredContent) ?? parseFirstTextRecord(raw);
 }
 
-function parseErrorResult(payload: JsonRecord): ParsedMcpResult {
+function createErrorResult(payload: JsonRecord): ParsedMcpResult {
   return {
     ok: false,
     error: mapMcpError(unwrapRecord(payload, "error")),
   };
 }
 
-function parseSuccessResult(payload: JsonRecord): ParsedMcpResult {
+function createSuccessResult(payload: JsonRecord): ParsedMcpResult {
   return {
     ok: true,
     result: mapToTransformResult(unwrapRecord(payload, "result")),
   };
 }
 
-function getContentParseFailure(raw: CallToolResult): ParsedMcpResult {
+function createPayloadParseFailure(raw: CallToolResult): ParsedMcpResult {
   if (raw.isError) {
     return {
       ok: false,
