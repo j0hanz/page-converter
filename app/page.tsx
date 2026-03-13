@@ -18,8 +18,8 @@ export default async function Home() {
   );
   return (
     <Box sx={{ minHeight: "100dvh", py: { xs: 2, sm: 4, md: 6 } }}>
-      <Container maxWidth="md">
-        <Stack spacing={{ xs: 2, sm: 4 }}>
+      <Container maxWidth="lg">
+        <Stack spacing={{ xs: 3, sm: 4 }}>
           <Stack
             direction="row"
             justifyContent="space-between"
