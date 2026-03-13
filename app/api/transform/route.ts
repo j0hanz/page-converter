@@ -29,6 +29,8 @@ const NDJSON_HEADERS = {
   "Cache-Control": "no-cache",
 } as const;
 
+const MAX_REQUEST_BODY_SIZE = 4096;
+
 interface StreamGuard {
   close: () => void;
   isClosed: () => boolean;
@@ -53,6 +55,16 @@ function validateRequestBody(body: unknown): TransformRequest {
   } catch (error) {
     throw new ValidationError(readValidationErrorMessage(error));
   }
+}
+
+function isOversizedRequest(request: Request): boolean {
+  const contentLength = request.headers.get("content-length");
+  if (contentLength === null) {
+    return false;
+  }
+
+  const size = Number.parseInt(contentLength, 10);
+  return !Number.isNaN(size) && size > MAX_REQUEST_BODY_SIZE;
 }
 
 function createValidationErrorResponse(message: string): Response {
@@ -159,6 +171,10 @@ function createNdjsonResponseStream(
 }
 
 export async function POST(request: Request) {
+  if (isOversizedRequest(request)) {
+    return createValidationErrorResponse("Request body too large.");
+  }
+
   try {
     const body = await readRequestBody(request);
     const validated = validateRequestBody(body);

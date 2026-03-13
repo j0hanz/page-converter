@@ -42,7 +42,6 @@ function createTransport() {
 
 function resetInstance() {
   globalForMcp.__mcpInstance = undefined;
-  globalForMcp.__mcpConnecting = undefined;
 }
 
 function createClient(): Client {
@@ -69,15 +68,19 @@ async function getConnectedClient(): Promise<Client> {
   }
 
   globalForMcp.__mcpConnecting = (async () => {
-    const client = createClient();
     const transport = createTransport();
+    const client = createClient();
 
-    await client.connect(transport);
-
-    globalForMcp.__mcpInstance = { client, transport };
-    globalForMcp.__mcpConnecting = undefined;
-
-    return client;
+    try {
+      await client.connect(transport);
+      globalForMcp.__mcpInstance = { client, transport };
+      return client;
+    } catch (error) {
+      await transport.close().catch(() => {});
+      throw error;
+    } finally {
+      globalForMcp.__mcpConnecting = undefined;
+    }
   })();
 
   return globalForMcp.__mcpConnecting;

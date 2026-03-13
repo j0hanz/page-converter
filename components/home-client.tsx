@@ -49,7 +49,7 @@ function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "loading":
       return action.loading
-        ? { ...state, loading: true, progress: null }
+        ? { ...initialState, loading: true }
         : { ...state, loading: false };
     case "progress":
       if (state.progress && isTerminalStreamProgressEvent(state.progress)) {
