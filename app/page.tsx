@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import IconButton from "@mui/material/IconButton";
@@ -9,7 +11,11 @@ import HomeClient from "@/components/home-client";
 import AboutDialog from "@/components/about-dialog";
 import ThemeToggle from "@/components/theme-toggle";
 
-export default function Home() {
+export default async function Home() {
+  const markdown = await readFile(
+    join(process.cwd(), "public", "about.md"),
+    "utf-8",
+  );
   return (
     <Box sx={{ minHeight: "100dvh", py: { xs: 2, sm: 4, md: 6 } }}>
       <Container maxWidth="md">
@@ -28,7 +34,7 @@ export default function Home() {
               </Typography>
             </div>
             <Stack direction="row" spacing={{ xs: 1, sm: 2 }}>
-              <AboutDialog />
+              <AboutDialog markdown={markdown} />
               <Tooltip title="View on GitHub">
                 <IconButton
                   component="a"

@@ -1,18 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
-import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import { MarkdownErrorBoundary } from "@/components/error";
+import { MarkdownSkeleton } from "@/components/loading";
 
-export default function AboutDialog() {
+const MarkdownPreview = lazy(() => import("@/components/markdown-preview"));
+
+export default function AboutDialog({ markdown }: { markdown: string }) {
   const [open, setOpen] = useState(false);
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
     <>
@@ -31,19 +36,21 @@ export default function AboutDialog() {
         open={open}
         onClose={() => setOpen(false)}
         aria-labelledby="about-dialog-title"
-        aria-describedby="about-dialog-description"
+        maxWidth="sm"
+        fullWidth
+        fullScreen={fullScreen}
+        scroll="paper"
       >
-        <DialogTitle id="about-dialog-title">About Page Converter</DialogTitle>
-        <DialogContent>
-          <DialogContentText id="about-dialog-description">
-            Page Converter turns any public web page into clean, readable
-            Markdown. Paste a URL, hit convert, and get well-formatted Markdown
-            ready for docs, notes, or further processing.
-          </DialogContentText>
+        <DialogContent dividers>
+          <MarkdownErrorBoundary>
+            <Suspense fallback={<MarkdownSkeleton />}>
+              <MarkdownPreview>{markdown}</MarkdownPreview>
+            </Suspense>
+          </MarkdownErrorBoundary>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>Close</Button>
-        </DialogActions>
+        <Button fullWidth size="large" onClick={() => setOpen(false)}>
+          Close
+        </Button>
       </Dialog>
     </>
   );
