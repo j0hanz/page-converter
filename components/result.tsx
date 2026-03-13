@@ -193,8 +193,8 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
         </Stack>
         <Paper
           sx={{
-            p: 2.5,
-            maxHeight: MARKDOWN_PANEL_MAX_HEIGHT,
+            p: { xs: 1.5, sm: 2.5 },
+            maxHeight: { xs: 350, sm: 450, md: MARKDOWN_PANEL_MAX_HEIGHT },
             overflow: "auto",
             border: "1px solid",
             borderColor: "divider",

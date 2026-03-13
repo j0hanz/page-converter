@@ -24,7 +24,7 @@ export default function GlobalError({
             <ErrorState
               error={error}
               fallbackMessage="A critical error occurred."
-              minHeight="100vh"
+              minHeight="100dvh"
               reset={reset}
             />
           </ThemeProvider>

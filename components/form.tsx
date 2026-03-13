@@ -240,7 +240,7 @@ export default function TransformForm({
             fullWidth
             color="error"
             onClick={handleCancel}
-            sx={{ alignSelf: "flex-start" }}
+            sx={{ alignSelf: "flex-start", maxWidth: { sm: 200 } }}
           >
             Cancel
           </Button>
@@ -249,7 +249,7 @@ export default function TransformForm({
             type="submit"
             variant="contained"
             fullWidth
-            sx={{ alignSelf: "flex-start" }}
+            sx={{ alignSelf: "flex-start", maxWidth: { sm: 200 } }}
           >
             Convert
           </Button>

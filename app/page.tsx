@@ -6,9 +6,9 @@ import HomeClient from "@/components/home-client";
 
 export default function Home() {
   return (
-    <Box sx={{ minHeight: "100vh", py: 8 }}>
+    <Box sx={{ minHeight: "100dvh", py: { xs: 3, sm: 5, md: 8 } }}>
       <Container maxWidth="md">
-        <Stack spacing={4}>
+        <Stack spacing={{ xs: 2.5, sm: 4 }}>
           <div>
             <Typography variant="h4" component="h1" fontWeight="bold">
               Page Converter
