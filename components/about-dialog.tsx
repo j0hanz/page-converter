@@ -20,7 +20,7 @@ const MarkdownPreview = lazy(() => import("@/components/markdown-preview"));
 
 interface AboutDialogProps {
   markdown: string;
-  architectureMarkdown: string;
+  howItWorksMarkdown: string;
 }
 
 interface TabPanelProps {
@@ -51,7 +51,7 @@ function a11yProps(index: number) {
 
 export default function AboutDialog({
   markdown,
-  architectureMarkdown,
+  howItWorksMarkdown,
 }: AboutDialogProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState(0);
@@ -105,7 +105,7 @@ export default function AboutDialog({
           <TabPanel value={tab} index={1}>
             <MarkdownErrorBoundary>
               <Suspense fallback={<MarkdownSkeleton />}>
-                <MarkdownPreview>{architectureMarkdown}</MarkdownPreview>
+                <MarkdownPreview>{howItWorksMarkdown}</MarkdownPreview>
               </Suspense>
             </MarkdownErrorBoundary>
           </TabPanel>
