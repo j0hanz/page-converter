@@ -39,7 +39,7 @@ type ActionButton = {
 };
 
 const COPY_RESET_DELAY_MS = 2000;
-const MARKDOWN_FONT_FAMILY = "var(--font-geist-mono), monospace";
+const MARKDOWN_FONT_FAMILY = "'Geist Mono Variable', monospace";
 
 const VIEW_MODE_BUTTONS = [
   { mode: "preview", label: "Preview", icon: VisibilityIcon },

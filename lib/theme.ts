@@ -24,7 +24,7 @@ const theme = responsiveFontSizes(
       },
     },
     typography: {
-      fontFamily: "var(--font-geist-sans)",
+      fontFamily: "'Geist Variable', sans-serif",
     },
     components: {
       MuiPaper: {
