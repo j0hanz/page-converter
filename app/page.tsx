@@ -5,6 +5,7 @@ import Container from "@mui/material/Container";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
+import Toolbar from "@mui/material/Toolbar";
 import Tooltip from "@mui/material/Tooltip";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import HomeClient from "@/components/home-client";
@@ -20,19 +21,15 @@ export default async function Home() {
     <Box sx={{ minHeight: "100dvh", py: { xs: 2, sm: 4, md: 6 } }}>
       <Container maxWidth="lg">
         <Stack spacing={{ xs: 3, sm: 4 }}>
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="flex-start"
-          >
-            <div>
+          <Toolbar disableGutters sx={{ alignItems: "flex-start" }}>
+            <Box sx={{ flexGrow: 1 }}>
               <Typography variant="h4" component="h1" gutterBottom>
                 Page Converter
               </Typography>
               <Typography variant="subtitle1" color="text.secondary">
                 Turn web pages into clean Markdown
               </Typography>
-            </div>
+            </Box>
             <Stack direction="row" spacing={{ xs: 1, sm: 2 }}>
               <AboutDialog
                 markdown={markdown}
@@ -54,7 +51,7 @@ export default async function Home() {
               </Tooltip>
               <ThemeToggle />
             </Stack>
-          </Stack>
+          </Toolbar>
 
           <HomeClient />
         </Stack>

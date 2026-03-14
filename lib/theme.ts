@@ -27,6 +27,11 @@ const theme = responsiveFontSizes(
       fontFamily: "'Geist Variable', sans-serif",
     },
     components: {
+      MuiAlert: {
+        defaultProps: {
+          variant: "outlined",
+        },
+      },
       MuiPaper: {
         styleOverrides: {
           root: {

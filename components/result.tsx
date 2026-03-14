@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  lazy,
-  Suspense,
-  type RefObject,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { lazy, Suspense, useState } from "react";
 import Stack from "@mui/material/Stack";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -18,7 +11,10 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import CodeIcon from "@mui/icons-material/Code";
 import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
+import Snackbar from "@mui/material/Snackbar";
 import Tooltip from "@mui/material/Tooltip";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import type { TransformResult } from "@/lib/api";
 import { MarkdownErrorBoundary } from "@/components/error";
 import { MarkdownSkeleton } from "@/components/loading";
@@ -32,50 +28,9 @@ interface TransformResultProps {
 }
 
 type ViewMode = "preview" | "code";
-type ActionButton = {
-  label: string;
-  copiedLabel?: string;
-  icon: typeof ContentCopyIcon;
-};
 
-const COPY_RESET_DELAY_MS = 2000;
+const COPY_FEEDBACK_DELAY_MS = 2000;
 const MARKDOWN_FONT_FAMILY = "'Geist Mono Variable', monospace";
-
-const VIEW_MODE_BUTTONS = [
-  { mode: "preview", label: "Preview", icon: VisibilityIcon },
-  { mode: "code", label: "Code", icon: CodeIcon },
-] as const satisfies readonly {
-  mode: ViewMode;
-  label: string;
-  icon: typeof VisibilityIcon;
-}[];
-
-const ACTION_BUTTONS: readonly ActionButton[] = [
-  { label: "Copy Markdown", copiedLabel: "Copied!", icon: ContentCopyIcon },
-  { label: "Download Markdown", icon: DownloadIcon },
-];
-
-function clearScheduledTimeout(
-  timeoutRef: RefObject<ReturnType<typeof setTimeout> | null>,
-) {
-  if (timeoutRef.current === null) {
-    return;
-  }
-
-  clearTimeout(timeoutRef.current);
-  timeoutRef.current = null;
-}
-
-function scheduleCopiedReset(
-  timeoutRef: RefObject<ReturnType<typeof setTimeout> | null>,
-  onReset: () => void,
-) {
-  clearScheduledTimeout(timeoutRef);
-  timeoutRef.current = setTimeout(() => {
-    timeoutRef.current = null;
-    onReset();
-  }, COPY_RESET_DELAY_MS);
-}
 
 function downloadMarkdownFile(title: string | undefined, markdown: string) {
   const blob = new Blob([markdown], { type: "text/markdown" });
@@ -98,28 +53,13 @@ type CopyStatus = "idle" | "copied" | "failed";
 export default function TransformResultPanel({ result }: TransformResultProps) {
   const [copyStatus, setCopyStatus] = useState<CopyStatus>("idle");
   const [viewMode, setViewMode] = useState<ViewMode>("preview");
-  const copyResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-
-  useEffect(() => {
-    return () => {
-      clearScheduledTimeout(copyResetTimeoutRef);
-    };
-  }, []);
 
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(result.markdown);
       setCopyStatus("copied");
-      scheduleCopiedReset(copyResetTimeoutRef, () => {
-        setCopyStatus("idle");
-      });
     } catch {
       setCopyStatus("failed");
-      scheduleCopiedReset(copyResetTimeoutRef, () => {
-        setCopyStatus("idle");
-      });
     }
   }
 
@@ -131,7 +71,7 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
     <Stack spacing={3}>
       {/* Truncation Warning */}
       {result.truncated && (
-        <Alert severity="warning" variant="outlined">
+        <Alert severity="warning">
           Content was truncated. The full page may be too large to return in one
           response.
         </Alert>
@@ -144,52 +84,54 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
           justifyContent="space-between"
           alignItems="center"
         >
-          <Stack direction="row">
-            {VIEW_MODE_BUTTONS.map(({ mode, label, icon: Icon }) => (
-              <Tooltip key={mode} title={label}>
-                <IconButton
-                  size="large"
-                  aria-label={label}
-                  onClick={() => setViewMode(mode)}
-                  color={viewMode === mode ? "success" : "default"}
-                >
-                  <Icon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            ))}
-          </Stack>
-          <Stack direction="row">
-            {ACTION_BUTTONS.map(({ label, copiedLabel, icon: Icon }) => {
-              const isCopyAction = label === "Copy Markdown";
-
-              return (
-                <Tooltip
-                  key={label}
-                  title={
-                    isCopyAction && copyStatus === "failed"
-                      ? "Failed to copy"
-                      : isCopyAction && copyStatus === "copied"
-                        ? copiedLabel
-                        : label
-                  }
-                >
-                  <IconButton
-                    size="large"
-                    aria-label={label}
-                    onClick={isCopyAction ? handleCopy : handleDownload}
-                    color={
-                      isCopyAction && copyStatus === "failed"
-                        ? "error"
-                        : isCopyAction && copyStatus === "copied"
-                          ? "success"
-                          : "default"
-                    }
-                  >
-                    <Icon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              );
-            })}
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={(_e, v: ViewMode | null) => {
+              if (v !== null) setViewMode(v);
+            }}
+            size="small"
+            aria-label="View mode"
+          >
+            <ToggleButton
+              sx={{ border: 0, minWidth: 50 }}
+              value="preview"
+              aria-label="Preview"
+            >
+              <VisibilityIcon fontSize="small" />
+            </ToggleButton>
+            <ToggleButton
+              sx={{ border: 0, minWidth: 50 }}
+              value="code"
+              aria-label="Code"
+            >
+              <CodeIcon fontSize="small" />
+            </ToggleButton>
+          </ToggleButtonGroup>
+          <Stack direction="row" spacing={1}>
+            <Tooltip title="Copy Markdown">
+              <IconButton
+                aria-label="Copy Markdown"
+                onClick={handleCopy}
+                color={
+                  copyStatus === "failed"
+                    ? "error"
+                    : copyStatus === "copied"
+                      ? "success"
+                      : "default"
+                }
+              >
+                <ContentCopyIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Download Markdown">
+              <IconButton
+                aria-label="Download Markdown"
+                onClick={handleDownload}
+              >
+                <DownloadIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           </Stack>
         </Stack>
         <Paper
@@ -224,6 +166,15 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
           </Box>
         </Paper>
       </section>
+
+      <Snackbar
+        open={copyStatus !== "idle"}
+        autoHideDuration={COPY_FEEDBACK_DELAY_MS}
+        onClose={() => setCopyStatus("idle")}
+        message={
+          copyStatus === "copied" ? "Copied to clipboard" : "Failed to copy"
+        }
+      />
     </Stack>
   );
 }

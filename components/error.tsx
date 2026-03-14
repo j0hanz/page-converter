@@ -75,11 +75,7 @@ export class MarkdownErrorBoundary extends Component<
 
   override render() {
     if (this.state.hasError) {
-      return (
-        <Alert severity="error" variant="outlined">
-          Failed to render markdown preview.
-        </Alert>
-      );
+      return <Alert severity="error">Failed to render markdown preview.</Alert>;
     }
 
     return this.props.children;

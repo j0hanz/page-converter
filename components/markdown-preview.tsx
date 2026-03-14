@@ -112,8 +112,10 @@ const components: Components = {
       <Box
         component="code"
         sx={{
-          px: 0.6,
+          px: 0.4,
           py: 0.2,
+          bgcolor: "action.hover",
+          borderRadius: 0.5,
         }}
       >
         {children}

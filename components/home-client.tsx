@@ -2,7 +2,8 @@
 
 import { useReducer } from "react";
 import Alert from "@mui/material/Alert";
-import Typography from "@mui/material/Typography";
+import AlertTitle from "@mui/material/AlertTitle";
+import Collapse from "@mui/material/Collapse";
 import TransformForm from "@/components/form";
 import TransformResultPanel from "@/components/result";
 import { TransformProgress } from "@/components/loading";
@@ -27,7 +28,8 @@ type Action =
   | { type: "loading"; loading: boolean }
   | { type: "progress"; event: StreamProgressEvent }
   | { type: "result"; result: TransformResult }
-  | { type: "error"; error: TransformError };
+  | { type: "error"; error: TransformError }
+  | { type: "dismiss_error" };
 
 const initialState: State = {
   result: null,
@@ -69,6 +71,8 @@ function reducer(state: State, action: Action): State {
         ...clearResolvedState(state),
         error: action.error,
       };
+    case "dismiss_error":
+      return { ...state, error: null };
   }
 }
 
@@ -101,29 +105,32 @@ export default function HomeClient() {
       />
 
       <div aria-live="polite">
-        {state.loading && state.progress && (
-          <TransformProgress
-            progress={state.progress.progress}
-            total={state.progress.total}
-            message={state.progress.message}
-          />
-        )}
+        <Collapse in={state.loading && !!state.progress} unmountOnExit>
+          {state.progress && (
+            <TransformProgress
+              progress={state.progress.progress}
+              total={state.progress.total}
+              message={state.progress.message}
+            />
+          )}
+        </Collapse>
 
-        {state.error && !state.loading && (
-          <Alert severity="error" variant="outlined">
-            <Typography variant="body2" fontWeight="medium">
-              Error: {state.error.message}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
+        <Collapse in={!!state.error && !state.loading} unmountOnExit>
+          {state.error && (
+            <Alert
+              severity="error"
+              onClose={() => dispatch({ type: "dismiss_error" })}
+            >
+              <AlertTitle>{state.error.message}</AlertTitle>
               Code: {state.error.code}
               {state.error.retryable && " · Retryable"}
-            </Typography>
-          </Alert>
-        )}
+            </Alert>
+          )}
+        </Collapse>
 
-        {state.result && !state.loading && (
-          <TransformResultPanel result={state.result} />
-        )}
+        <Collapse in={!!state.result && !state.loading} unmountOnExit>
+          {state.result && <TransformResultPanel result={state.result} />}
+        </Collapse>
       </div>
     </>
   );
