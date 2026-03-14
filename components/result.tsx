@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useState, type ReactNode } from "react";
 import Stack from "@mui/material/Stack";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -31,6 +31,15 @@ type ViewMode = "preview" | "code";
 
 const COPY_FEEDBACK_DELAY_MS = 2000;
 const MARKDOWN_FONT_FAMILY = "'Geist Mono Variable', monospace";
+const TOGGLE_BUTTON_SX = { border: 0, minWidth: 50 } as const;
+const MARKDOWN_PANEL_SX = {
+  p: { xs: 1.5, sm: 2.5 },
+  maxHeight: { xs: 350, sm: 450, md: MARKDOWN_PANEL_MAX_HEIGHT },
+  overflow: "auto",
+  border: "1px solid",
+  borderColor: "divider",
+  borderRadius: 2,
+} as const;
 
 function downloadMarkdownFile(title: string | undefined, markdown: string) {
   const blob = new Blob([markdown], { type: "text/markdown" });
@@ -50,9 +59,60 @@ function downloadMarkdownFile(title: string | undefined, markdown: string) {
 
 type CopyStatus = "idle" | "copied" | "failed";
 
+type IconButtonColor = React.ComponentProps<typeof IconButton>["color"];
+
+interface ResultActionButtonProps {
+  ariaLabel: string;
+  title: string;
+  onClick: () => void;
+  children: ReactNode;
+  color?: IconButtonColor;
+}
+
+function ResultActionButton({
+  ariaLabel,
+  title,
+  onClick,
+  children,
+  color = "default",
+}: ResultActionButtonProps) {
+  return (
+    <Tooltip title={title}>
+      <IconButton aria-label={ariaLabel} onClick={onClick} color={color}>
+        {children}
+      </IconButton>
+    </Tooltip>
+  );
+}
+
+function readCopyStatusColor(copyStatus: CopyStatus): IconButtonColor {
+  switch (copyStatus) {
+    case "failed":
+      return "error";
+    case "copied":
+      return "success";
+    default:
+      return "default";
+  }
+}
+
+function readCopyStatusMessage(copyStatus: CopyStatus): string {
+  return copyStatus === "copied" ? "Copied to clipboard" : "Failed to copy";
+}
+
 export default function TransformResultPanel({ result }: TransformResultProps) {
   const [copyStatus, setCopyStatus] = useState<CopyStatus>("idle");
   const [viewMode, setViewMode] = useState<ViewMode>("preview");
+  const isPreviewMode = viewMode === "preview";
+
+  function handleViewModeChange(
+    _event: React.MouseEvent<HTMLElement>,
+    nextViewMode: ViewMode | null,
+  ) {
+    if (nextViewMode !== null) {
+      setViewMode(nextViewMode);
+    }
+  }
 
   async function handleCopy() {
     try {
@@ -87,71 +147,48 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
           <ToggleButtonGroup
             value={viewMode}
             exclusive
-            onChange={(_e, v: ViewMode | null) => {
-              if (v !== null) setViewMode(v);
-            }}
+            onChange={handleViewModeChange}
             size="small"
             aria-label="View mode"
           >
             <ToggleButton
-              sx={{ border: 0, minWidth: 50 }}
+              sx={TOGGLE_BUTTON_SX}
               value="preview"
               aria-label="Preview"
             >
               <VisibilityIcon fontSize="small" />
             </ToggleButton>
-            <ToggleButton
-              sx={{ border: 0, minWidth: 50 }}
-              value="code"
-              aria-label="Code"
-            >
+            <ToggleButton sx={TOGGLE_BUTTON_SX} value="code" aria-label="Code">
               <CodeIcon fontSize="small" />
             </ToggleButton>
           </ToggleButtonGroup>
           <Stack direction="row" spacing={1}>
-            <Tooltip title="Copy Markdown">
-              <IconButton
-                aria-label="Copy Markdown"
-                onClick={handleCopy}
-                color={
-                  copyStatus === "failed"
-                    ? "error"
-                    : copyStatus === "copied"
-                      ? "success"
-                      : "default"
-                }
-              >
-                <ContentCopyIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Download Markdown">
-              <IconButton
-                aria-label="Download Markdown"
-                onClick={handleDownload}
-              >
-                <DownloadIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <ResultActionButton
+              ariaLabel="Copy Markdown"
+              title="Copy Markdown"
+              onClick={handleCopy}
+              color={readCopyStatusColor(copyStatus)}
+            >
+              <ContentCopyIcon fontSize="small" />
+            </ResultActionButton>
+            <ResultActionButton
+              ariaLabel="Download Markdown"
+              title="Download Markdown"
+              onClick={handleDownload}
+            >
+              <DownloadIcon fontSize="small" />
+            </ResultActionButton>
           </Stack>
         </Stack>
-        <Paper
-          sx={{
-            p: { xs: 1.5, sm: 2.5 },
-            maxHeight: { xs: 350, sm: 450, md: MARKDOWN_PANEL_MAX_HEIGHT },
-            overflow: "auto",
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: 2,
-          }}
-        >
-          <Box sx={{ display: viewMode === "preview" ? "block" : "none" }}>
+        <Paper sx={MARKDOWN_PANEL_SX}>
+          <Box sx={{ display: isPreviewMode ? "block" : "none" }}>
             <MarkdownErrorBoundary>
               <Suspense fallback={<MarkdownSkeleton />}>
                 <MarkdownPreview>{result.markdown}</MarkdownPreview>
               </Suspense>
             </MarkdownErrorBoundary>
           </Box>
-          <Box sx={{ display: viewMode === "code" ? "block" : "none" }}>
+          <Box sx={{ display: isPreviewMode ? "none" : "block" }}>
             <Typography
               component="pre"
               variant="body2"
@@ -171,9 +208,7 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
         open={copyStatus !== "idle"}
         autoHideDuration={COPY_FEEDBACK_DELAY_MS}
         onClose={() => setCopyStatus("idle")}
-        message={
-          copyStatus === "copied" ? "Copied to clipboard" : "Failed to copy"
-        }
+        message={readCopyStatusMessage(copyStatus)}
       />
     </Stack>
   );

@@ -36,6 +36,11 @@ interface TransformRequestBody {
 const TRANSFORM_ENDPOINT = "/api/transform";
 const JSON_HEADERS = { "Content-Type": "application/json" } as const;
 const FETCH_TIMEOUT_MS = 60_000;
+const URL_INPUT_SX = { flexGrow: 1, flex: { md: "2 1 0" } } as const;
+const ACTION_BUTTON_SX = {
+  maxWidth: { sm: 150 },
+  flex: { md: "1 1 0" },
+} as const;
 
 function createRequestBody(url: string): TransformRequestBody {
   return { url: url.trim() };
@@ -104,6 +109,64 @@ async function readNdjsonStream(
   return null;
 }
 
+function createRequestSignal(abortController: AbortController): AbortSignal {
+  return AbortSignal.any([
+    abortController.signal,
+    AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  ]);
+}
+
+function handleStreamEvent(
+  event: StreamEvent,
+  handlers: Pick<TransformFormProps, "onError" | "onProgress" | "onResult">,
+): void {
+  if (event.type === "progress") {
+    handlers.onProgress(event);
+    return;
+  }
+
+  if (hasTransformResult(event)) {
+    handlers.onResult(event.result);
+    return;
+  }
+
+  if (hasTransformError(event)) {
+    handlers.onError(event.error);
+    return;
+  }
+
+  handlers.onError(createUnexpectedResponseError());
+}
+
+function handleJsonFallback(
+  data: unknown,
+  onError: TransformFormProps["onError"],
+): void {
+  if (isTransformErrorResponse(data)) {
+    onError(data.error);
+    return;
+  }
+
+  onError(createUnexpectedResponseError());
+}
+
+function handleRequestError(
+  error: unknown,
+  onError: TransformFormProps["onError"],
+): void {
+  if (isTimeoutError(error)) {
+    onError(createTimeoutError());
+    return;
+  }
+
+  if (isTransformError(error)) {
+    onError(error);
+    return;
+  }
+
+  onError(createNetworkError());
+}
+
 export default function TransformForm({
   onResult,
   onError,
@@ -116,33 +179,12 @@ export default function TransformForm({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    return () => {
-      abortControllerRef.current?.abort();
-    };
+    return () => abortControllerRef.current?.abort();
   }, []);
 
   function setLoadingState(loading: boolean) {
     setSubmitting(loading);
     onLoading(loading);
-  }
-
-  function handleStreamEvent(event: StreamEvent) {
-    if (event.type === "progress") {
-      onProgress(event);
-      return;
-    }
-
-    if (hasTransformResult(event)) {
-      onResult(event.result);
-      return;
-    }
-
-    if (hasTransformError(event)) {
-      onError(event.error);
-      return;
-    }
-
-    onError(createUnexpectedResponseError());
   }
 
   function handleCancel(event: React.MouseEvent<HTMLButtonElement>) {
@@ -162,43 +204,30 @@ export default function TransformForm({
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
 
-    const signal = AbortSignal.any([
-      abortController.signal,
-      AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    ]);
-
     try {
       const res = await fetch(TRANSFORM_ENDPOINT, {
         method: "POST",
         headers: JSON_HEADERS,
         body: JSON.stringify(createRequestBody(url)),
-        signal,
+        signal: createRequestSignal(abortController),
       });
 
       if (isNdjsonResponse(res)) {
-        const streamError = await readNdjsonStream(res, handleStreamEvent);
+        const streamError = await readNdjsonStream(res, (streamEvent) =>
+          handleStreamEvent(streamEvent, { onError, onProgress, onResult }),
+        );
         if (streamError) {
           onError(streamError);
         }
       } else {
-        handleJsonFallback(await res.json());
+        handleJsonFallback(await res.json(), onError);
       }
     } catch (error) {
       if (isAbortError(error)) {
         return;
       }
 
-      if (isTimeoutError(error)) {
-        onError(createTimeoutError());
-        return;
-      }
-
-      if (isTransformError(error)) {
-        onError(error);
-        return;
-      }
-
-      onError(createNetworkError());
+      handleRequestError(error, onError);
     } finally {
       if (abortControllerRef.current === abortController) {
         abortControllerRef.current = null;
@@ -206,15 +235,6 @@ export default function TransformForm({
 
       setLoadingState(false);
     }
-  }
-
-  function handleJsonFallback(data: unknown) {
-    if (isTransformErrorResponse(data)) {
-      onError(data.error);
-      return;
-    }
-
-    onError(createUnexpectedResponseError());
   }
 
   return (
@@ -232,7 +252,7 @@ export default function TransformForm({
           disabled={submitting}
           variant="outlined"
           size="small"
-          sx={{ flexGrow: 1, flex: { md: "2 1 0" } }}
+          sx={URL_INPUT_SX}
         />
         {submitting ? (
           <Button
@@ -241,7 +261,7 @@ export default function TransformForm({
             fullWidth
             color="error"
             onClick={handleCancel}
-            sx={{ maxWidth: { sm: 150 }, flex: { md: "1 1 0" } }}
+            sx={ACTION_BUTTON_SX}
           >
             Cancel
           </Button>
@@ -250,7 +270,7 @@ export default function TransformForm({
             type="submit"
             variant="contained"
             fullWidth
-            sx={{ maxWidth: { sm: 150 }, flex: { md: "1 1 0" } }}
+            sx={ACTION_BUTTON_SX}
           >
             Convert
           </Button>

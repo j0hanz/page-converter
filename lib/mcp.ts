@@ -190,21 +190,7 @@ function readHttpStatusCode(code: string): number | undefined {
 }
 
 function extractMetadata(data: JsonRecord): TransformMetadata {
-  const metadata = asRecord(data.metadata);
-  const result: TransformMetadata = {};
-
-  if (!metadata) {
-    return result;
-  }
-
-  for (const field of METADATA_FIELDS) {
-    const value = readString(metadata[field]);
-    if (value !== undefined) {
-      result[field] = value;
-    }
-  }
-
-  return result;
+  return readOptionalStringProperties(asRecord(data.metadata), METADATA_FIELDS);
 }
 
 function mapToTransformResult(data: JsonRecord): TransformResult {
@@ -228,8 +214,8 @@ export type ParsedMcpResult =
 
 export function parseMcpResult(raw: CallToolResult): ParsedMcpResult {
   const payloadState = readPayloadRecord(raw);
-  if (!payloadState.payload) {
-    return createPayloadParseFailure(raw, payloadState.hadTextBlock);
+  if (!("payload" in payloadState)) {
+    return createPayloadParseFailure(raw.isError === true, payloadState.kind);
   }
 
   return raw.isError
@@ -237,26 +223,23 @@ export function parseMcpResult(raw: CallToolResult): ParsedMcpResult {
     : createSuccessResult(payloadState.payload);
 }
 
-interface PayloadReadState {
-  payload: JsonRecord | null;
-  hadTextBlock: boolean;
-}
+type PayloadReadState =
+  | { kind: "structured" | "text"; payload: JsonRecord }
+  | { kind: "invalid_text" | "missing" };
 
 function readPayloadRecord(raw: CallToolResult): PayloadReadState {
   const structuredPayload = asRecord(raw.structuredContent);
   if (structuredPayload) {
-    return { payload: structuredPayload, hadTextBlock: false };
+    return { kind: "structured", payload: structuredPayload };
   }
 
   const text = getFirstTextBlock(raw);
   if (text === null) {
-    return { payload: null, hadTextBlock: false };
+    return { kind: "missing" };
   }
 
-  return {
-    payload: parseJsonRecord(text),
-    hadTextBlock: true,
-  };
+  const payload = parseJsonRecord(text);
+  return payload ? { kind: "text", payload } : { kind: "invalid_text" };
 }
 
 function createErrorResult(payload: JsonRecord): ParsedMcpResult {
@@ -274,17 +257,17 @@ function createSuccessResult(payload: JsonRecord): ParsedMcpResult {
 }
 
 function createPayloadParseFailure(
-  raw: CallToolResult,
-  hadTextBlock: boolean,
+  isError: boolean,
+  kind: Extract<PayloadReadState, { kind: "invalid_text" | "missing" }>["kind"],
 ): ParsedMcpResult {
-  if (raw.isError) {
+  if (isError) {
     return {
       ok: false,
       error: createInternalError(INVALID_MCP_ERROR_RESPONSE_MESSAGE),
     };
   }
 
-  if (hadTextBlock) {
+  if (kind === "invalid_text") {
     return {
       ok: false,
       error: createInternalError(INVALID_MCP_RESPONSE_MESSAGE),
@@ -322,6 +305,27 @@ function asRecord(value: unknown): JsonRecord | null {
   return typeof value === "object" && value !== null
     ? (value as JsonRecord)
     : null;
+}
+
+function readOptionalStringProperties<const TFields extends readonly string[]>(
+  record: JsonRecord | null,
+  fields: TFields,
+): Partial<Record<TFields[number], string>> {
+  const result: Partial<Record<TFields[number], string>> = {};
+
+  if (!record) {
+    return result;
+  }
+
+  for (const field of fields) {
+    const value = readString(record[field]);
+    if (value !== undefined) {
+      const fieldName = field as TFields[number];
+      result[fieldName] = value;
+    }
+  }
+
+  return result;
 }
 
 function readString(value: unknown): string | undefined {

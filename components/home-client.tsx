@@ -78,6 +78,9 @@ function reducer(state: State, action: Action): State {
 
 export default function HomeClient() {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const showProgress = state.loading && state.progress !== null;
+  const showError = !state.loading && state.error !== null;
+  const showResult = !state.loading && state.result !== null;
 
   function handleResult(result: TransformResult) {
     dispatch({ type: "result", result });
@@ -95,6 +98,10 @@ export default function HomeClient() {
     dispatch({ type: "progress", event });
   }
 
+  function dismissError() {
+    dispatch({ type: "dismiss_error" });
+  }
+
   return (
     <>
       <TransformForm
@@ -105,7 +112,7 @@ export default function HomeClient() {
       />
 
       <div aria-live="polite">
-        <Collapse in={state.loading && !!state.progress} unmountOnExit>
+        <Collapse in={showProgress} unmountOnExit>
           {state.progress && (
             <TransformProgress
               progress={state.progress.progress}
@@ -115,12 +122,9 @@ export default function HomeClient() {
           )}
         </Collapse>
 
-        <Collapse in={!!state.error && !state.loading} unmountOnExit>
+        <Collapse in={showError} unmountOnExit>
           {state.error && (
-            <Alert
-              severity="error"
-              onClose={() => dispatch({ type: "dismiss_error" })}
-            >
+            <Alert severity="error" onClose={dismissError}>
               <AlertTitle>{state.error.message}</AlertTitle>
               Code: {state.error.code}
               {state.error.retryable && " · Retryable"}
@@ -128,7 +132,7 @@ export default function HomeClient() {
           )}
         </Collapse>
 
-        <Collapse in={!!state.result && !state.loading} unmountOnExit>
+        <Collapse in={showResult} unmountOnExit>
           {state.result && <TransformResultPanel result={state.result} />}
         </Collapse>
       </div>

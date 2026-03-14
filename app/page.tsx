@@ -12,11 +12,20 @@ import HomeClient from "@/components/home-client";
 import AboutDialog from "@/components/about-dialog";
 import ThemeToggle from "@/components/theme-toggle";
 
+const PUBLIC_DIRECTORY = join(process.cwd(), "public");
+const GITHUB_REPOSITORY_URL = "https://github.com/j0hanz/page-converter";
+const GITHUB_ICON_SX = { fontSize: { xs: "1.25rem", sm: "1.5rem" } } as const;
+
+function readPublicMarkdown(fileName: string): Promise<string> {
+  return readFile(join(PUBLIC_DIRECTORY, fileName), "utf-8");
+}
+
 export default async function Home() {
   const [markdown, howItWorksMarkdown] = await Promise.all([
-    readFile(join(process.cwd(), "public", "about.md"), "utf-8"),
-    readFile(join(process.cwd(), "public", "how-it-works.md"), "utf-8"),
+    readPublicMarkdown("about.md"),
+    readPublicMarkdown("how-it-works.md"),
   ]);
+
   return (
     <Box sx={{ minHeight: "100dvh", py: { xs: 2, sm: 4, md: 6 } }}>
       <Container maxWidth="lg">
@@ -38,15 +47,13 @@ export default async function Home() {
               <Tooltip title="View on GitHub">
                 <IconButton
                   component="a"
-                  href="https://github.com/j0hanz/page-converter"
+                  href={GITHUB_REPOSITORY_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   size="small"
                   aria-label="View on GitHub"
                 >
-                  <GitHubIcon
-                    sx={{ fontSize: { xs: "1.25rem", sm: "1.5rem" } }}
-                  />
+                  <GitHubIcon sx={GITHUB_ICON_SX} />
                 </IconButton>
               </Tooltip>
               <ThemeToggle />

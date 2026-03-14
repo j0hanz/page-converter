@@ -15,54 +15,88 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import type { Components } from "react-markdown";
-import type { CSSProperties } from "react";
+import type { ComponentProps, CSSProperties, ReactNode } from "react";
 
 interface MarkdownPreviewProps {
   children: string;
 }
 
 const remarkPlugins = [remarkGfm];
+type TypographyVariant = ComponentProps<typeof Typography>["variant"];
+
+interface HeadingRendererProps {
+  children?: ReactNode;
+}
+
+interface TableCellRendererProps {
+  children?: ReactNode;
+  style?: CSSProperties;
+}
+
+interface ListRendererProps {
+  children?: ReactNode;
+}
 
 function readTextAlign(style?: CSSProperties) {
   return style?.textAlign;
 }
 
+function createHeadingRenderer(
+  variant: TypographyVariant,
+  marginTop: number,
+  props: Partial<ComponentProps<typeof Typography>> = {},
+) {
+  return function HeadingRenderer({ children }: HeadingRendererProps) {
+    return (
+      <Typography
+        variant={variant}
+        gutterBottom
+        sx={{ mt: marginTop }}
+        {...props}
+      >
+        {children}
+      </Typography>
+    );
+  };
+}
+
+function createTableCellRenderer(
+  fontWeight?: ComponentProps<typeof Typography>["fontWeight"],
+) {
+  return function TableCellRenderer({
+    children,
+    style,
+  }: TableCellRendererProps) {
+    return (
+      <TableCell
+        sx={{
+          ...(fontWeight ? { fontWeight } : {}),
+          textAlign: readTextAlign(style as CSSProperties),
+        }}
+      >
+        {children}
+      </TableCell>
+    );
+  };
+}
+
+function createListRenderer(component: "ul" | "ol") {
+  return function ListRenderer({ children }: ListRendererProps) {
+    return (
+      <Box component={component} sx={{ pl: 3, my: 1 }}>
+        {children}
+      </Box>
+    );
+  };
+}
+
 const components: Components = {
-  h1: ({ children }) => (
-    <Typography variant="h4" gutterBottom sx={{ mt: 2 }}>
-      {children}
-    </Typography>
-  ),
-  h2: ({ children }) => (
-    <Typography variant="h5" gutterBottom sx={{ mt: 2 }}>
-      {children}
-    </Typography>
-  ),
-  h3: ({ children }) => (
-    <Typography variant="h6" gutterBottom sx={{ mt: 1.5 }}>
-      {children}
-    </Typography>
-  ),
-  h4: ({ children }) => (
-    <Typography
-      variant="subtitle1"
-      gutterBottom
-      fontWeight="bold"
-      sx={{ mt: 1 }}
-    >
-      {children}
-    </Typography>
-  ),
-  h5: ({ children }) => (
-    <Typography variant="subtitle2" gutterBottom fontWeight="bold">
-      {children}
-    </Typography>
-  ),
-  h6: ({ children }) => (
-    <Typography variant="subtitle2" gutterBottom color="text.secondary">
-      {children}
-    </Typography>
-  ),
+  h1: createHeadingRenderer("h4", 2),
+  h2: createHeadingRenderer("h5", 2),
+  h3: createHeadingRenderer("h6", 1.5),
+  h4: createHeadingRenderer("subtitle1", 1, { fontWeight: "bold" }),
+  h5: createHeadingRenderer("subtitle2", 0, { fontWeight: "bold" }),
+  h6: createHeadingRenderer("subtitle2", 0, { color: "text.secondary" }),
   p: ({ children }) => (
     <Typography variant="body1" paragraph>
       {children}
@@ -155,31 +189,10 @@ const components: Components = {
   thead: ({ children }) => <TableHead>{children}</TableHead>,
   tbody: ({ children }) => <TableBody>{children}</TableBody>,
   tr: ({ children }) => <TableRow>{children}</TableRow>,
-  th: ({ children, style }) => (
-    <TableCell
-      sx={{
-        fontWeight: "bold",
-        textAlign: readTextAlign(style as CSSProperties),
-      }}
-    >
-      {children}
-    </TableCell>
-  ),
-  td: ({ children, style }) => (
-    <TableCell sx={{ textAlign: readTextAlign(style as CSSProperties) }}>
-      {children}
-    </TableCell>
-  ),
-  ul: ({ children }) => (
-    <Box component="ul" sx={{ pl: 3, my: 1 }}>
-      {children}
-    </Box>
-  ),
-  ol: ({ children }) => (
-    <Box component="ol" sx={{ pl: 3, my: 1 }}>
-      {children}
-    </Box>
-  ),
+  th: createTableCellRenderer("bold"),
+  td: createTableCellRenderer(),
+  ul: createListRenderer("ul"),
+  ol: createListRenderer("ol"),
   li: ({ children }) => (
     <Typography component="li" variant="body1" sx={{ mb: 0.5 }}>
       {children}

@@ -37,17 +37,12 @@ function requireTransformRequestRecord(body: unknown): TransformRequestRecord {
 }
 
 function assertAllowedFields(record: TransformRequestRecord): void {
-  for (const key of Object.keys(record)) {
-    assertAllowedField(key);
+  const unexpectedField = Object.keys(record).find(
+    (key) => !isAllowedField(key),
+  );
+  if (unexpectedField !== undefined) {
+    throw new ValidationError(`Unknown field: "${unexpectedField}".`);
   }
-}
-
-function assertAllowedField(key: string): void {
-  if (isAllowedField(key)) {
-    return;
-  }
-
-  throw new ValidationError(`Unknown field: "${key}".`);
 }
 
 function isAllowedField(key: string): key is keyof TransformRequest {
@@ -55,12 +50,21 @@ function isAllowedField(key: string): key is keyof TransformRequest {
 }
 
 function parseValidatedUrl(value: unknown): string {
-  if (typeof value !== "string" || value.trim() === "") {
+  const trimmed = readRequiredTrimmedString(value);
+  assertSupportedProtocol(parseUrl(trimmed).protocol);
+
+  return trimmed;
+}
+
+function readRequiredTrimmedString(value: unknown): string {
+  if (typeof value !== "string") {
     throw new ValidationError(URL_REQUIRED_MESSAGE);
   }
 
   const trimmed = value.trim();
-  assertSupportedProtocol(parseUrl(trimmed).protocol);
+  if (trimmed === "") {
+    throw new ValidationError(URL_REQUIRED_MESSAGE);
+  }
 
   return trimmed;
 }

@@ -50,8 +50,8 @@ export function TransformProgress({
 
 const SKELETON_PADDING_OFFSET = 25;
 const INTRO_LINE_WIDTHS = ["100%", "100%", "75%"] as const;
+const BODY_LINE_WIDTHS = ["100%", "90%", "100%", "60%"] as const;
 const OUTRO_LINE_WIDTHS = ["100%", "85%", "50%"] as const;
-
 const WAVE = "wave" as const;
 
 function TextLine({ width = "100%" }: { width?: string }) {
@@ -81,7 +81,7 @@ export function MarkdownSkeleton() {
       <Box sx={{ mt: 1 }}>
         <Heading fontSize="1.5rem" width="35%" />
       </Box>
-      {renderTextLines(["100%", "90%", "100%", "60%"])}
+      {renderTextLines(BODY_LINE_WIDTHS)}
       <Skeleton
         animation={WAVE}
         variant="rounded"

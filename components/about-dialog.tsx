@@ -23,6 +23,8 @@ interface AboutDialogProps {
   howItWorksMarkdown: string;
 }
 
+const ABOUT_ICON_SX = { fontSize: { xs: "1.25rem", sm: "1.5rem" } } as const;
+
 interface TabPanelProps {
   children: React.ReactNode;
   index: number;
@@ -49,6 +51,16 @@ function a11yProps(index: number) {
   };
 }
 
+function MarkdownTabPanel({ children }: { children: string }) {
+  return (
+    <MarkdownErrorBoundary>
+      <Suspense fallback={<MarkdownSkeleton />}>
+        <MarkdownPreview>{children}</MarkdownPreview>
+      </Suspense>
+    </MarkdownErrorBoundary>
+  );
+}
+
 export default function AboutDialog({
   markdown,
   howItWorksMarkdown,
@@ -58,23 +70,33 @@ export default function AboutDialog({
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
+  function openDialog() {
+    setOpen(true);
+  }
+
+  function closeDialog() {
+    setOpen(false);
+  }
+
+  function handleTabChange(_event: React.SyntheticEvent, nextTab: number) {
+    setTab(nextTab);
+  }
+
   return (
     <>
       <Tooltip title="About">
         <IconButton
-          onClick={() => setOpen(true)}
+          onClick={openDialog}
           size="small"
           aria-label="About Page Converter"
         >
-          <InfoOutlinedIcon
-            sx={{ fontSize: { xs: "1.25rem", sm: "1.5rem" } }}
-          />
+          <InfoOutlinedIcon sx={ABOUT_ICON_SX} />
         </IconButton>
       </Tooltip>
 
       <Dialog
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={closeDialog}
         aria-labelledby="about-dialog-title"
         fullWidth
         fullScreen={fullScreen}
@@ -86,7 +108,7 @@ export default function AboutDialog({
         <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
           <Tabs
             value={tab}
-            onChange={(_e, v: number) => setTab(v)}
+            onChange={handleTabChange}
             variant="fullWidth"
             aria-label="About dialog tabs"
           >
@@ -96,21 +118,13 @@ export default function AboutDialog({
         </Box>
         <DialogContent dividers>
           <TabPanel value={tab} index={0}>
-            <MarkdownErrorBoundary>
-              <Suspense fallback={<MarkdownSkeleton />}>
-                <MarkdownPreview>{markdown}</MarkdownPreview>
-              </Suspense>
-            </MarkdownErrorBoundary>
+            <MarkdownTabPanel>{markdown}</MarkdownTabPanel>
           </TabPanel>
           <TabPanel value={tab} index={1}>
-            <MarkdownErrorBoundary>
-              <Suspense fallback={<MarkdownSkeleton />}>
-                <MarkdownPreview>{howItWorksMarkdown}</MarkdownPreview>
-              </Suspense>
-            </MarkdownErrorBoundary>
+            <MarkdownTabPanel>{howItWorksMarkdown}</MarkdownTabPanel>
           </TabPanel>
         </DialogContent>
-        <Button fullWidth size="large" onClick={() => setOpen(false)}>
+        <Button fullWidth size="large" onClick={closeDialog}>
           Close
         </Button>
       </Dialog>

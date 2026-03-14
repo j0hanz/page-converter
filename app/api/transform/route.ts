@@ -62,6 +62,12 @@ function validateRequestBody(body: unknown): TransformRequest {
   }
 }
 
+async function parseTransformRequest(
+  request: Request,
+): Promise<TransformRequest> {
+  return validateRequestBody(await readRequestBody(request));
+}
+
 function isOversizedRequest(request: Request): boolean {
   const contentLength = request.headers.get("content-length");
   if (contentLength === null) {
@@ -85,28 +91,6 @@ function createErrorResponse(error: TransformError): Response {
   );
 }
 
-function createAbortHandler(
-  request: Request,
-  controller: ReadableStreamDefaultController<Uint8Array>,
-) {
-  let closed = false;
-
-  const closeStream = () => {
-    if (closed) {
-      return;
-    }
-
-    closed = true;
-    request.signal.removeEventListener("abort", closeStream);
-    controller.close();
-  };
-
-  return {
-    closeStream,
-    isClosed: () => closed,
-  };
-}
-
 function encodeNdjsonEvent(
   encoder: TextEncoder,
   event: StreamEvent,
@@ -119,17 +103,25 @@ function createStreamGuard(
   controller: ReadableStreamDefaultController<Uint8Array>,
   encoder: TextEncoder,
 ): StreamGuard {
-  const abortHandler = createAbortHandler(request, controller);
+  let closed = false;
 
-  request.signal.addEventListener("abort", abortHandler.closeStream, {
-    once: true,
-  });
+  const close = () => {
+    if (closed) {
+      return;
+    }
+
+    closed = true;
+    request.signal.removeEventListener("abort", close);
+    controller.close();
+  };
+
+  request.signal.addEventListener("abort", close, { once: true });
 
   return {
-    close: abortHandler.closeStream,
-    isClosed: abortHandler.isClosed,
+    close,
+    isClosed: () => closed,
     write(event: StreamEvent) {
-      if (abortHandler.isClosed()) {
+      if (closed) {
         return;
       }
 
@@ -160,7 +152,7 @@ function createNdjsonResponseStream(
         });
 
         if (!request.signal.aborted) {
-          streamGuard.write({ type: "result", ...response });
+          writeResultEvent(streamGuard, response);
         }
       } finally {
         streamGuard.close();
@@ -182,14 +174,20 @@ function writeProgressEvent(
   );
 }
 
-export async function POST(request: Request) {
+function writeResultEvent(
+  streamGuard: StreamGuard,
+  response: TransformResponse,
+): void {
+  streamGuard.write({ type: "result", ...response });
+}
+
+export async function POST(request: Request): Promise<Response> {
   if (isOversizedRequest(request)) {
     return createValidationErrorResponse(REQUEST_BODY_TOO_LARGE_MESSAGE);
   }
 
   try {
-    const body = await readRequestBody(request);
-    const validated = validateRequestBody(body);
+    const validated = await parseTransformRequest(request);
 
     const stream = createNdjsonResponseStream(request, (onProgress) =>
       transformUrl(validated, onProgress),
