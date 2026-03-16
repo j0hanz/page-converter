@@ -1,11 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import TransformForm from "@/components/form";
+import type { TransformResult } from "@/lib/api";
 
 const onResult = vi.fn();
 const onError = vi.fn();
 const onLoading = vi.fn();
 const onProgress = vi.fn();
+const VALID_URL = "https://example.com";
+const SUCCESS_RESULT: TransformResult = {
+  url: VALID_URL,
+  markdown: "# Test",
+  fromCache: false,
+  fetchedAt: "2026-03-10T00:00:00Z",
+  contentSize: 6,
+  truncated: false,
+  metadata: {},
+};
+
+function createAbortError(): DOMException {
+  return new DOMException("The user aborted a request.", "AbortError");
+}
 
 describe("TransformForm", () => {
   beforeEach(() => {
@@ -22,25 +37,15 @@ describe("TransformForm", () => {
   });
 
   it("submits valid URL and calls onResult on success", async () => {
-    const mockResult = {
-      url: "https://example.com",
-      markdown: "# Test",
-      fromCache: false,
-      fetchedAt: "2026-03-10T00:00:00Z",
-      contentSize: 6,
-      truncated: false,
-      metadata: {},
-    };
-
     mockStreamResponse([
       { type: "progress", progress: 1, total: 8, message: "Fetching" },
-      { type: "result", ok: true, result: mockResult },
+      { type: "result", ok: true, result: SUCCESS_RESULT },
     ]);
     renderForm();
-    submitUrl("https://example.com");
+    submitUrl(VALID_URL);
 
     await waitFor(() => {
-      expect(onResult).toHaveBeenCalledWith(mockResult);
+      expect(onResult).toHaveBeenCalledWith(SUCCESS_RESULT);
     });
 
     expect(onProgress).toHaveBeenCalledWith(
@@ -51,27 +56,17 @@ describe("TransformForm", () => {
   });
 
   it("forwards multiple streamed progress events before the result", async () => {
-    const mockResult = {
-      url: "https://example.com",
-      markdown: "# Test",
-      fromCache: false,
-      fetchedAt: "2026-03-10T00:00:00Z",
-      contentSize: 6,
-      truncated: false,
-      metadata: {},
-    };
-
     mockStreamResponse([
       { type: "progress", progress: 1, total: 8, message: "Preparing request" },
       { type: "progress", progress: 3, total: 8, message: "Checking cache" },
-      { type: "result", ok: true, result: mockResult },
+      { type: "result", ok: true, result: SUCCESS_RESULT },
     ]);
 
     renderForm();
-    submitUrl("https://example.com");
+    submitUrl(VALID_URL);
 
     await waitFor(() => {
-      expect(onResult).toHaveBeenCalledWith(mockResult);
+      expect(onResult).toHaveBeenCalledWith(SUCCESS_RESULT);
     });
 
     expect(onProgress).toHaveBeenNthCalledWith(
@@ -104,7 +99,7 @@ describe("TransformForm", () => {
     global.fetch = vi.fn().mockRejectedValue(new Error("Network fail"));
 
     renderForm();
-    submitUrl("https://example.com");
+    submitUrl(VALID_URL);
 
     await waitFor(() => {
       expect(onError).toHaveBeenCalledWith(
@@ -114,14 +109,10 @@ describe("TransformForm", () => {
   });
 
   it("does not surface an error when the request is aborted", async () => {
-    global.fetch = vi
-      .fn()
-      .mockRejectedValue(
-        new DOMException("The user aborted a request.", "AbortError"),
-      );
+    global.fetch = vi.fn().mockRejectedValue(createAbortError());
 
     renderForm();
-    submitUrl("https://example.com");
+    submitUrl(VALID_URL);
 
     await waitFor(() => {
       expect(onLoading).toHaveBeenLastCalledWith(false);
@@ -156,7 +147,7 @@ describe("TransformForm", () => {
     );
 
     renderForm();
-    submitUrl("https://example.com");
+    submitUrl(VALID_URL);
 
     await waitFor(() => {
       expect(screen.getByLabelText(/URL/i)).toBeDisabled();
@@ -173,26 +164,25 @@ describe("TransformForm", () => {
     }
 
     resolveFetch(
-      createMockStreamResponse([{ type: "result", ok: true, result: {} }]),
+      createMockStreamResponse([
+        { type: "result", ok: true, result: SUCCESS_RESULT },
+      ]),
     );
   });
 
   it("aborts request and reverts to Convert when Cancel is clicked", async () => {
-    let resolveFetch: ((value: unknown) => void) | undefined;
     global.fetch = vi.fn().mockImplementation(
       (_url: string, init: { signal: AbortSignal }) =>
         new Promise((resolve, reject) => {
-          resolveFetch = resolve;
+          void resolve;
           init.signal.addEventListener("abort", () => {
-            reject(
-              new DOMException("The user aborted a request.", "AbortError"),
-            );
+            reject(createAbortError());
           });
         }),
     );
 
     renderForm();
-    submitUrl("https://example.com");
+    submitUrl(VALID_URL);
 
     await waitFor(() => {
       expect(
@@ -211,9 +201,6 @@ describe("TransformForm", () => {
 
     expect(onError).not.toHaveBeenCalled();
     expect(onResult).not.toHaveBeenCalled();
-
-    // Suppress unused variable warning
-    void resolveFetch;
   });
 });
 

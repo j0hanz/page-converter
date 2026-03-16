@@ -80,21 +80,10 @@ export function createTransformError(
   message: string,
   options: Partial<TransformErrorOptions> = {},
 ): TransformError {
-  const error: TransformError = {
+  return {
     code,
     message,
     retryable: options.retryable ?? false,
-  };
-
-  return applyOptionalTransformErrorOptions(error, options);
-}
-
-function applyOptionalTransformErrorOptions(
-  error: TransformError,
-  options: Partial<TransformErrorOptions>,
-): TransformError {
-  return {
-    ...error,
     ...(options.statusCode !== undefined
       ? { statusCode: options.statusCode }
       : {}),
@@ -150,13 +139,9 @@ export function normalizeStreamProgressEvent(
   previous?: StreamProgressEvent | null,
 ): StreamProgressEvent {
   const total = resolveProgressTotal(event.total, previous?.total);
-  const previousProgress = previous?.progress ?? 0;
+  const progress = Math.max(event.progress, previous?.progress ?? 0);
 
-  return createStreamProgressEvent(
-    Math.max(event.progress, previousProgress),
-    total,
-    event.message,
-  );
+  return createStreamProgressEvent(progress, total, event.message);
 }
 
 export function isTerminalStreamProgressEvent(

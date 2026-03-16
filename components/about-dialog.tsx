@@ -1,6 +1,12 @@
 "use client";
 
-import { lazy, Suspense, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useState,
+  type ReactNode,
+  type SyntheticEvent,
+} from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -17,6 +23,7 @@ import { MarkdownErrorBoundary } from "@/components/error";
 import { MarkdownSkeleton } from "@/components/loading";
 
 const MarkdownPreview = lazy(() => import("@/components/markdown-preview"));
+const ABOUT_TAB_LABELS = ["Overview", "How It Works"] as const;
 
 interface AboutDialogProps {
   markdown: string;
@@ -26,25 +33,21 @@ interface AboutDialogProps {
 const ABOUT_ICON_SX = { fontSize: { xs: "1.25rem", sm: "1.5rem" } } as const;
 
 interface TabPanelProps {
-  children: React.ReactNode;
-  index: number;
-  value: number;
+  children: ReactNode;
+  panelId: string;
+  tabId: string;
+  visible: boolean;
 }
 
-function TabPanel({ children, value, index }: TabPanelProps) {
+function TabPanel({ children, panelId, tabId, visible }: TabPanelProps) {
   return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`about-tabpanel-${index}`}
-      aria-labelledby={`about-tab-${index}`}
-    >
-      {value === index && children}
+    <div role="tabpanel" hidden={!visible} id={panelId} aria-labelledby={tabId}>
+      {visible && children}
     </div>
   );
 }
 
-function a11yProps(index: number) {
+function readTabA11yProps(index: number) {
   return {
     id: `about-tab-${index}`,
     "aria-controls": `about-tabpanel-${index}`,
@@ -69,16 +72,9 @@ export default function AboutDialog({
   const [tab, setTab] = useState(0);
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
+  const tabPanels = [markdown, howItWorksMarkdown] as const;
 
-  function openDialog() {
-    setOpen(true);
-  }
-
-  function closeDialog() {
-    setOpen(false);
-  }
-
-  function handleTabChange(_event: React.SyntheticEvent, nextTab: number) {
+  function handleTabChange(_event: SyntheticEvent, nextTab: number) {
     setTab(nextTab);
   }
 
@@ -86,7 +82,7 @@ export default function AboutDialog({
     <>
       <Tooltip title="About">
         <IconButton
-          onClick={openDialog}
+          onClick={() => setOpen(true)}
           size="small"
           aria-label="About Page Converter"
         >
@@ -96,7 +92,7 @@ export default function AboutDialog({
 
       <Dialog
         open={open}
-        onClose={closeDialog}
+        onClose={() => setOpen(false)}
         aria-labelledby="about-dialog-title"
         fullWidth
         fullScreen={fullScreen}
@@ -112,19 +108,24 @@ export default function AboutDialog({
             variant="fullWidth"
             aria-label="About dialog tabs"
           >
-            <Tab label="Overview" {...a11yProps(0)} />
-            <Tab label="How It Works" {...a11yProps(1)} />
+            {ABOUT_TAB_LABELS.map((label, index) => (
+              <Tab key={label} label={label} {...readTabA11yProps(index)} />
+            ))}
           </Tabs>
         </Box>
         <DialogContent dividers>
-          <TabPanel value={tab} index={0}>
-            <MarkdownTabPanel>{markdown}</MarkdownTabPanel>
-          </TabPanel>
-          <TabPanel value={tab} index={1}>
-            <MarkdownTabPanel>{howItWorksMarkdown}</MarkdownTabPanel>
-          </TabPanel>
+          {tabPanels.map((content, index) => (
+            <TabPanel
+              key={ABOUT_TAB_LABELS[index]}
+              panelId={`about-tabpanel-${index}`}
+              tabId={`about-tab-${index}`}
+              visible={tab === index}
+            >
+              <MarkdownTabPanel>{content}</MarkdownTabPanel>
+            </TabPanel>
+          ))}
         </DialogContent>
-        <Button fullWidth size="large" onClick={closeDialog}>
+        <Button fullWidth size="large" onClick={() => setOpen(false)}>
           Close
         </Button>
       </Dialog>

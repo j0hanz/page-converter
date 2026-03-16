@@ -35,7 +35,7 @@ interface McpGlobalState {
 
 const globalForMcp = globalThis as typeof globalThis & McpGlobalState;
 
-function createTransport() {
+function createTransport(): StdioClientTransport {
   return new StdioClientTransport({
     command: FETCH_URL_TRANSPORT_COMMAND,
     args: FETCH_URL_TRANSPORT_ARGS,
@@ -88,7 +88,9 @@ async function getConnectedClient(): Promise<Client> {
   return globalForMcp.__mcpConnecting;
 }
 
-function createProgressOptions(onProgress?: ProgressCallback) {
+function createProgressOptions(
+  onProgress?: ProgressCallback,
+): { onprogress: ProgressCallback } | undefined {
   return onProgress ? { onprogress: onProgress } : undefined;
 }
 
@@ -111,12 +113,10 @@ export async function callFetchUrl(
 }
 
 function getFetchUrlTransportCommand(): string {
-  return path.join(
-    process.cwd(),
-    "node_modules",
-    ".bin",
-    process.platform === "win32" ? "fetch-url-mcp.cmd" : "fetch-url-mcp",
-  );
+  const transportExecutable =
+    process.platform === "win32" ? "fetch-url-mcp.cmd" : "fetch-url-mcp";
+
+  return path.join(process.cwd(), "node_modules", ".bin", transportExecutable);
 }
 
 const METADATA_FIELDS = [
@@ -320,8 +320,7 @@ function readOptionalStringProperties<const TFields extends readonly string[]>(
   for (const field of fields) {
     const value = readString(record[field]);
     if (value !== undefined) {
-      const fieldName = field as TFields[number];
-      result[fieldName] = value;
+      result[field as TFields[number]] = value;
     }
   }
 

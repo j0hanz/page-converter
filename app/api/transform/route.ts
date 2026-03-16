@@ -36,7 +36,6 @@ const REQUEST_BODY_TOO_LARGE_MESSAGE = "Request body too large.";
 
 interface StreamGuard {
   close: () => void;
-  isClosed: () => boolean;
   write: (event: StreamEvent) => void;
 }
 
@@ -119,7 +118,6 @@ function createStreamGuard(
 
   return {
     close,
-    isClosed: () => closed,
     write(event: StreamEvent) {
       if (closed) {
         return;
@@ -135,7 +133,7 @@ function createNdjsonResponseStream(
   handleTransform: (
     onProgress: (progress: Progress) => void,
   ) => Promise<TransformResponse>,
-) {
+): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
 
   return new ReadableStream<Uint8Array>({

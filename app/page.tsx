@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { Metadata } from "next";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import IconButton from "@mui/material/IconButton";
@@ -10,21 +11,52 @@ import Tooltip from "@mui/material/Tooltip";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import HomeClient from "@/components/home-client";
 import AboutDialog from "@/components/about-dialog";
+import {
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_REPOSITORY_URL,
+  SITE_TAGLINE,
+} from "@/lib/site";
 import ThemeToggle from "@/components/theme-toggle";
 
 const PUBLIC_DIRECTORY = join(process.cwd(), "public");
-const GITHUB_REPOSITORY_URL = "https://github.com/j0hanz/page-converter";
 const GITHUB_ICON_SX = { fontSize: { xs: "1.25rem", sm: "1.5rem" } } as const;
+const HOME_MARKDOWN_FILES = {
+  about: "about.md",
+  howItWorks: "how-it-works.md",
+} as const;
+
+export const metadata: Metadata = {
+  description: SITE_DESCRIPTION,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    url: "/",
+  },
+  twitter: {
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  },
+};
 
 function readPublicMarkdown(fileName: string): Promise<string> {
   return readFile(join(PUBLIC_DIRECTORY, fileName), "utf-8");
 }
 
-export default async function Home() {
+async function readHomePageMarkdown() {
   const [markdown, howItWorksMarkdown] = await Promise.all([
-    readPublicMarkdown("about.md"),
-    readPublicMarkdown("how-it-works.md"),
+    readPublicMarkdown(HOME_MARKDOWN_FILES.about),
+    readPublicMarkdown(HOME_MARKDOWN_FILES.howItWorks),
   ]);
+
+  return { markdown, howItWorksMarkdown };
+}
+
+export default async function Home() {
+  const { markdown, howItWorksMarkdown } = await readHomePageMarkdown();
 
   return (
     <Box sx={{ minHeight: "100dvh", py: { xs: 2, sm: 4, md: 6 } }}>
@@ -33,10 +65,10 @@ export default async function Home() {
           <Toolbar disableGutters sx={{ alignItems: "flex-start" }}>
             <Box sx={{ flexGrow: 1 }}>
               <Typography variant="h4" component="h1" gutterBottom>
-                Page Converter
+                {SITE_NAME}
               </Typography>
               <Typography variant="subtitle1" color="text.secondary">
-                Turn web pages into clean Markdown
+                {SITE_TAGLINE}
               </Typography>
             </Box>
             <Stack direction="row" spacing={{ xs: 1, sm: 2 }}>
@@ -47,7 +79,7 @@ export default async function Home() {
               <Tooltip title="View on GitHub">
                 <IconButton
                   component="a"
-                  href={GITHUB_REPOSITORY_URL}
+                  href={SITE_REPOSITORY_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   size="small"

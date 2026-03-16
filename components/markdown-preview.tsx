@@ -23,21 +23,45 @@ interface MarkdownPreviewProps {
 
 const remarkPlugins = [remarkGfm];
 type TypographyVariant = ComponentProps<typeof Typography>["variant"];
-
-interface HeadingRendererProps {
+type FontWeight = ComponentProps<typeof Typography>["fontWeight"];
+type TextAlignStyle = Pick<CSSProperties, "textAlign">;
+interface RendererChildrenProps {
   children?: ReactNode;
 }
+const BLOCKQUOTE_SX = {
+  borderLeft: 4,
+  borderColor: "primary.main",
+  pl: 2,
+  py: 0.5,
+  my: 1,
+  color: "text.secondary",
+  "& > p": { mb: 0 },
+} as const;
+const BLOCK_CODE_SX = {
+  px: 2,
+  py: 1,
+  overflow: "auto",
+} as const;
+const INLINE_CODE_SX = {
+  px: 0.4,
+  py: 0.2,
+  bgcolor: "action.hover",
+  borderRadius: 0.5,
+} as const;
+const IMAGE_SX = {
+  maxWidth: "100%",
+  height: "auto",
+  my: 1,
+  borderRadius: 1,
+} as const;
+const LIST_SX = { pl: 3, my: 1 } as const;
+const TABLE_CONTAINER_SX = { my: 2 } as const;
 
-interface TableCellRendererProps {
-  children?: ReactNode;
-  style?: CSSProperties;
+interface TableCellRendererProps extends RendererChildrenProps {
+  style?: TextAlignStyle;
 }
 
-interface ListRendererProps {
-  children?: ReactNode;
-}
-
-function readTextAlign(style?: CSSProperties) {
+function readTextAlign(style?: TextAlignStyle) {
   return style?.textAlign;
 }
 
@@ -46,7 +70,7 @@ function createHeadingRenderer(
   marginTop: number,
   props: Partial<ComponentProps<typeof Typography>> = {},
 ) {
-  return function HeadingRenderer({ children }: HeadingRendererProps) {
+  return function HeadingRenderer({ children }: RendererChildrenProps) {
     return (
       <Typography
         variant={variant}
@@ -60,9 +84,7 @@ function createHeadingRenderer(
   };
 }
 
-function createTableCellRenderer(
-  fontWeight?: ComponentProps<typeof Typography>["fontWeight"],
-) {
+function createTableCellRenderer(fontWeight?: FontWeight) {
   return function TableCellRenderer({
     children,
     style,
@@ -71,7 +93,7 @@ function createTableCellRenderer(
       <TableCell
         sx={{
           ...(fontWeight ? { fontWeight } : {}),
-          textAlign: readTextAlign(style as CSSProperties),
+          textAlign: readTextAlign(style),
         }}
       >
         {children}
@@ -81,9 +103,9 @@ function createTableCellRenderer(
 }
 
 function createListRenderer(component: "ul" | "ol") {
-  return function ListRenderer({ children }: ListRendererProps) {
+  return function ListRenderer({ children }: RendererChildrenProps) {
     return (
-      <Box component={component} sx={{ pl: 3, my: 1 }}>
+      <Box component={component} sx={LIST_SX}>
         {children}
       </Box>
     );
@@ -108,18 +130,7 @@ const components: Components = {
     </Link>
   ),
   blockquote: ({ children }) => (
-    <Box
-      component="blockquote"
-      sx={{
-        borderLeft: 4,
-        borderColor: "primary.main",
-        pl: 2,
-        py: 0.5,
-        my: 1,
-        color: "text.secondary",
-        "& > p": { mb: 0 },
-      }}
-    >
+    <Box component="blockquote" sx={BLOCKQUOTE_SX}>
       {children}
     </Box>
   ),
@@ -129,29 +140,13 @@ const components: Components = {
       node?.position?.start.line !== node?.position?.end.line;
     if (isBlock) {
       return (
-        <Paper
-          variant="outlined"
-          component="pre"
-          sx={{
-            px: 2,
-            py: 1,
-            overflow: "auto",
-          }}
-        >
+        <Paper variant="outlined" component="pre" sx={BLOCK_CODE_SX}>
           <code>{children}</code>
         </Paper>
       );
     }
     return (
-      <Box
-        component="code"
-        sx={{
-          px: 0.4,
-          py: 0.2,
-          bgcolor: "action.hover",
-          borderRadius: 0.5,
-        }}
-      >
+      <Box component="code" sx={INLINE_CODE_SX}>
         {children}
       </Box>
     );
@@ -178,11 +173,15 @@ const components: Components = {
       alt={alt ?? ""}
       loading="lazy"
       decoding="async"
-      sx={{ maxWidth: "100%", height: "auto", my: 1, borderRadius: 1 }}
+      sx={IMAGE_SX}
     />
   ),
   table: ({ children }) => (
-    <TableContainer component={Paper} variant="outlined" sx={{ my: 2 }}>
+    <TableContainer
+      component={Paper}
+      variant="outlined"
+      sx={TABLE_CONTAINER_SX}
+    >
       <Table size="small">{children}</Table>
     </TableContainer>
   ),

@@ -30,6 +30,7 @@ interface TransformResultProps {
 type ViewMode = "preview" | "code";
 
 const COPY_FEEDBACK_DELAY_MS = 2000;
+const DEFAULT_DOWNLOAD_FILE_NAME = "page";
 const MARKDOWN_FONT_FAMILY = "'Geist Mono Variable', monospace";
 const TOGGLE_BUTTON_SX = { border: 0, minWidth: 50 } as const;
 const MARKDOWN_PANEL_SX = {
@@ -40,6 +41,11 @@ const MARKDOWN_PANEL_SX = {
   borderColor: "divider",
   borderRadius: 2,
 } as const;
+const RAW_MARKDOWN_SX = {
+  fontFamily: MARKDOWN_FONT_FAMILY,
+  whiteSpace: "pre-wrap",
+  wordBreak: "break-word",
+} as const;
 
 function downloadMarkdownFile(title: string | undefined, markdown: string) {
   const blob = new Blob([markdown], { type: "text/markdown" });
@@ -48,7 +54,7 @@ function downloadMarkdownFile(title: string | undefined, markdown: string) {
 
   try {
     link.href = url;
-    link.download = `${title || "page"}.md`;
+    link.download = `${title || DEFAULT_DOWNLOAD_FILE_NAME}.md`;
     document.body.appendChild(link);
     link.click();
   } finally {
@@ -60,6 +66,15 @@ function downloadMarkdownFile(title: string | undefined, markdown: string) {
 type CopyStatus = "idle" | "copied" | "failed";
 
 type IconButtonColor = React.ComponentProps<typeof IconButton>["color"];
+const COPY_STATUS_COLOR: Record<CopyStatus, IconButtonColor> = {
+  idle: "default",
+  copied: "success",
+  failed: "error",
+};
+const COPY_STATUS_MESSAGE: Record<Exclude<CopyStatus, "idle">, string> = {
+  copied: "Copied to clipboard",
+  failed: "Failed to copy",
+};
 
 interface ResultActionButtonProps {
   ariaLabel: string;
@@ -86,24 +101,18 @@ function ResultActionButton({
 }
 
 function readCopyStatusColor(copyStatus: CopyStatus): IconButtonColor {
-  switch (copyStatus) {
-    case "failed":
-      return "error";
-    case "copied":
-      return "success";
-    default:
-      return "default";
-  }
+  return COPY_STATUS_COLOR[copyStatus];
 }
 
-function readCopyStatusMessage(copyStatus: CopyStatus): string {
-  return copyStatus === "copied" ? "Copied to clipboard" : "Failed to copy";
+function readCopyStatusMessage(copyStatus: CopyStatus): string | undefined {
+  return copyStatus === "idle" ? undefined : COPY_STATUS_MESSAGE[copyStatus];
 }
 
 export default function TransformResultPanel({ result }: TransformResultProps) {
   const [copyStatus, setCopyStatus] = useState<CopyStatus>("idle");
   const [viewMode, setViewMode] = useState<ViewMode>("preview");
   const isPreviewMode = viewMode === "preview";
+  const copyFeedbackOpen = copyStatus !== "idle";
 
   function handleViewModeChange(
     _event: React.MouseEvent<HTMLElement>,
@@ -125,6 +134,10 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
 
   function handleDownload() {
     downloadMarkdownFile(result.title, result.markdown);
+  }
+
+  function clearCopyFeedback() {
+    setCopyStatus("idle");
   }
 
   return (
@@ -189,15 +202,7 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
             </MarkdownErrorBoundary>
           </Box>
           <Box sx={{ display: isPreviewMode ? "none" : "block" }}>
-            <Typography
-              component="pre"
-              variant="body2"
-              sx={{
-                fontFamily: MARKDOWN_FONT_FAMILY,
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-              }}
-            >
+            <Typography component="pre" variant="body2" sx={RAW_MARKDOWN_SX}>
               {result.markdown}
             </Typography>
           </Box>
@@ -205,9 +210,9 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
       </section>
 
       <Snackbar
-        open={copyStatus !== "idle"}
+        open={copyFeedbackOpen}
         autoHideDuration={COPY_FEEDBACK_DELAY_MS}
-        onClose={() => setCopyStatus("idle")}
+        onClose={clearCopyFeedback}
         message={readCopyStatusMessage(copyStatus)}
       />
     </Stack>

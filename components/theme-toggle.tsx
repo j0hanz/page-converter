@@ -28,22 +28,27 @@ const MODE_LABEL: Record<Mode, string> = {
   system: "System mode",
 };
 
+function isMode(value: string | undefined): value is Mode {
+  return value === "light" || value === "dark" || value === "system";
+}
+
 export default function ThemeToggle() {
   const { mode, setMode } = useColorScheme();
   const isSmUp = useMediaQuery((theme) => theme.breakpoints.up("sm"));
 
-  if (!mode) {
+  if (!isMode(mode)) {
     return null;
   }
 
-  const current = mode as Mode;
-  const Icon = MODE_ICON[current];
+  const currentLabel = MODE_LABEL[mode];
+  const nextMode = MODE_CYCLE[mode];
+  const Icon = MODE_ICON[mode];
 
   return (
-    <Tooltip title={MODE_LABEL[current]}>
+    <Tooltip title={currentLabel}>
       <IconButton
-        onClick={() => setMode(MODE_CYCLE[current])}
-        aria-label={MODE_LABEL[current]}
+        onClick={() => setMode(nextMode)}
+        aria-label={currentLabel}
         size="small"
       >
         <Icon fontSize={isSmUp ? "medium" : "small"} />

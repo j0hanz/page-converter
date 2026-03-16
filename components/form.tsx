@@ -21,16 +21,13 @@ import {
   isTransformError,
   isTransformErrorResponse,
 } from "@/lib/api";
+import type { TransformRequest } from "@/lib/validate";
 
 interface TransformFormProps {
   onResult: (result: TransformResult) => void;
   onError: (error: TransformError) => void;
   onLoading: (loading: boolean) => void;
   onProgress: (event: StreamProgressEvent) => void;
-}
-
-interface TransformRequestBody {
-  url: string;
 }
 
 const TRANSFORM_ENDPOINT = "/api/transform";
@@ -42,7 +39,12 @@ const ACTION_BUTTON_SX = {
   flex: { md: "1 1 0" },
 } as const;
 
-function createRequestBody(url: string): TransformRequestBody {
+type StreamHandlers = Pick<
+  TransformFormProps,
+  "onError" | "onProgress" | "onResult"
+>;
+
+function createRequestBody(url: string): TransformRequest {
   return { url: url.trim() };
 }
 
@@ -116,10 +118,7 @@ function createRequestSignal(abortController: AbortController): AbortSignal {
   ]);
 }
 
-function handleStreamEvent(
-  event: StreamEvent,
-  handlers: Pick<TransformFormProps, "onError" | "onProgress" | "onResult">,
-): void {
+function handleStreamEvent(event: StreamEvent, handlers: StreamHandlers): void {
   if (event.type === "progress") {
     handlers.onProgress(event);
     return;
@@ -167,6 +166,40 @@ function handleRequestError(
   onError(createNetworkError());
 }
 
+async function handleTransformResponse(
+  response: Response,
+  handlers: StreamHandlers,
+): Promise<void> {
+  if (isNdjsonResponse(response)) {
+    const streamError = await readNdjsonStream(response, (streamEvent) =>
+      handleStreamEvent(streamEvent, handlers),
+    );
+
+    if (streamError) {
+      handlers.onError(streamError);
+    }
+
+    return;
+  }
+
+  handleJsonFallback(await response.json(), handlers.onError);
+}
+
+async function submitTransformRequest(
+  url: string,
+  handlers: StreamHandlers,
+  signal: AbortSignal,
+): Promise<void> {
+  const response = await fetch(TRANSFORM_ENDPOINT, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(createRequestBody(url)),
+    signal,
+  });
+
+  await handleTransformResponse(response, handlers);
+}
+
 export default function TransformForm({
   onResult,
   onError,
@@ -177,6 +210,11 @@ export default function TransformForm({
   const [url, setUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const streamHandlers: StreamHandlers = { onError, onProgress, onResult };
+
+  function abortActiveRequest() {
+    abortControllerRef.current?.abort();
+  }
 
   useEffect(() => {
     return () => abortControllerRef.current?.abort();
@@ -189,7 +227,7 @@ export default function TransformForm({
 
   function handleCancel(event: React.MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
-    abortControllerRef.current?.abort();
+    abortActiveRequest();
   }
 
   function handleUrlChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -199,29 +237,17 @@ export default function TransformForm({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoadingState(true);
-    abortControllerRef.current?.abort();
+    abortActiveRequest();
 
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
 
     try {
-      const res = await fetch(TRANSFORM_ENDPOINT, {
-        method: "POST",
-        headers: JSON_HEADERS,
-        body: JSON.stringify(createRequestBody(url)),
-        signal: createRequestSignal(abortController),
-      });
-
-      if (isNdjsonResponse(res)) {
-        const streamError = await readNdjsonStream(res, (streamEvent) =>
-          handleStreamEvent(streamEvent, { onError, onProgress, onResult }),
-        );
-        if (streamError) {
-          onError(streamError);
-        }
-      } else {
-        handleJsonFallback(await res.json(), onError);
-      }
+      await submitTransformRequest(
+        url,
+        streamHandlers,
+        createRequestSignal(abortController),
+      );
     } catch (error) {
       if (isAbortError(error)) {
         return;

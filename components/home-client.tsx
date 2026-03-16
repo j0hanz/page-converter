@@ -78,25 +78,20 @@ function reducer(state: State, action: Action): State {
 
 export default function HomeClient() {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const showProgress = state.loading && state.progress !== null;
-  const showError = !state.loading && state.error !== null;
-  const showResult = !state.loading && state.result !== null;
-
-  function handleResult(result: TransformResult) {
-    dispatch({ type: "result", result });
-  }
-
-  function handleError(error: TransformError) {
-    dispatch({ type: "error", error });
-  }
-
-  function handleLoading(loading: boolean) {
-    dispatch({ type: "loading", loading });
-  }
-
-  function handleProgress(event: StreamProgressEvent) {
-    dispatch({ type: "progress", event });
-  }
+  const { error, loading, progress, result } = state;
+  const showProgress = loading && progress !== null;
+  const showError = !loading && error !== null;
+  const showResult = !loading && result !== null;
+  const formHandlers = {
+    onResult: (nextResult: TransformResult) =>
+      dispatch({ type: "result", result: nextResult }),
+    onError: (nextError: TransformError) =>
+      dispatch({ type: "error", error: nextError }),
+    onLoading: (nextLoading: boolean) =>
+      dispatch({ type: "loading", loading: nextLoading }),
+    onProgress: (event: StreamProgressEvent) =>
+      dispatch({ type: "progress", event }),
+  };
 
   function dismissError() {
     dispatch({ type: "dismiss_error" });
@@ -104,36 +99,31 @@ export default function HomeClient() {
 
   return (
     <>
-      <TransformForm
-        onResult={handleResult}
-        onError={handleError}
-        onLoading={handleLoading}
-        onProgress={handleProgress}
-      />
+      <TransformForm {...formHandlers} />
 
       <div aria-live="polite">
         <Collapse in={showProgress} unmountOnExit>
-          {state.progress && (
+          {progress && (
             <TransformProgress
-              progress={state.progress.progress}
-              total={state.progress.total}
-              message={state.progress.message}
+              progress={progress.progress}
+              total={progress.total}
+              message={progress.message}
             />
           )}
         </Collapse>
 
         <Collapse in={showError} unmountOnExit>
-          {state.error && (
+          {error && (
             <Alert severity="error" onClose={dismissError}>
-              <AlertTitle>{state.error.message}</AlertTitle>
-              Code: {state.error.code}
-              {state.error.retryable && " · Retryable"}
+              <AlertTitle>{error.message}</AlertTitle>
+              Code: {error.code}
+              {error.retryable && " · Retryable"}
             </Alert>
           )}
         </Collapse>
 
         <Collapse in={showResult} unmountOnExit>
-          {state.result && <TransformResultPanel result={state.result} />}
+          {result && <TransformResultPanel result={result} />}
         </Collapse>
       </div>
     </>

@@ -7,7 +7,7 @@ type ParsedSuccessResult = Extract<ParsedResult, { ok: true }>["result"];
 type ParsedErrorResult = Extract<ParsedResult, { ok: false }>["error"];
 
 function textContent(text: string): CallToolResult["content"] {
-  return [{ type: "text" as const, text }];
+  return [{ type: "text", text }] satisfies CallToolResult["content"];
 }
 
 function expectSuccessResult(parsed: ParsedResult): ParsedSuccessResult {

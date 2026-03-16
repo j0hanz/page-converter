@@ -14,14 +14,15 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 type ParsedResult = ReturnType<typeof parseMcpResult>;
 type ParsedErrorResult = Extract<ParsedResult, { ok: false }>["error"];
 
+function textContent(text: string): CallToolResult["content"] {
+  return [{ type: "text", text }] satisfies CallToolResult["content"];
+}
+
 function errorResult(code: string, message: string): CallToolResult {
   return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify({ ok: false, error: { code, message } }),
-      },
-    ],
+    content: textContent(
+      JSON.stringify({ ok: false, error: { code, message } }),
+    ),
     isError: true,
   };
 }
@@ -99,7 +100,7 @@ describe("error mapper", () => {
 
   it("handles unparseable error response gracefully", () => {
     const raw: CallToolResult = {
-      content: [{ type: "text" as const, text: "not json at all" }],
+      content: textContent("not json at all"),
       isError: true,
     };
     const error = expectErrorResult(parseMcpResult(raw));
