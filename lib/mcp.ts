@@ -4,7 +4,7 @@ import type {
   CallToolResult,
   Progress,
 } from "@modelcontextprotocol/sdk/types.js";
-import { createRequire } from "node:module";
+import path from "node:path";
 import type {
   TransformError,
   TransformMetadata,
@@ -18,7 +18,6 @@ export interface FetchUrlArgs {
 
 const CLIENT_INFO = { name: "page-converter", version: "1.0.0" };
 const FETCH_URL_TOOL_NAME = "fetch-url";
-const mcpPackageRequire = createRequire(import.meta.url);
 
 export type ProgressCallback = (progress: Progress) => void;
 
@@ -118,19 +117,21 @@ export async function callFetchUrl(
   return result as CallToolResult;
 }
 
-function resolveFetchUrlTransportEntry(
-  resolvePackagePath: (specifier: string) => string = (specifier) =>
-    mcpPackageRequire.resolve(specifier),
-): string {
-  return resolvePackagePath("@j0hanz/fetch-url-mcp");
-}
-
 export function getFetchUrlTransportConfig(
-  resolvePackagePath?: (specifier: string) => string,
+  currentWorkingDirectory: string = process.cwd(),
 ): TransportConfig {
   return {
     command: process.execPath,
-    args: [resolveFetchUrlTransportEntry(resolvePackagePath)],
+    args: [
+      path.join(
+        currentWorkingDirectory,
+        "node_modules",
+        "@j0hanz",
+        "fetch-url-mcp",
+        "dist",
+        "index.js",
+      ),
+    ],
   };
 }
 

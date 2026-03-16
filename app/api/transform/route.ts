@@ -15,6 +15,8 @@ import {
 } from "@/lib/api";
 import type { Progress } from "@modelcontextprotocol/sdk/types.js";
 
+export const runtime = "nodejs";
+
 const HTTP_STATUS_BY_ERROR_CODE: Record<TransformErrorCode, number> = {
   VALIDATION_ERROR: 400,
   FETCH_ERROR: 502,
