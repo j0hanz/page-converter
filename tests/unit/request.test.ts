@@ -133,6 +133,7 @@ describe("POST /api/transform", () => {
     expect(transformUrlMock).toHaveBeenCalledWith(
       { url: VALID_URL },
       expect.any(Function),
+      expect.any(AbortSignal),
     );
 
     const lines = (await response.text())

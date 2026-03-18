@@ -21,8 +21,8 @@ export interface TransformError {
 export interface TransformMetadata {
   description?: string;
   author?: string;
-  publishedDate?: string;
-  modifiedDate?: string;
+  publishedAt?: string;
+  modifiedAt?: string;
   image?: string;
   favicon?: string;
 }

@@ -21,15 +21,13 @@ const VALID_REQUEST = { url: "https://example.com" };
 const successResult: CallToolResult = {
   content: [],
   structuredContent: {
-    result: {
-      url: "https://example.com",
-      markdown: "# Example",
-      metadata: {},
-      fromCache: false,
-      fetchedAt: "2026-03-11T00:00:00.000Z",
-      contentSize: 9,
-      truncated: false,
-    },
+    url: "https://example.com",
+    markdown: "# Example",
+    metadata: {},
+    fromCache: false,
+    fetchedAt: "2026-03-11T00:00:00.000Z",
+    contentSize: 9,
+    truncated: false,
   },
 };
 
@@ -66,5 +64,22 @@ describe("transformUrl", () => {
 
     expect(response.error.code).toBe("INTERNAL_ERROR");
     expect(response.error.retryable).toBe(false);
+  });
+
+  it("forwards the abort signal to the MCP client call", async () => {
+    const abortController = new AbortController();
+    callFetchUrlMock.mockResolvedValueOnce(successResult);
+
+    const response = await transformUrl(
+      VALID_REQUEST,
+      undefined,
+      abortController.signal,
+    );
+
+    expect(callFetchUrlMock).toHaveBeenCalledWith(
+      VALID_REQUEST,
+      expect.objectContaining({ signal: abortController.signal }),
+    );
+    expect(response.ok).toBe(true);
   });
 });

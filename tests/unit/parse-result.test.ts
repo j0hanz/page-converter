@@ -28,30 +28,29 @@ function expectErrorResult(parsed: ParsedResult): ParsedErrorResult {
   return parsed.error;
 }
 
-const sampleResult = {
-  ok: true,
-  result: {
-    url: "https://example.com",
-    resolvedUrl: "https://example.com/",
-    finalUrl: "https://example.com/",
-    title: "Example Domain",
-    metadata: {
-      description: "An example page",
-      author: "IANA",
-    },
-    markdown: "# Example\n\nThis is an example.",
-    fromCache: true,
-    fetchedAt: "2026-03-10T12:00:00.000Z",
-    contentSize: 42,
-    truncated: false,
+const sampleStructuredContent = {
+  url: "https://example.com",
+  inputUrl: "https://example.com",
+  resolvedUrl: "https://example.com/",
+  finalUrl: "https://example.com/",
+  title: "Example Domain",
+  metadata: {
+    description: "An example page",
+    author: "IANA",
+    publishedAt: "2026-03-10T11:00:00.000Z",
   },
+  markdown: "# Example\n\nThis is an example.",
+  fromCache: true,
+  fetchedAt: "2026-03-10T12:00:00.000Z",
+  contentSize: 42,
+  truncated: false,
 };
 
 describe("parseMcpResult", () => {
   it("maps structuredContent to TransformResult preserving all fields", () => {
     const raw: CallToolResult = {
-      content: textContent(JSON.stringify(sampleResult)),
-      structuredContent: sampleResult,
+      content: textContent(JSON.stringify(sampleStructuredContent)),
+      structuredContent: sampleStructuredContent,
     };
 
     const result = expectSuccessResult(parseMcpResult(raw));
@@ -62,6 +61,7 @@ describe("parseMcpResult", () => {
     expect(result.title).toBe("Example Domain");
     expect(result.metadata.description).toBe("An example page");
     expect(result.metadata.author).toBe("IANA");
+    expect(result.metadata.publishedAt).toBe("2026-03-10T11:00:00.000Z");
     expect(result.markdown).toBe("# Example\n\nThis is an example.");
     expect(result.fromCache).toBe(true);
     expect(result.fetchedAt).toBe("2026-03-10T12:00:00.000Z");
@@ -73,8 +73,9 @@ describe("parseMcpResult", () => {
     const raw: CallToolResult = {
       content: textContent(
         JSON.stringify({
-          ok: false,
-          error: { code: "VALIDATION_ERROR", message: "Blocked URL" },
+          error: "Blocked URL",
+          code: "VALIDATION_ERROR",
+          url: "https://example.com",
         }),
       ),
       isError: true,
@@ -87,7 +88,7 @@ describe("parseMcpResult", () => {
 
   it("falls back to text content parsing when structuredContent is absent", () => {
     const raw: CallToolResult = {
-      content: textContent(JSON.stringify(sampleResult)),
+      content: textContent(JSON.stringify(sampleStructuredContent)),
     };
 
     const result = expectSuccessResult(parseMcpResult(raw));

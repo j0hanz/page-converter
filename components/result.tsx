@@ -195,7 +195,7 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
         </Stack>
         <Paper sx={MARKDOWN_PANEL_SX}>
           <Box sx={{ display: isPreviewMode ? "block" : "none" }}>
-            <MarkdownErrorBoundary>
+            <MarkdownErrorBoundary resetKey={result.markdown}>
               <Suspense fallback={<MarkdownSkeleton />}>
                 <MarkdownPreview>{result.markdown}</MarkdownPreview>
               </Suspense>

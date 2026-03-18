@@ -134,6 +134,7 @@ function createNdjsonResponseStream(
   request: Request,
   handleTransform: (
     onProgress: (progress: Progress) => void,
+    signal: AbortSignal,
   ) => Promise<TransformResponse>,
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
@@ -149,7 +150,7 @@ function createNdjsonResponseStream(
 
         const response = await handleTransform((progress) => {
           writeProgressEvent(streamGuard, progress);
-        });
+        }, request.signal);
 
         if (!request.signal.aborted) {
           writeResultEvent(streamGuard, response);
@@ -189,8 +190,8 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const validated = await parseTransformRequest(request);
 
-    const stream = createNdjsonResponseStream(request, (onProgress) =>
-      transformUrl(validated, onProgress),
+    const stream = createNdjsonResponseStream(request, (onProgress, signal) =>
+      transformUrl(validated, onProgress, signal),
     );
 
     return new Response(stream, { headers: NDJSON_HEADERS });

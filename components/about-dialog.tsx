@@ -56,7 +56,7 @@ function readTabA11yProps(index: number) {
 
 function MarkdownTabPanel({ children }: { children: string }) {
   return (
-    <MarkdownErrorBoundary>
+    <MarkdownErrorBoundary resetKey={children}>
       <Suspense fallback={<MarkdownSkeleton />}>
         <MarkdownPreview>{children}</MarkdownPreview>
       </Suspense>

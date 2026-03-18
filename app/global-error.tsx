@@ -17,7 +17,7 @@ export default function GlobalError({
   return (
     <html lang="en">
       <body>
-        <InitColorSchemeScript />
+        <InitColorSchemeScript attribute="class" />
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
             <CssBaseline />

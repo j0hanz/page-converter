@@ -18,10 +18,19 @@ function textContent(text: string): CallToolResult["content"] {
   return [{ type: "text", text }] satisfies CallToolResult["content"];
 }
 
-function errorResult(code: string, message: string): CallToolResult {
+function errorResult(
+  code: string,
+  message: string,
+  extra: Record<string, unknown> = {},
+): CallToolResult {
   return {
     content: textContent(
-      JSON.stringify({ ok: false, error: { code, message } }),
+      JSON.stringify({
+        error: message,
+        code,
+        url: "https://example.com",
+        ...extra,
+      }),
     ),
     isError: true,
   };
@@ -65,6 +74,14 @@ describe("error mapper", () => {
       statusCode: 404,
     },
     {
+      code: "HTTP_429",
+      message: "Too many requests",
+      expectedCode: "HTTP_ERROR",
+      retryable: false,
+      statusCode: 429,
+      details: { retryAfter: 60 },
+    },
+    {
       code: "ABORTED",
       message: "Cancelled",
       expectedCode: "ABORTED",
@@ -84,9 +101,9 @@ describe("error mapper", () => {
     },
   ])(
     "maps $code to $expectedCode",
-    ({ code, message, expectedCode, retryable, statusCode }) => {
+    ({ code, message, expectedCode, retryable, statusCode, details }) => {
       const error = expectErrorResult(
-        parseMcpResult(errorResult(code, message)),
+        parseMcpResult(errorResult(code, message, { statusCode, details })),
       );
 
       expect(error.code).toBe(expectedCode);
@@ -94,6 +111,10 @@ describe("error mapper", () => {
 
       if (statusCode !== undefined) {
         expect(error.statusCode).toBe(statusCode);
+      }
+
+      if (details !== undefined) {
+        expect(error.details).toEqual(details);
       }
     },
   );
@@ -112,13 +133,17 @@ describe("error mapper", () => {
       content: [],
       isError: true,
       structuredContent: {
-        error: { code: "FETCH_ERROR", message: "Upstream unavailable" },
+        error: "Upstream unavailable",
+        code: "FETCH_ERROR",
+        url: "https://example.com",
+        details: { reason: "timeout", timeout: 30_000 },
       },
     };
 
     const error = expectErrorResult(parseMcpResult(raw));
     expect(error.code).toBe("FETCH_ERROR");
     expect(error.retryable).toBe(true);
+    expect(error.details).toEqual({ reason: "timeout", timeout: 30_000 });
   });
 
   it("defaults streamed progress events to the shared total", () => {

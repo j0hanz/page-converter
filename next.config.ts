@@ -1,84 +1,97 @@
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import type { NextConfig } from "next";
 
-interface LockfilePackage {
+interface PackageManifest {
   dependencies?: Record<string, string>;
+  optionalDependencies?: Record<string, string>;
 }
 
-interface PackageLock {
-  packages?: Record<string, LockfilePackage>;
-}
+const require = createRequire(import.meta.url);
 
-function readPackageLockPackages(): Record<string, LockfilePackage> {
+function readPackageManifest(packageDirectory: string): PackageManifest | null {
   try {
-    const packageLockPath = path.join(process.cwd(), "package-lock.json");
-    const packageLock = JSON.parse(
-      fs.readFileSync(packageLockPath, "utf8"),
-    ) as PackageLock;
-
-    return packageLock.packages ?? {};
+    return JSON.parse(
+      fs.readFileSync(path.join(packageDirectory, "package.json"), "utf8"),
+    ) as PackageManifest;
   } catch {
-    return {};
+    return null;
   }
 }
 
-function resolveDependencyPath(
-  packages: Record<string, LockfilePackage>,
-  dependencyName: string,
-  fromPackagePath: string,
-): string | null {
-  const nestedPath = `${fromPackagePath}/node_modules/${dependencyName}`;
-  if (packages[nestedPath]) {
-    return nestedPath;
-  }
+function findPackageDirectory(resolvedEntryPath: string): string | null {
+  const { root } = path.parse(resolvedEntryPath);
+  let currentDirectory = path.dirname(resolvedEntryPath);
 
-  const hoistedPath = `node_modules/${dependencyName}`;
-  if (packages[hoistedPath]) {
-    return hoistedPath;
-  }
-
-  const packageSuffix = `/node_modules/${dependencyName}`;
-  for (const packagePath of Object.keys(packages)) {
-    if (packagePath.endsWith(packageSuffix)) {
-      return packagePath;
+  for (;;) {
+    if (fs.existsSync(path.join(currentDirectory, "package.json"))) {
+      return currentDirectory;
     }
+    if (currentDirectory === root) {
+      return null;
+    }
+    currentDirectory = path.dirname(currentDirectory);
   }
+}
 
-  return null;
+function resolveInstalledPackageDirectory(
+  packageName: string,
+  fromDirectory: string,
+): string | null {
+  try {
+    const resolvedEntryPath = require.resolve(packageName, {
+      paths: [fromDirectory],
+    });
+    return findPackageDirectory(resolvedEntryPath);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeTraceGlob(packageDirectory: string): string {
+  const relativeDirectory = path.relative(process.cwd(), packageDirectory);
+  return `./${relativeDirectory.split(path.sep).join("/")}/**/*`;
+}
+
+function readRuntimeDependencyNames(
+  packageDirectory: string,
+): readonly string[] {
+  const manifest = readPackageManifest(packageDirectory);
+  return Object.keys({
+    ...(manifest?.dependencies ?? {}),
+    ...(manifest?.optionalDependencies ?? {}),
+  }).sort();
 }
 
 function collectPackageTraceGlobs(packageName: string): string[] {
-  const packages = readPackageLockPackages();
-  const rootPackagePath = `node_modules/${packageName}`;
-  const visitedPackagePaths = new Set<string>();
+  const visitedPackageDirectories = new Set<string>();
 
-  const visit = (packagePath: string | null) => {
-    if (!packagePath || visitedPackagePaths.has(packagePath)) {
+  const visit = (dependencyName: string, fromDirectory: string) => {
+    const packageDirectory = resolveInstalledPackageDirectory(
+      dependencyName,
+      fromDirectory,
+    );
+    if (!packageDirectory || visitedPackageDirectories.has(packageDirectory)) {
       return;
     }
 
-    const packageData = packages[packagePath];
-    if (!packageData) {
-      return;
-    }
+    visitedPackageDirectories.add(packageDirectory);
 
-    visitedPackagePaths.add(packagePath);
-
-    for (const dependencyName of Object.keys(packageData.dependencies ?? {})) {
-      visit(resolveDependencyPath(packages, dependencyName, packagePath));
+    for (const runtimeDependencyName of readRuntimeDependencyNames(
+      packageDirectory,
+    )) {
+      visit(runtimeDependencyName, packageDirectory);
     }
   };
 
-  visit(rootPackagePath);
+  visit(packageName, process.cwd());
 
-  if (visitedPackagePaths.size === 0) {
-    return [`./${rootPackagePath}/**/*`];
+  if (visitedPackageDirectories.size === 0) {
+    return [`./node_modules/${packageName}/**/*`];
   }
 
-  return [...visitedPackagePaths]
-    .sort()
-    .map((packagePath) => `./${packagePath}/**/*`);
+  return [...visitedPackageDirectories].sort().map(normalizeTraceGlob);
 }
 
 const nextConfig: NextConfig = {

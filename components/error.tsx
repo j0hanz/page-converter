@@ -57,6 +57,7 @@ export function ErrorState({
 
 interface MarkdownErrorBoundaryProps {
   children: ReactNode;
+  resetKey?: string;
 }
 
 interface MarkdownErrorBoundaryState {
@@ -71,6 +72,12 @@ export class MarkdownErrorBoundary extends Component<
 
   static getDerivedStateFromError(): MarkdownErrorBoundaryState {
     return { hasError: true };
+  }
+
+  override componentDidUpdate(prevProps: MarkdownErrorBoundaryProps) {
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false });
+    }
   }
 
   override render() {

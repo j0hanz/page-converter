@@ -4,6 +4,7 @@ import type {
   CallToolResult,
   Progress,
 } from "@modelcontextprotocol/sdk/types.js";
+import { McpError } from "@modelcontextprotocol/sdk/types.js";
 import path from "node:path";
 import type {
   TransformError,
@@ -20,6 +21,11 @@ const CLIENT_INFO = { name: "page-converter", version: "1.0.0" };
 const FETCH_URL_TOOL_NAME = "fetch-url";
 
 export type ProgressCallback = (progress: Progress) => void;
+
+interface FetchUrlCallOptions {
+  onProgress?: ProgressCallback;
+  signal?: AbortSignal;
+}
 
 interface McpInstance {
   client: Client;
@@ -97,15 +103,22 @@ async function getConnectedClient(): Promise<Client> {
   return globalForMcp.__mcpConnecting;
 }
 
-function createProgressOptions(
-  onProgress?: ProgressCallback,
-): { onprogress: ProgressCallback } | undefined {
-  return onProgress ? { onprogress: onProgress } : undefined;
+function createRequestOptions(
+  options?: FetchUrlCallOptions,
+): { onprogress?: ProgressCallback; signal?: AbortSignal } | undefined {
+  if (!options?.onProgress && !options?.signal) {
+    return undefined;
+  }
+
+  return {
+    ...(options.onProgress ? { onprogress: options.onProgress } : {}),
+    ...(options.signal ? { signal: options.signal } : {}),
+  };
 }
 
 export async function callFetchUrl(
   args: FetchUrlArgs,
-  onProgress?: ProgressCallback,
+  options?: FetchUrlCallOptions,
 ): Promise<CallToolResult> {
   const client = await getConnectedClient();
 
@@ -116,7 +129,7 @@ export async function callFetchUrl(
         arguments: { url: args.url },
       },
       undefined,
-      createProgressOptions(onProgress),
+      createRequestOptions(options),
     );
 
     return result as CallToolResult;
@@ -143,14 +156,6 @@ export function getFetchUrlTransportConfig(
   };
 }
 
-const METADATA_FIELDS = [
-  "description",
-  "author",
-  "publishedDate",
-  "modifiedDate",
-  "image",
-  "favicon",
-] as const;
 const MAX_STDERR_BUFFER_LENGTH = 4000;
 const HTTP_ERROR_CODE_PREFIX = "HTTP_";
 const UNKNOWN_MCP_ERROR_MESSAGE = "Unknown MCP error";
@@ -186,7 +191,21 @@ function createTransportError(error: unknown): Error {
     return error instanceof Error ? error : new Error(message);
   }
 
-  const transportError = new Error(`${message}\nChild stderr: ${stderr}`);
+  const transportErrorMessage = `${message}\nChild stderr: ${stderr}`;
+  if (error instanceof McpError) {
+    const transportError = new McpError(
+      error.code,
+      transportErrorMessage,
+      error.data,
+    );
+    if (error.stack) {
+      transportError.stack = error.stack;
+    }
+
+    return transportError;
+  }
+
+  const transportError = new Error(transportErrorMessage);
   if (error instanceof Error && error.stack) {
     transportError.stack = error.stack;
   }
@@ -211,27 +230,42 @@ function readKnownMcpError(code: string): KnownMcpErrorDefinition | undefined {
  */
 function mapMcpError(errorPayload: JsonRecord): TransformError {
   const code = readString(errorPayload.code) ?? "";
-  const message = readString(errorPayload.message) ?? UNKNOWN_MCP_ERROR_MESSAGE;
+  const message = readMcpErrorMessage(errorPayload);
   const knownError = readKnownMcpError(code);
+  const statusCode = readInteger(errorPayload.statusCode);
+  const details = readErrorDetails(errorPayload);
 
   if (knownError) {
     return createTransformError(knownError.code, message, {
       retryable: knownError.retryable,
+      ...(statusCode !== undefined ? { statusCode } : {}),
+      ...(details ? { details } : {}),
     });
   }
 
-  return mapUnknownMcpError(code, message);
+  return mapUnknownMcpError(code, message, statusCode, details);
 }
 
-function mapUnknownMcpError(code: string, message: string): TransformError {
+function mapUnknownMcpError(
+  code: string,
+  message: string,
+  statusCode?: number,
+  details?: TransformError["details"],
+): TransformError {
   if (!code.startsWith(HTTP_ERROR_CODE_PREFIX)) {
-    return createInternalError(message);
+    return createTransformError("INTERNAL_ERROR", message, {
+      ...(statusCode !== undefined ? { statusCode } : {}),
+      ...(details ? { details } : {}),
+    });
   }
 
-  const statusCode = readHttpStatusCode(code);
+  const resolvedStatusCode = statusCode ?? readHttpStatusCode(code);
   return createTransformError("HTTP_ERROR", message, {
-    retryable: statusCode !== undefined && statusCode >= 500,
-    statusCode,
+    retryable: resolvedStatusCode !== undefined && resolvedStatusCode >= 500,
+    ...(resolvedStatusCode !== undefined
+      ? { statusCode: resolvedStatusCode }
+      : {}),
+    ...(details ? { details } : {}),
   });
 }
 
@@ -244,12 +278,26 @@ function readHttpStatusCode(code: string): number | undefined {
 }
 
 function extractMetadata(data: JsonRecord): TransformMetadata {
-  return readOptionalStringProperties(asRecord(data.metadata), METADATA_FIELDS);
+  const metadata = asRecord(data.metadata);
+  if (!metadata) {
+    return {};
+  }
+
+  return compactMetadata({
+    description: readString(metadata.description),
+    author: readString(metadata.author),
+    publishedAt:
+      readString(metadata.publishedAt) ?? readString(metadata.publishedDate),
+    modifiedAt:
+      readString(metadata.modifiedAt) ?? readString(metadata.modifiedDate),
+    image: readString(metadata.image),
+    favicon: readString(metadata.favicon),
+  });
 }
 
 function mapToTransformResult(data: JsonRecord): TransformResult {
   return {
-    url: readString(data.url) ?? "",
+    url: readString(data.url) ?? readString(data.inputUrl) ?? "",
     resolvedUrl: readString(data.resolvedUrl),
     finalUrl: readString(data.finalUrl),
     title: readString(data.title),
@@ -347,6 +395,38 @@ function unwrapRecord(record: JsonRecord, key: string): JsonRecord {
   return asRecord(record[key]) ?? record;
 }
 
+function readMcpErrorMessage(errorPayload: JsonRecord): string {
+  return (
+    readString(errorPayload.message) ??
+    readString(errorPayload.error) ??
+    UNKNOWN_MCP_ERROR_MESSAGE
+  );
+}
+
+function readErrorDetails(
+  errorPayload: JsonRecord,
+): TransformError["details"] | undefined {
+  const details = asRecord(errorPayload.details);
+  if (!details) {
+    return undefined;
+  }
+
+  const retryAfter = details.retryAfter;
+  const timeout = readInteger(details.timeout);
+  const reason = readString(details.reason);
+  const mappedDetails = {
+    ...(typeof retryAfter === "number" ||
+    typeof retryAfter === "string" ||
+    retryAfter === null
+      ? { retryAfter }
+      : {}),
+    ...(timeout !== undefined ? { timeout } : {}),
+    ...(reason !== undefined ? { reason } : {}),
+  };
+
+  return Object.keys(mappedDetails).length > 0 ? mappedDetails : undefined;
+}
+
 function parseJsonRecord(value: string): JsonRecord | null {
   try {
     return asRecord(JSON.parse(value));
@@ -361,24 +441,10 @@ function asRecord(value: unknown): JsonRecord | null {
     : null;
 }
 
-function readOptionalStringProperties<const TFields extends readonly string[]>(
-  record: JsonRecord | null,
-  fields: TFields,
-): Partial<Record<TFields[number], string>> {
-  const result: Partial<Record<TFields[number], string>> = {};
-
-  if (!record) {
-    return result;
-  }
-
-  for (const field of fields) {
-    const value = readString(record[field]);
-    if (value !== undefined) {
-      result[field as TFields[number]] = value;
-    }
-  }
-
-  return result;
+function compactMetadata(metadata: TransformMetadata): TransformMetadata {
+  return Object.fromEntries(
+    Object.entries(metadata).filter(([, value]) => value !== undefined),
+  ) as TransformMetadata;
 }
 
 function readString(value: unknown): string | undefined {
@@ -390,5 +456,12 @@ function readBoolean(value: unknown): boolean | undefined {
 }
 
 function readNumber(value: unknown): number | undefined {
-  return typeof value === "number" ? value : undefined;
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function readInteger(value: unknown): number | undefined {
+  const number = readNumber(value);
+  return number !== undefined && Number.isInteger(number) ? number : undefined;
 }
