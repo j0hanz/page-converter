@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import HomeClient from "@/components/home-client";
 import type { TransformResult } from "@/lib/api";
 
@@ -22,7 +23,7 @@ describe("HomeClient", () => {
     global.fetch = vi.fn().mockResolvedValue(stream.response);
 
     render(<HomeClient />);
-    submitUrl(VALID_URL);
+    await submitUrl(VALID_URL);
 
     stream.emit({
       type: "progress",
@@ -49,7 +50,7 @@ describe("HomeClient", () => {
     global.fetch = vi.fn().mockResolvedValue(stream.response);
 
     render(<HomeClient />);
-    submitUrl(VALID_URL);
+    await submitUrl(VALID_URL);
 
     stream.emit({
       type: "progress",
@@ -78,7 +79,7 @@ describe("HomeClient", () => {
     });
     expect(screen.queryByText("Fetching")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByLabelText(/close/i));
+    await userEvent.setup().click(screen.getByLabelText(/close/i));
 
     await waitFor(() => {
       expect(
@@ -91,7 +92,7 @@ describe("HomeClient", () => {
     global.fetch = vi.fn().mockRejectedValue(new Error("Network fail"));
 
     render(<HomeClient />);
-    submitUrl(VALID_URL);
+    await submitUrl(VALID_URL);
 
     expect(
       await screen.findByText("Network error. Please try again."),
@@ -100,11 +101,13 @@ describe("HomeClient", () => {
   });
 });
 
-function submitUrl(url: string) {
-  fireEvent.change(screen.getByLabelText(/URL/i), {
-    target: { value: url },
-  });
-  fireEvent.click(screen.getByRole("button", { name: /convert/i }));
+async function submitUrl(url: string) {
+  const user = userEvent.setup();
+  const input = screen.getByLabelText(/URL/i);
+
+  await user.clear(input);
+  await user.type(input, url);
+  await user.click(screen.getByRole("button", { name: /convert/i }));
 }
 
 function createControlledStreamResponse() {

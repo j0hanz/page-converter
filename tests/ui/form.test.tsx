@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import TransformForm from "@/components/form";
 
 const onSubmit = vi.fn();
@@ -21,9 +22,9 @@ describe("TransformForm", () => {
     ).toBeInTheDocument();
   });
 
-  it("submits the current URL value", () => {
+  it("submits the current URL value", async () => {
     renderForm();
-    submitUrl(`  ${VALID_URL}  `);
+    await submitUrl(`  ${VALID_URL}  `);
 
     expect(onSubmit).toHaveBeenCalledWith(VALID_URL);
   });
@@ -43,9 +44,11 @@ function renderForm({ loading = false }: { loading?: boolean } = {}) {
   return render(<TransformForm loading={loading} onSubmit={onSubmit} />);
 }
 
-function submitUrl(url: string) {
-  fireEvent.change(screen.getByLabelText(/URL/i), {
-    target: { value: url },
-  });
-  fireEvent.click(screen.getByRole("button", { name: /convert/i }));
+async function submitUrl(url: string) {
+  const user = userEvent.setup();
+  const input = screen.getByLabelText(/URL/i);
+
+  await user.clear(input);
+  await user.type(input, url);
+  await user.click(screen.getByRole("button", { name: /convert/i }));
 }

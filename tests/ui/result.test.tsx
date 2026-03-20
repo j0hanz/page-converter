@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import TransformResultPanel from "@/components/result";
 import type { TransformResult } from "@/lib/api";
 
@@ -35,10 +36,11 @@ describe("TransformResultPanel", () => {
     expect(screen.getByText("This is an example.")).toBeInTheDocument();
   });
 
-  it("renders raw markdown in code view", () => {
+  it("renders raw markdown in code view", async () => {
+    const user = userEvent.setup();
     renderPanel();
 
-    fireEvent.click(screen.getByRole("button", { name: /code/i }));
+    await user.click(screen.getByRole("button", { name: /code/i }));
 
     const pre = document.querySelector("pre");
     expect(pre).toBeInTheDocument();
@@ -65,12 +67,17 @@ describe("TransformResultPanel", () => {
     ).toBeInTheDocument();
   });
 
-  it("copies markdown to clipboard on button click", () => {
+  it("copies markdown to clipboard on button click", async () => {
+    const user = userEvent.setup();
     const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.assign(navigator, { clipboard: { writeText } });
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      writable: true,
+      configurable: true,
+    });
 
     renderPanel();
-    fireEvent.click(screen.getByRole("button", { name: /copy markdown/i }));
+    await user.click(screen.getByRole("button", { name: /copy markdown/i }));
 
     expect(writeText).toHaveBeenCalledWith("# Example\n\nThis is an example.");
   });
@@ -103,7 +110,9 @@ describe("TransformResultPanel", () => {
       expect(screen.getByRole("img", { name: "Tracker" })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /code/i }));
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: /code/i }));
 
     expect(
       screen.queryByRole("img", { name: "Tracker" }),
