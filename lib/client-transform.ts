@@ -12,6 +12,7 @@ import {
   createUnexpectedResponseError,
   hasTransformError,
   hasTransformResult,
+  isStreamEvent,
   isTransformError,
   isTransformErrorResponse,
 } from "@/lib/api";
@@ -37,7 +38,13 @@ function isNdjsonResponse(response: Response): boolean {
 }
 
 function parseStreamEvent(line: string): StreamEvent {
-  return JSON.parse(line) as StreamEvent;
+  const parsed: unknown = JSON.parse(line);
+
+  if (!isStreamEvent(parsed)) {
+    throw new Error("Invalid stream event");
+  }
+
+  return parsed;
 }
 
 function flushBufferedLines(

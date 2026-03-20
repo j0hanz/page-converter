@@ -166,6 +166,14 @@ function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null;
 }
 
+function isStreamEventType(type: unknown): type is StreamEvent["type"] {
+  return type === "progress" || type === "result";
+}
+
+export function isStreamEvent(value: unknown): value is StreamEvent {
+  return isRecord(value) && isStreamEventType(value.type);
+}
+
 export function isTransformError(value: unknown): value is TransformError {
   if (!isRecord(value)) {
     return false;
