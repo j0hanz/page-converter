@@ -35,7 +35,6 @@ type Action =
   | { type: "progress"; event: StreamProgressEvent }
   | { type: "result"; result: TransformResult }
   | { type: "error"; error: TransformError }
-  | { type: "cancel" }
   | { type: "dismiss_error" };
 
 const initialState: State = {
@@ -62,8 +61,6 @@ function reducer(state: State, action: Action): State {
       return { ...initialState, result: action.result };
     case "error":
       return { ...initialState, error: action.error };
-    case "cancel":
-      return initialState;
     case "dismiss_error":
       return { ...state, error: null };
   }
@@ -92,11 +89,6 @@ export default function HomeClient() {
 
   function isActiveRequest(requestId: number): boolean {
     return requestIdRef.current === requestId;
-  }
-
-  function handleCancel() {
-    invalidateActiveRequest();
-    dispatch({ type: "cancel" });
   }
 
   function handleSubmit(url: string) {
@@ -153,11 +145,7 @@ export default function HomeClient() {
 
   return (
     <>
-      <TransformForm
-        loading={loading}
-        onCancel={handleCancel}
-        onSubmit={handleSubmit}
-      />
+      <TransformForm loading={loading} onSubmit={handleSubmit} />
 
       <div aria-live="polite">
         <Collapse in={showProgress} unmountOnExit>

@@ -3,7 +3,7 @@
 import {
   lazy,
   Suspense,
-  useEffect,
+  useRef,
   useState,
   type ReactNode,
   type SyntheticEvent,
@@ -42,17 +42,15 @@ interface TabPanelProps {
 }
 
 function TabPanel({ children, panelId, tabId, visible }: TabPanelProps) {
-  const [hasRendered, setHasRendered] = useState(visible);
+  const hasRenderedRef = useRef(visible);
 
-  useEffect(() => {
-    if (visible && !hasRendered) {
-      setHasRendered(true);
-    }
-  }, [visible, hasRendered]);
+  if (visible && !hasRenderedRef.current) {
+    hasRenderedRef.current = true;
+  }
 
   return (
     <div role="tabpanel" hidden={!visible} id={panelId} aria-labelledby={tabId}>
-      {(hasRendered || visible) && children}
+      {(hasRenderedRef.current || visible) && children}
     </div>
   );
 }

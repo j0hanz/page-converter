@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef } from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -8,7 +8,6 @@ import Button from "@mui/material/Button";
 
 interface TransformFormProps {
   loading: boolean;
-  onCancel: () => void;
   onSubmit: (url: string) => void;
 }
 
@@ -20,19 +19,16 @@ const ACTION_BUTTON_SX = {
 
 export default function TransformForm({
   loading,
-  onCancel,
   onSubmit,
 }: TransformFormProps) {
   const urlInputId = useId();
-  const [url, setUrl] = useState("");
-
-  function handleUrlChange(event: React.ChangeEvent<HTMLInputElement>) {
-    setUrl(event.target.value);
-  }
+  const inputRef = useRef<HTMLInputElement>(null);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onSubmit(url);
+    if (inputRef.current) {
+      onSubmit(inputRef.current.value);
+    }
   }
 
   return (
@@ -40,39 +36,27 @@ export default function TransformForm({
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
         <TextField
           id={urlInputId}
+          inputRef={inputRef}
           label="Paste a public URL to convert"
           type="url"
           required
           fullWidth
           placeholder="https://example.com"
-          value={url}
-          onChange={handleUrlChange}
+          defaultValue=""
           disabled={loading}
           variant="outlined"
           size="small"
           sx={URL_INPUT_SX}
         />
-        {loading ? (
-          <Button
-            type="button"
-            variant="contained"
-            fullWidth
-            color="error"
-            onClick={onCancel}
-            sx={ACTION_BUTTON_SX}
-          >
-            Cancel
-          </Button>
-        ) : (
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            sx={ACTION_BUTTON_SX}
-          >
-            Convert
-          </Button>
-        )}
+        <Button
+          type="submit"
+          variant="contained"
+          fullWidth
+          disabled={loading}
+          sx={ACTION_BUTTON_SX}
+        >
+          {loading ? "Converting..." : "Convert"}
+        </Button>
       </Stack>
     </Box>
   );

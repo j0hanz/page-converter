@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import TransformForm from "@/components/form";
 
-const onCancel = vi.fn();
 const onSubmit = vi.fn();
 const VALID_URL = "https://example.com";
 
@@ -29,29 +28,19 @@ describe("TransformForm", () => {
     expect(onSubmit).toHaveBeenCalledWith(VALID_URL);
   });
 
-  it("disables the URL input and shows Cancel while loading", () => {
+  it("disables the URL input and changes button text while loading", () => {
     renderForm({ loading: true });
 
     expect(screen.getByLabelText(/URL/i)).toBeDisabled();
-    expect(screen.getByRole("button", { name: /cancel/i })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /converting/i })).toBeDisabled();
     expect(
-      screen.queryByRole("button", { name: /convert/i }),
+      screen.queryByRole("button", { name: /^convert$/i }),
     ).not.toBeInTheDocument();
-  });
-
-  it("calls onCancel when cancel is clicked", () => {
-    renderForm({ loading: true });
-
-    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
-
-    expect(onCancel).toHaveBeenCalledOnce();
   });
 });
 
 function renderForm({ loading = false }: { loading?: boolean } = {}) {
-  return render(
-    <TransformForm loading={loading} onCancel={onCancel} onSubmit={onSubmit} />,
-  );
+  return render(<TransformForm loading={loading} onSubmit={onSubmit} />);
 }
 
 function submitUrl(url: string) {

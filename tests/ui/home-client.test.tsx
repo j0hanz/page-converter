@@ -87,38 +87,6 @@ describe("HomeClient", () => {
     });
   });
 
-  it("cancels an active request without surfacing an error", async () => {
-    global.fetch = vi.fn().mockImplementation(
-      (_url: string, init: { signal: AbortSignal }) =>
-        new Promise((_resolve, reject) => {
-          init.signal.addEventListener("abort", () => {
-            reject(
-              new DOMException("The user aborted a request.", "AbortError"),
-            );
-          });
-        }),
-    );
-
-    render(<HomeClient />);
-    submitUrl(VALID_URL);
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: /cancel/i }),
-      ).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: /convert/i }),
-      ).toBeInTheDocument();
-    });
-
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-  });
-
   it("shows a retryable error when the network request fails", async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error("Network fail"));
 
