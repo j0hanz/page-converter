@@ -63,28 +63,33 @@ export default async function Home() {
   const { aboutMarkdown, howItWorksMarkdown } = await readHomePageMarkdown();
 
   return (
-    <Box sx={{ minHeight: '100dvh', py: { xs: 2, sm: 4, md: 6 } }}>
+    <Box sx={{ minHeight: '100dvh', py: { xs: 2, sm: 3, md: 4 } }}>
       <Container maxWidth="lg">
-        <Stack spacing={{ xs: 3, sm: 4 }}>
+        <Stack spacing={{ xs: 2.5, sm: 3 }}>
           <Toolbar disableGutters sx={{ alignItems: 'flex-start' }}>
             <Box sx={{ flexGrow: 1 }}>
-              <Stack direction="row" spacing={1} alignItems="center">
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{ mb: 0.5 }}
+                alignItems="center"
+              >
                 <LogoIcon
                   sx={{
-                    fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.85rem' },
+                    fontSize: { xs: '1.4rem', sm: '1.6rem', md: '1.8rem' },
                   }}
                 />
                 <Typography variant="h4" component="h1">
                   {SITE_NAME}
                 </Typography>
               </Stack>
-              <Typography variant="subtitle1" color="text.secondary">
+              <Typography variant="subtitle2" color="text.secondary">
                 {SITE_TAGLINE}
               </Typography>
             </Box>
             <Stack
               direction="row"
-              spacing={{ xs: 0.5, sm: 1 }}
+              spacing={{ xs: 1, sm: 1.5 }}
               alignItems="center"
             >
               <AboutDialog
@@ -96,8 +101,8 @@ export default async function Home() {
                   component="a"
                   href={SITE_REPOSITORY_URL}
                   target="_blank"
-                  rel="noopener noreferrer"
                   size="small"
+                  rel="noopener noreferrer"
                   aria-label="View on GitHub"
                 >
                   <GitHubIcon sx={GITHUB_ICON_SX} />

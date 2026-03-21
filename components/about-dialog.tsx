@@ -131,8 +131,8 @@ export default function AboutDialog({
       <Tooltip title="About">
         <IconButton
           onClick={handleOpen}
-          size="small"
           aria-label="About Fetch URL"
+          size="small"
         >
           <InfoOutlinedIcon sx={ABOUT_ICON_SX} />
         </IconButton>
