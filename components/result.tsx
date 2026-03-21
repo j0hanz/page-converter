@@ -47,7 +47,7 @@ const MARKDOWN_PANEL_SX = {
   overflow: 'auto',
   border: '1px solid',
   borderColor: 'divider',
-  borderRadius: 2,
+  borderRadius: 1.5,
 } as const;
 const RAW_MARKDOWN_SX = {
   fontFamily: MARKDOWN_FONT_FAMILY,
