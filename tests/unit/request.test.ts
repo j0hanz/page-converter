@@ -55,6 +55,19 @@ function createJsonRequest(body: string): Request {
   });
 }
 
+function createAbortableJsonRequest(
+  body: string,
+  signal: AbortSignal,
+  headers: HeadersInit = { 'Content-Type': 'application/json' }
+): Request {
+  return new Request('http://localhost/api/transform', {
+    method: 'POST',
+    headers,
+    body,
+    signal,
+  });
+}
+
 function parseNdjsonLine(line: string): unknown {
   return JSON.parse(line);
 }
@@ -118,6 +131,29 @@ describe('POST /api/transform', () => {
       error: {
         code: 'VALIDATION_ERROR',
         message: 'Invalid JSON body.',
+        retryable: false,
+      },
+    });
+  });
+
+  it('returns a validation error when the request body is too large', async () => {
+    const response = await POST(
+      createAbortableJsonRequest(
+        JSON.stringify({ url: VALID_URL }),
+        new AbortController().signal,
+        {
+          'Content-Type': 'application/json',
+          'Content-Length': '4097',
+        }
+      )
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      ok: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Request body too large.',
         retryable: false,
       },
     });
@@ -208,6 +244,57 @@ describe('POST /api/transform', () => {
       {
         type: 'result',
         ...IMMEDIATE_ERROR_RESPONSE,
+      },
+    ]);
+  });
+
+  it('closes the stream when the client aborts after progress starts', async () => {
+    const abortController = new AbortController();
+    let resolveTransform!: (response: TransformResponse) => void;
+
+    transformUrlMock.mockImplementation((_request, onProgress, signal) => {
+      onProgress?.({
+        progress: 1,
+        total: 8,
+        message: 'Starting',
+      });
+
+      signal?.addEventListener(
+        'abort',
+        () => {
+          resolveTransform(SUCCESS_RESPONSE);
+        },
+        { once: true }
+      );
+
+      return new Promise<TransformResponse>((resolve) => {
+        resolveTransform = resolve;
+      });
+    });
+
+    const response = await POST(
+      createAbortableJsonRequest(
+        JSON.stringify({ url: VALID_URL }),
+        abortController.signal
+      )
+    );
+
+    expect(response.headers.get('Content-Type')).toBe('application/x-ndjson');
+
+    abortController.abort();
+
+    const lines = (await response.text())
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map(parseNdjsonLine);
+
+    expect(lines).toEqual([
+      {
+        type: 'progress',
+        progress: 1,
+        total: 8,
+        message: 'Starting',
       },
     ]);
   });

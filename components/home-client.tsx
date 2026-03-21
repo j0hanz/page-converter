@@ -1,6 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useReducer, useRef } from 'react';
+import {
+  type Dispatch,
+  useCallback,
+  useEffect,
+  useReducer,
+  useRef,
+} from 'react';
 
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
@@ -34,6 +40,22 @@ interface State {
 interface RequestSession {
   abortController: AbortController;
   requestId: number;
+}
+
+interface RequestControllerOptions {
+  clearInput: () => void;
+  dispatch: Dispatch<Action>;
+}
+
+export interface RequestController {
+  beginRequest: () => RequestSession;
+  dispatchIfActive: (
+    session: RequestSession,
+    action: Exclude<Action, { type: 'submit' | 'dismiss_error' }>
+  ) => void;
+  isActiveRequest: (session: RequestSession) => boolean;
+  releaseRequest: (session: RequestSession) => void;
+  stopActiveRequest: () => void;
 }
 
 type Action =
@@ -72,85 +94,107 @@ function reducer(state: State, action: Action): State {
   }
 }
 
+export function createRequestController({
+  clearInput,
+  dispatch,
+}: RequestControllerOptions): RequestController {
+  let requestId = 0;
+  let abortController: AbortController | null = null;
+
+  function stopActiveRequest() {
+    requestId += 1;
+
+    const activeAbortController = abortController;
+    abortController = null;
+    activeAbortController?.abort();
+  }
+
+  function isActiveRequest(session: RequestSession): boolean {
+    return requestId === session.requestId;
+  }
+
+  return {
+    beginRequest() {
+      stopActiveRequest();
+
+      const session = {
+        abortController: new AbortController(),
+        requestId: requestId + 1,
+      };
+
+      requestId = session.requestId;
+      abortController = session.abortController;
+
+      return session;
+    },
+    dispatchIfActive(session, action) {
+      if (!isActiveRequest(session)) {
+        return;
+      }
+
+      dispatch(action);
+      if (action.type === 'result' || action.type === 'error') {
+        clearInput();
+      }
+    },
+    isActiveRequest,
+    releaseRequest(session) {
+      if (
+        isActiveRequest(session) &&
+        abortController === session.abortController
+      ) {
+        abortController = null;
+      }
+    },
+    stopActiveRequest,
+  };
+}
+
 export default function HomeClient() {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const requestIdRef = useRef(0);
   const formRef = useRef<TransformFormHandle>(null);
   const { error, loading, progress, result } = state;
   const showProgress = loading && progress !== null;
   const showError = !loading && error !== null;
   const showResult = !loading && result !== null;
 
-  function dismissError() {
-    dispatch({ type: 'dismiss_error' });
-  }
-
-  function invalidateActiveRequest(): void {
-    requestIdRef.current += 1;
-    const abortController = abortControllerRef.current;
-
-    abortControllerRef.current = null;
-    abortController?.abort();
-  }
-
-  function createRequestSession(): RequestSession {
-    invalidateActiveRequest();
-
-    const requestId = requestIdRef.current + 1;
-    const abortController = new AbortController();
-
-    requestIdRef.current = requestId;
-    abortControllerRef.current = abortController;
-
-    return { abortController, requestId };
-  }
-
-  function isActiveRequest(session: RequestSession): boolean {
-    return requestIdRef.current === session.requestId;
-  }
-
   const clearInput = useCallback(() => {
     formRef.current?.clear();
   }, []);
+  const requestControllerRef = useRef<RequestController | null>(null);
 
-  function dispatchIfRequestActive(
-    session: RequestSession,
-    action: Exclude<Action, { type: 'submit' | 'dismiss_error' }>
-  ): void {
-    if (isActiveRequest(session)) {
-      dispatch(action);
-      if (action.type === 'result' || action.type === 'error') {
-        clearInput();
-      }
-    }
+  if (!requestControllerRef.current) {
+    requestControllerRef.current = createRequestController({
+      clearInput,
+      dispatch,
+    });
   }
 
-  function releaseRequestSession(session: RequestSession): void {
-    if (
-      isActiveRequest(session) &&
-      abortControllerRef.current === session.abortController
-    ) {
-      abortControllerRef.current = null;
-    }
+  const requestController = requestControllerRef.current;
+
+  function dismissError() {
+    dispatch({ type: 'dismiss_error' });
   }
 
   function createRequestHandlers(session: RequestSession) {
     return {
       onProgress(event: StreamProgressEvent) {
-        dispatchIfRequestActive(session, { type: 'progress', event });
+        requestController.dispatchIfActive(session, {
+          type: 'progress',
+          event,
+        });
       },
       onResult(result: TransformResult) {
-        dispatchIfRequestActive(session, { type: 'result', result });
+        requestController.dispatchIfActive(session, { type: 'result', result });
       },
       onError(error: TransformError) {
-        dispatchIfRequestActive(session, { type: 'error', error });
+        requestController.dispatchIfActive(session, { type: 'error', error });
       },
     };
   }
 
   function handleSubmit(url: string) {
-    const session = createRequestSession();
+    const session = requestController.beginRequest();
     dispatch({ type: 'submit' });
 
     void submitTransformRequest(
@@ -159,7 +203,10 @@ export default function HomeClient() {
       session.abortController.signal
     )
       .catch((error) => {
-        if (!isActiveRequest(session) || isAbortError(error)) {
+        if (
+          !requestController.isActiveRequest(session) ||
+          isAbortError(error)
+        ) {
           return;
         }
 
@@ -167,15 +214,15 @@ export default function HomeClient() {
         clearInput();
       })
       .finally(() => {
-        releaseRequestSession(session);
+        requestController.releaseRequest(session);
       });
   }
 
   useEffect(() => {
     return () => {
-      invalidateActiveRequest();
+      requestController.stopActiveRequest();
     };
-  }, []);
+  }, [requestController]);
 
   return (
     <>

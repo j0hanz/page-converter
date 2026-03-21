@@ -40,11 +40,11 @@ interface StreamGuard {
   write: (event: StreamEvent) => void;
 }
 
-interface ProgressBridge {
-  attachStreamGuard: (streamGuard: StreamGuard) => void;
-  handleProgress: (progress: Progress) => void;
+interface BufferedProgressEmitter {
+  attachWriter: (writer: StreamGuard) => void;
+  emitProgress: (progress: Progress) => void;
   hasProgress: () => boolean;
-  readFirstOutcome: (
+  waitForFirstProgressOrResponse: (
     responsePromise: Promise<TransformResponse>
   ) => Promise<FirstTransformOutcome>;
 }
@@ -169,19 +169,6 @@ function createNdjsonResponseStream(
   });
 }
 
-function writeProgressEvent(
-  streamGuard: StreamGuard,
-  progress: Progress
-): void {
-  streamGuard.write(
-    createStreamProgressEvent(
-      progress.progress,
-      progress.total,
-      progress.message
-    )
-  );
-}
-
 function writeResultEvent(
   streamGuard: StreamGuard,
   response: TransformResponse
@@ -189,12 +176,12 @@ function writeResultEvent(
   streamGuard.write({ type: 'result', ...response });
 }
 
-function createProgressBridge(): ProgressBridge {
-  const bufferedProgress: Progress[] = [];
+function createBufferedProgressEmitter(): BufferedProgressEmitter {
+  const bufferedEvents: StreamEvent[] = [];
   const { promise: firstProgressPromise, resolve: resolveFirstProgress } =
     Promise.withResolvers<void>();
   let sawProgress = false;
-  let liveStreamGuard: StreamGuard | null = null;
+  let writer: StreamGuard | null = null;
 
   function markProgressSeen(): void {
     if (!sawProgress) {
@@ -204,29 +191,34 @@ function createProgressBridge(): ProgressBridge {
   }
 
   return {
-    attachStreamGuard(streamGuard) {
-      liveStreamGuard = streamGuard;
+    attachWriter(nextWriter) {
+      writer = nextWriter;
 
-      for (const progress of bufferedProgress) {
-        writeProgressEvent(streamGuard, progress);
+      for (const event of bufferedEvents) {
+        nextWriter.write(event);
       }
 
-      bufferedProgress.length = 0;
+      bufferedEvents.length = 0;
     },
-    handleProgress(progress) {
+    emitProgress(progress) {
       markProgressSeen();
+      const event = createStreamProgressEvent(
+        progress.progress,
+        progress.total,
+        progress.message
+      );
 
-      if (liveStreamGuard) {
-        writeProgressEvent(liveStreamGuard, progress);
+      if (writer) {
+        writer.write(event);
         return;
       }
 
-      bufferedProgress.push(progress);
+      bufferedEvents.push(event);
     },
     hasProgress() {
       return sawProgress;
     },
-    readFirstOutcome(responsePromise) {
+    waitForFirstProgressOrResponse(responsePromise) {
       return Promise.race([
         responsePromise.then(
           (response) => ({ type: 'response', response }) as const
@@ -239,14 +231,14 @@ function createProgressBridge(): ProgressBridge {
 
 function shouldReturnImmediateErrorResponse(
   firstOutcome: FirstTransformOutcome,
-  progressBridge: ProgressBridge
+  progressEmitter: BufferedProgressEmitter
 ): firstOutcome is {
   type: 'response';
   response: TransformErrorResponse;
 } {
   return (
     firstOutcome.type === 'response' &&
-    !progressBridge.hasProgress() &&
+    !progressEmitter.hasProgress() &&
     !firstOutcome.response.ok
   );
 }
@@ -258,23 +250,24 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     const validated = await parseTransformRequest(request);
-    const progressBridge = createProgressBridge();
+    const progressEmitter = createBufferedProgressEmitter();
 
     const responsePromise = transformUrl(
       validated,
-      progressBridge.handleProgress,
+      progressEmitter.emitProgress,
       request.signal
     );
 
-    const firstOutcome = await progressBridge.readFirstOutcome(responsePromise);
-    if (shouldReturnImmediateErrorResponse(firstOutcome, progressBridge)) {
+    const firstOutcome =
+      await progressEmitter.waitForFirstProgressOrResponse(responsePromise);
+    if (shouldReturnImmediateErrorResponse(firstOutcome, progressEmitter)) {
       return createErrorResponse(firstOutcome.response.error);
     }
 
     const stream = createNdjsonResponseStream(
       request,
       responsePromise,
-      progressBridge.attachStreamGuard
+      progressEmitter.attachWriter
     );
 
     return new Response(stream, { headers: NDJSON_HEADERS });

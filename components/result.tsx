@@ -114,23 +114,8 @@ function ResultActionButton({
 }
 
 function PreviewContent({ markdown }: PreviewContentProps) {
-  const theme = useTheme();
-  const [previewMarkdown, setPreviewMarkdown] = useState<string | null>(null);
-  const isPending = previewMarkdown !== markdown;
-  const previewTransitionDuration = theme.transitions.duration.shortest;
-  const previewRevealDelay = theme.transitions.duration.shorter;
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      startTransition(() => {
-        setPreviewMarkdown(markdown);
-      });
-    }, previewRevealDelay);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [markdown, previewRevealDelay]);
+  const { isPending, previewMarkdown, previewTransitionDuration } =
+    usePreviewMarkdown(markdown);
 
   return (
     <Box aria-busy={isPending}>
@@ -159,11 +144,87 @@ function PreviewContent({ markdown }: PreviewContentProps) {
   );
 }
 
-export default function TransformResultPanel({ result }: TransformResultProps) {
+function usePreviewMarkdown(markdown: string) {
+  const theme = useTheme();
+  const [previewMarkdown, setPreviewMarkdown] = useState<string | null>(null);
+  const isPending = previewMarkdown !== markdown;
+  const previewTransitionDuration = theme.transitions.duration.shortest;
+  const previewRevealDelay = theme.transitions.duration.shorter;
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      startTransition(() => {
+        setPreviewMarkdown(markdown);
+      });
+    }, previewRevealDelay);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [markdown, previewRevealDelay]);
+
+  return { isPending, previewMarkdown, previewTransitionDuration };
+}
+
+function useCopyFeedback(markdown: string) {
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle');
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(markdown);
+      setCopyStatus('copied');
+    } catch {
+      setCopyStatus('failed');
+    }
+  }
+
+  function clearCopyFeedback() {
+    setCopyStatus('idle');
+  }
+
+  return {
+    clearCopyFeedback,
+    copyFeedbackOpen: copyStatus !== 'idle',
+    copyStatus,
+    handleCopy,
+  };
+}
+
+interface ResultActionsProps {
+  copyStatus: CopyStatus;
+  onCopy: () => void | Promise<void>;
+  onDownload: () => void;
+}
+
+function ResultActions({ copyStatus, onCopy, onDownload }: ResultActionsProps) {
+  return (
+    <Stack direction="row" spacing={1}>
+      <ResultActionButton
+        ariaLabel="Copy Markdown"
+        title="Copy Markdown"
+        onClick={() => {
+          void onCopy();
+        }}
+        color={COPY_STATUS_COLOR[copyStatus]}
+      >
+        <ContentCopyIcon fontSize="small" />
+      </ResultActionButton>
+      <ResultActionButton
+        ariaLabel="Download Markdown"
+        title="Download Markdown"
+        onClick={onDownload}
+      >
+        <DownloadIcon fontSize="small" />
+      </ResultActionButton>
+    </Stack>
+  );
+}
+
+export default function TransformResultPanel({ result }: TransformResultProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
+  const { clearCopyFeedback, copyFeedbackOpen, copyStatus, handleCopy } =
+    useCopyFeedback(result.markdown);
   const isPreviewMode = viewMode === 'preview';
-  const copyFeedbackOpen = copyStatus !== 'idle';
 
   function handleViewModeChange(
     _event: React.MouseEvent<HTMLElement>,
@@ -174,21 +235,8 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
     }
   }
 
-  async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(result.markdown);
-      setCopyStatus('copied');
-    } catch {
-      setCopyStatus('failed');
-    }
-  }
-
   function handleDownload() {
     downloadMarkdownFile(result.title, result.markdown);
-  }
-
-  function clearCopyFeedback() {
-    setCopyStatus('idle');
   }
 
   return (
@@ -226,23 +274,11 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
               <CodeIcon fontSize="small" />
             </ToggleButton>
           </ToggleButtonGroup>
-          <Stack direction="row" spacing={1}>
-            <ResultActionButton
-              ariaLabel="Copy Markdown"
-              title="Copy Markdown"
-              onClick={handleCopy}
-              color={COPY_STATUS_COLOR[copyStatus]}
-            >
-              <ContentCopyIcon fontSize="small" />
-            </ResultActionButton>
-            <ResultActionButton
-              ariaLabel="Download Markdown"
-              title="Download Markdown"
-              onClick={handleDownload}
-            >
-              <DownloadIcon fontSize="small" />
-            </ResultActionButton>
-          </Stack>
+          <ResultActions
+            copyStatus={copyStatus}
+            onCopy={handleCopy}
+            onDownload={handleDownload}
+          />
         </Stack>
         <Paper sx={MARKDOWN_PANEL_SX}>
           <Box sx={{ display: isPreviewMode ? 'block' : 'none' }}>

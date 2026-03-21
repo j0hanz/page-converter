@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 
 import fs from 'node:fs';
+import { findPackageJSON } from 'node:module';
 import path from 'node:path';
 
 interface LockfilePackage {
@@ -10,6 +11,9 @@ interface LockfilePackage {
 interface PackageLock {
   packages?: Record<string, LockfilePackage>;
 }
+
+const FETCH_URL_PACKAGE_NAME = '@j0hanz/fetch-url-mcp';
+const FETCH_URL_PACKAGE_FALLBACK_PATH = 'node_modules/@j0hanz/fetch-url-mcp';
 
 function readPackageLockPackages(): Record<string, LockfilePackage> {
   try {
@@ -24,34 +28,70 @@ function readPackageLockPackages(): Record<string, LockfilePackage> {
   }
 }
 
-function resolveDependencyPath(
-  packages: Record<string, LockfilePackage>,
-  dependencyName: string,
-  fromPackagePath: string
-): string | null {
-  const nestedPath = `${fromPackagePath}/node_modules/${dependencyName}`;
-  if (packages[nestedPath]) {
-    return nestedPath;
+function toLockfilePackagePath(absolutePackagePath: string): string {
+  return path
+    .relative(process.cwd(), absolutePackagePath)
+    .replaceAll('\\', '/');
+}
+
+function readFetchUrlPackagePath(): string {
+  const packageJsonPath = findPackageJSON(
+    FETCH_URL_PACKAGE_NAME,
+    import.meta.url
+  );
+  if (!packageJsonPath) {
+    return FETCH_URL_PACKAGE_FALLBACK_PATH;
   }
 
-  const hoistedPath = `node_modules/${dependencyName}`;
-  if (packages[hoistedPath]) {
-    return hoistedPath;
-  }
+  return toLockfilePackagePath(path.dirname(packageJsonPath));
+}
 
-  const packageSuffix = `/node_modules/${dependencyName}`;
-  for (const packagePath of Object.keys(packages)) {
-    if (packagePath.endsWith(packageSuffix)) {
-      return packagePath;
+function readPackageNameFromPath(packagePath: string): string {
+  const segments = packagePath.split('/');
+  const packageName = segments.at(-1) ?? '';
+  const scope = segments.at(-2);
+
+  return scope?.startsWith('@') ? `${scope}/${packageName}` : packageName;
+}
+
+function createDependencyPathResolver(
+  packages: Record<string, LockfilePackage>
+) {
+  const packagePaths = new Set(Object.keys(packages));
+  const fallbackPackagePathBySuffix = new Map<string, string>();
+
+  for (const packagePath of [...packagePaths].sort()) {
+    const packageName = readPackageNameFromPath(packagePath);
+    const packageSuffix = `/node_modules/${packageName}`;
+
+    if (!fallbackPackagePathBySuffix.has(packageSuffix)) {
+      fallbackPackagePathBySuffix.set(packageSuffix, packagePath);
     }
   }
 
-  return null;
+  return function resolveDependencyPath(
+    dependencyName: string,
+    fromPackagePath: string
+  ): string | null {
+    const nestedPath = `${fromPackagePath}/node_modules/${dependencyName}`;
+    if (packagePaths.has(nestedPath)) {
+      return nestedPath;
+    }
+
+    const hoistedPath = `node_modules/${dependencyName}`;
+    if (packagePaths.has(hoistedPath)) {
+      return hoistedPath;
+    }
+
+    return (
+      fallbackPackagePathBySuffix.get(`/node_modules/${dependencyName}`) ?? null
+    );
+  };
 }
 
-function collectPackageTraceGlobs(packageName: string): string[] {
+function collectPackageTraceGlobs(rootPackagePath: string): string[] {
   const packages = readPackageLockPackages();
-  const rootPackagePath = `node_modules/${packageName}`;
+  const resolveDependencyPath = createDependencyPathResolver(packages);
   const visitedPackagePaths = new Set<string>();
 
   const visit = (packagePath: string | null) => {
@@ -67,14 +107,14 @@ function collectPackageTraceGlobs(packageName: string): string[] {
     visitedPackagePaths.add(packagePath);
 
     for (const dependencyName of Object.keys(packageData.dependencies ?? {})) {
-      visit(resolveDependencyPath(packages, dependencyName, packagePath));
+      visit(resolveDependencyPath(dependencyName, packagePath));
     }
   };
 
   visit(rootPackagePath);
 
   if (visitedPackagePaths.size === 0) {
-    return [`./${rootPackagePath}/**/*`];
+    return [`./${FETCH_URL_PACKAGE_FALLBACK_PATH}/**/*`];
   }
 
   return [...visitedPackagePaths]
@@ -85,7 +125,7 @@ function collectPackageTraceGlobs(packageName: string): string[] {
 const nextConfig: NextConfig = {
   reactCompiler: true,
   outputFileTracingIncludes: {
-    '/api/transform': collectPackageTraceGlobs('@j0hanz/fetch-url-mcp'),
+    '/api/transform': collectPackageTraceGlobs(readFetchUrlPackagePath()),
   },
 };
 

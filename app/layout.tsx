@@ -1,10 +1,5 @@
 import type { Metadata, Viewport } from 'next';
 
-import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
-import CssBaseline from '@mui/material/CssBaseline';
-import InitColorSchemeScript from '@mui/material/InitColorSchemeScript';
-import { ThemeProvider } from '@mui/material/styles';
-
 import '@fontsource-variable/geist';
 import '@fontsource-variable/geist-mono';
 
@@ -16,7 +11,7 @@ import {
   SITE_KEYWORDS,
   SITE_NAME,
 } from '@/lib/site';
-import theme from '@/lib/theme';
+import { AppThemeProviders } from '@/lib/theme';
 
 const metadataBase = resolveSiteUrl();
 
@@ -78,13 +73,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <InitColorSchemeScript attribute="class" />
-        <AppRouterCacheProvider>
-          <ThemeProvider theme={theme}>
-            <CssBaseline />
-            {children}
-          </ThemeProvider>
-        </AppRouterCacheProvider>
+        <AppThemeProviders>{children}</AppThemeProviders>
       </body>
     </html>
   );

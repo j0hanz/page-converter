@@ -1,6 +1,12 @@
 'use client';
 
+import { createElement, Fragment, type ReactNode } from 'react';
+
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
+import CssBaseline from '@mui/material/CssBaseline';
+import InitColorSchemeScript from '@mui/material/InitColorSchemeScript';
 import { createTheme, responsiveFontSizes } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
 
 const PAPER_ROOT_SX = {
   borderRadius: 16,
@@ -65,5 +71,23 @@ const theme = responsiveFontSizes(
     },
   })
 );
+
+export function AppThemeProviders({ children }: { children: ReactNode }) {
+  return createElement(
+    Fragment,
+    null,
+    createElement(InitColorSchemeScript, { attribute: 'class' }),
+    createElement(
+      AppRouterCacheProvider,
+      null,
+      createElement(
+        ThemeProvider,
+        { theme },
+        createElement(CssBaseline),
+        children
+      )
+    )
+  );
+}
 
 export default theme;

@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import HomeClient from '@/components/home-client';
+import HomeClient, { createRequestController } from '@/components/home-client';
 import type { TransformResult } from '@/lib/api';
 
 const VALID_URL = 'https://example.com';
@@ -99,6 +99,71 @@ describe('HomeClient', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/retryable/i)).toBeInTheDocument();
   });
+
+  it('aborts the active request when the component unmounts', async () => {
+    const stream = createControlledStreamResponse();
+    global.fetch = vi.fn().mockImplementation((_input, init?: RequestInit) => {
+      stream.attachSignal(init?.signal);
+      return Promise.resolve(stream.response);
+    });
+
+    const { unmount } = render(<HomeClient />);
+    await submitUrl(VALID_URL);
+
+    unmount();
+
+    expect(stream.signal?.aborted).toBe(true);
+  });
+});
+
+describe('createRequestController', () => {
+  it('ignores stale events after a replacement request starts', () => {
+    const dispatch = vi.fn();
+    const clearInput = vi.fn();
+    const controller = createRequestController({ clearInput, dispatch });
+
+    const firstSession = controller.beginRequest();
+    const secondSession = controller.beginRequest();
+
+    expect(firstSession.abortController.signal.aborted).toBe(true);
+    expect(controller.isActiveRequest(firstSession)).toBe(false);
+    expect(controller.isActiveRequest(secondSession)).toBe(true);
+
+    controller.dispatchIfActive(firstSession, {
+      type: 'progress',
+      event: { type: 'progress', progress: 1, total: 8, message: 'stale' },
+    });
+    controller.dispatchIfActive(firstSession, {
+      type: 'result',
+      result: SUCCESS_RESULT,
+    });
+
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(clearInput).not.toHaveBeenCalled();
+  });
+
+  it('clears input only for active terminal actions', () => {
+    const dispatch = vi.fn();
+    const clearInput = vi.fn();
+    const controller = createRequestController({ clearInput, dispatch });
+    const session = controller.beginRequest();
+
+    controller.dispatchIfActive(session, {
+      type: 'progress',
+      event: { type: 'progress', progress: 1, total: 8, message: 'Loading' },
+    });
+    controller.dispatchIfActive(session, {
+      type: 'error',
+      error: {
+        code: 'FETCH_ERROR',
+        message: 'Failed',
+        retryable: true,
+      },
+    });
+
+    expect(dispatch).toHaveBeenCalledTimes(2);
+    expect(clearInput).toHaveBeenCalledTimes(1);
+  });
 });
 
 async function submitUrl(url: string) {
@@ -123,6 +188,10 @@ function createControlledStreamResponse() {
     response: {
       headers: new Headers({ 'Content-Type': 'application/x-ndjson' }),
       body,
+    },
+    signal: null as AbortSignal | null,
+    attachSignal(signal?: AbortSignal | null) {
+      this.signal = signal ?? null;
     },
     emit(line: unknown) {
       controller?.enqueue(encoder.encode(`${JSON.stringify(line)}\n`));

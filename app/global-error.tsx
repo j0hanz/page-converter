@@ -1,29 +1,20 @@
 'use client';
 
-import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
-import CssBaseline from '@mui/material/CssBaseline';
-import InitColorSchemeScript from '@mui/material/InitColorSchemeScript';
-import { ThemeProvider } from '@mui/material/styles';
-
 import { ErrorState, type ResettableErrorProps } from '@/components/error';
-import theme from '@/lib/theme';
+import { AppThemeProviders } from '@/lib/theme';
 
 export default function GlobalError({ error, reset }: ResettableErrorProps) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <InitColorSchemeScript attribute="class" />
-        <AppRouterCacheProvider>
-          <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <ErrorState
-              error={error}
-              fallbackMessage="A critical error occurred."
-              minHeight="100dvh"
-              reset={reset}
-            />
-          </ThemeProvider>
-        </AppRouterCacheProvider>
+        <AppThemeProviders>
+          <ErrorState
+            error={error}
+            fallbackMessage="A critical error occurred."
+            minHeight="100dvh"
+            reset={reset}
+          />
+        </AppThemeProviders>
       </body>
     </html>
   );

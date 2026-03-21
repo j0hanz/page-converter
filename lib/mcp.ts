@@ -31,6 +31,8 @@ function readPackageVersion(): string {
 }
 
 const CLIENT_INFO = { name: 'page-converter', version: readPackageVersion() };
+const FETCH_URL_PACKAGE_NAME = '@j0hanz/fetch-url-mcp';
+const FETCH_URL_ENTRYPOINT = path.join('dist', 'index.js');
 const FETCH_URL_TOOL_NAME = 'fetch-url';
 
 export type ProgressCallback = (progress: Progress) => void;
@@ -46,9 +48,7 @@ interface McpInstance {
 }
 
 interface McpGlobalState {
-  __mcpInstance?: McpInstance;
-  __mcpConnecting?: Promise<Client>;
-  __mcpLastStderr?: string;
+  __mcpRuntimeState?: McpRuntimeState;
 }
 
 interface TransportConfig {
@@ -56,9 +56,20 @@ interface TransportConfig {
   args: string[];
 }
 
+interface McpRuntimeState {
+  connecting?: Promise<Client>;
+  instance?: McpInstance;
+  lastStderr?: string;
+}
+
 const globalForMcp = globalThis as typeof globalThis & McpGlobalState;
 
-function createTransport(): StdioClientTransport {
+function getMcpRuntimeState(): McpRuntimeState {
+  globalForMcp.__mcpRuntimeState ??= {};
+  return globalForMcp.__mcpRuntimeState;
+}
+
+function createTransport(state: McpRuntimeState): StdioClientTransport {
   const { command, args } = getFetchUrlTransportConfig();
   const transport = new StdioClientTransport({
     command,
@@ -66,59 +77,74 @@ function createTransport(): StdioClientTransport {
     stderr: 'pipe',
   });
 
-  attachTransportDiagnostics(transport);
+  attachTransportDiagnostics(transport, state);
   return transport;
 }
 
-function resetInstance() {
-  const instance = globalForMcp.__mcpInstance;
-  globalForMcp.__mcpInstance = undefined;
-
-  if (instance) {
-    instance.transport.close().catch(() => {});
-  }
+async function closeTransport(transport?: StdioClientTransport): Promise<void> {
+  await transport?.close().catch(() => {});
 }
 
-function createClient(): Client {
+async function resetRuntimeState(
+  state: McpRuntimeState = getMcpRuntimeState()
+): Promise<void> {
+  const instance = state.instance;
+  state.connecting = undefined;
+  state.instance = undefined;
+
+  await closeTransport(instance?.transport);
+}
+
+export async function resetMcpRuntimeStateForTests(): Promise<void> {
+  const state = getMcpRuntimeState();
+  state.lastStderr = undefined;
+  await resetRuntimeState(state);
+}
+
+function createClient(state: McpRuntimeState): Client {
   const client = new Client(CLIENT_INFO);
 
   client.onerror = () => {
-    resetInstance();
+    void resetRuntimeState(state);
   };
 
   client.onclose = () => {
-    resetInstance();
+    void resetRuntimeState(state);
   };
 
   return client;
 }
 
 async function getConnectedClient(): Promise<Client> {
-  if (globalForMcp.__mcpInstance) {
-    return globalForMcp.__mcpInstance.client;
+  const state = getMcpRuntimeState();
+
+  if (state.instance) {
+    return state.instance.client;
   }
 
-  if (globalForMcp.__mcpConnecting) {
-    return globalForMcp.__mcpConnecting;
+  if (state.connecting) {
+    return state.connecting;
   }
 
-  globalForMcp.__mcpConnecting = (async () => {
-    const transport = createTransport();
-    const client = createClient();
+  state.connecting = connectClient(state);
 
-    try {
-      await client.connect(transport);
-      globalForMcp.__mcpInstance = { client, transport };
-      return client;
-    } catch (error) {
-      await transport.close().catch(() => {});
-      throw createTransportError(error);
-    } finally {
-      globalForMcp.__mcpConnecting = undefined;
-    }
-  })();
+  return state.connecting;
+}
 
-  return globalForMcp.__mcpConnecting;
+async function connectClient(state: McpRuntimeState): Promise<Client> {
+  const transport = createTransport(state);
+  const client = createClient(state);
+
+  try {
+    await client.connect(transport);
+    state.instance = { client, transport };
+    return client;
+  } catch (error) {
+    await closeTransport(transport);
+    throw createTransportError(error, state);
+  } finally {
+    state.connecting = undefined;
+  }
 }
 
 function createRequestOptions(options?: FetchUrlCallOptions): {
@@ -155,9 +181,9 @@ export async function callFetchUrl(
     return result as CallToolResult;
   } catch (error) {
     if (shouldResetInstance(error)) {
-      resetInstance();
+      await resetRuntimeState();
     }
-    throw createTransportError(error);
+    throw createTransportError(error, getMcpRuntimeState());
   }
 }
 
@@ -178,21 +204,37 @@ function shouldResetInstance(error: unknown): boolean {
   return true;
 }
 
+function readFetchUrlPackageSearchBase(
+  currentWorkingDirectory?: string
+): string {
+  return currentWorkingDirectory
+    ? path.join(currentWorkingDirectory, 'package.json')
+    : import.meta.url;
+}
+
+export function resolveFetchUrlPackageRoot(
+  currentWorkingDirectory?: string
+): string {
+  const packageJsonPath = findPackageJSON(
+    FETCH_URL_PACKAGE_NAME,
+    readFetchUrlPackageSearchBase(currentWorkingDirectory)
+  );
+
+  if (!packageJsonPath) {
+    throw new Error(`Unable to locate ${FETCH_URL_PACKAGE_NAME}.`);
+  }
+
+  return path.dirname(packageJsonPath);
+}
+
 export function getFetchUrlTransportConfig(
-  currentWorkingDirectory: string = process.cwd()
+  currentWorkingDirectory?: string
 ): TransportConfig {
+  const packageRoot = resolveFetchUrlPackageRoot(currentWorkingDirectory);
+
   return {
     command: process.execPath,
-    args: [
-      path.join(
-        currentWorkingDirectory,
-        'node_modules',
-        '@j0hanz',
-        'fetch-url-mcp',
-        'dist',
-        'index.js'
-      ),
-    ],
+    args: [path.join(packageRoot, FETCH_URL_ENTRYPOINT)],
   };
 }
 
@@ -207,22 +249,25 @@ const KNOWN_MCP_ERRORS = {
   queue_full: { code: 'QUEUE_FULL', retryable: true },
 } as const;
 
-function attachTransportDiagnostics(transport: StdioClientTransport): void {
-  globalForMcp.__mcpLastStderr = undefined;
+function attachTransportDiagnostics(
+  transport: StdioClientTransport,
+  state: McpRuntimeState
+): void {
+  state.lastStderr = undefined;
 
   transport.stderr?.on('data', (chunk: string | Buffer) => {
-    globalForMcp.__mcpLastStderr = appendStderrChunk(String(chunk));
+    state.lastStderr = appendStderrChunk(state, String(chunk));
   });
 }
 
-function appendStderrChunk(chunk: string): string {
-  const stderr = `${globalForMcp.__mcpLastStderr ?? ''}${chunk}`;
+function appendStderrChunk(state: McpRuntimeState, chunk: string): string {
+  const stderr = `${state.lastStderr ?? ''}${chunk}`;
   return stderr.slice(-MAX_STDERR_BUFFER_LENGTH);
 }
 
-function createTransportError(error: unknown): Error {
+function createTransportError(error: unknown, state: McpRuntimeState): Error {
   const message = error instanceof Error ? error.message : String(error);
-  const stderr = globalForMcp.__mcpLastStderr?.trim();
+  const stderr = state.lastStderr?.trim();
 
   if (!stderr) {
     return error instanceof Error ? error : new Error(message);
