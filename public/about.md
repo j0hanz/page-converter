@@ -1,28 +1,22 @@
 # About Page Converter
 
-**Page Converter** takes any public web page and turns it into clean, readable text — free from ads, pop-ups, menus, and other clutter. The result uses a simple format called Markdown that looks great on any device and is easy to save, share, and reuse.
+Page Converter is a small tool that takes a URL and gives you back just the text — no ads, no menus, no cookie banners. The output is formatted as Markdown, so it's easy to read, copy, and paste wherever you need it.
 
-## Why Use It?
+## Why does this exist?
 
-- **Just the content:** Strips away everything except the actual text, headings, lists, and tables.
-- **Instant results:** Paste a link, press Convert, and watch live progress as your page is processed.
-- **No sign-up required:** Start using it right away — no account, no installation.
-- **Works anywhere:** Use it on your phone, tablet, or computer.
+Most web pages are buried under layers of stuff you don't care about. If you've ever tried to copy text from an article and ended up with navigation links, footer junk, and ad placeholders mixed in — that's the problem this solves.
 
-## What Can You Do With the Result?
+## What people use it for
 
-- **Preview** — Read the cleaned-up page directly in the app.
-- **Copy** — Copy the text to your clipboard with one click and paste it wherever you need it.
-- **Download** — Save it as a file you can open in any text editor.
+- Feeding clean article text into AI tools like ChatGPT or Claude, without all the HTML noise.
+- Pulling content into note-taking apps like Obsidian or Notion, where Markdown just works.
+- Reading long articles without pop-ups and autoplay videos getting in the way.
+- Saving a clean copy of a page before it changes or goes offline.
+- Grabbing the relevant parts of a page to share in a message or document, instead of sending a messy link.
 
-## Use Cases
+## No account needed
 
-- **Feed content to AI tools** — Grab the clean text from a web page and paste it into ChatGPT, Claude, or any other AI assistant as context. No HTML noise, just the content the AI actually needs.
-- **Import into your note-taking app** — Drop the result straight into Obsidian, Notion, or any other app that supports Markdown. The formatting carries over automatically.
-- **Research and summarize** — Collecting sources for a project or report? Convert each page, keep the clean versions side by side, and pull out what you need.
-- **Read without distractions** — Strip away cookie banners, pop-ups, and autoplay videos. Just the article, the way it should be.
-- **Archive useful pages** — Websites change and pages disappear. Save a clean copy of tutorials, documentation, or reference material before it's gone.
-- **Share the important parts** — Instead of sending a cluttered link, copy the cleaned-up text into a message, email, or document.
+There's nothing to sign up for. Just open it, paste a link, and go.
 
 ---
 
