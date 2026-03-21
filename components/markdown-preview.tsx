@@ -62,9 +62,7 @@ const IMAGE_SX = {
   maxWidth: '100%',
   height: 'auto',
   my: 2,
-  borderRadius: 1,
   display: 'block',
-  border: 1,
   borderColor: 'divider',
 } as const;
 const LINK_SX = {
