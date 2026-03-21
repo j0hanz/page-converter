@@ -16,12 +16,7 @@ import AboutDialog from '@/components/about-dialog';
 import HomeClient from '@/components/home-client';
 import LogoIcon from '@/components/logo-icon';
 import ThemeToggle from '@/components/theme-toggle';
-import {
-  SITE_DESCRIPTION,
-  SITE_NAME,
-  SITE_REPOSITORY_URL,
-  SITE_TAGLINE,
-} from '@/lib/site';
+import { SITE_DESCRIPTION, SITE_NAME, SITE_REPOSITORY_URL } from '@/lib/site';
 
 const PUBLIC_DIRECTORY = join(process.cwd(), 'public');
 const GITHUB_ICON_SX = { fontSize: { xs: '1.25rem', sm: '1.5rem' } } as const;
@@ -63,33 +58,37 @@ export default async function Home() {
   const { aboutMarkdown, howItWorksMarkdown } = await readHomePageMarkdown();
 
   return (
-    <Box sx={{ minHeight: '100dvh', py: { xs: 2, sm: 3, md: 4 } }}>
+    <Box
+      sx={{
+        minHeight: '100dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        pt: { xs: 3, sm: 4 },
+      }}
+    >
       <Container maxWidth="lg">
-        <Stack spacing={{ xs: 2.5, sm: 3 }}>
+        <Stack>
           <Toolbar disableGutters sx={{ alignItems: 'flex-start' }}>
             <Box sx={{ flexGrow: 1 }}>
-              <Stack
-                direction="row"
-                spacing={1}
-                sx={{ mb: 0.5 }}
-                alignItems="center"
-              >
+              <Stack direction="row" gap={1.5} alignItems="center">
                 <LogoIcon
                   sx={{
-                    fontSize: { xs: '1.4rem', sm: '1.6rem', md: '1.8rem' },
+                    fontSize: {
+                      xs: '1.5rem',
+                      sm: '1.7rem',
+                      md: '1.8rem',
+                      lg: '2rem',
+                    },
                   }}
                 />
                 <Typography variant="h4" component="h1">
                   {SITE_NAME}
                 </Typography>
               </Stack>
-              <Typography variant="subtitle2" color="text.secondary">
-                {SITE_TAGLINE}
-              </Typography>
             </Box>
             <Stack
               direction="row"
-              spacing={{ xs: 1, sm: 1.5 }}
+              spacing={{ xs: 1, sm: 2 }}
               alignItems="center"
             >
               <AboutDialog

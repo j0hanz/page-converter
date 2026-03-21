@@ -19,7 +19,7 @@ interface TransformFormProps {
 
 const URL_INPUT_SX = { flexGrow: 1, flex: { md: '2 1 0' } } as const;
 const ACTION_BUTTON_SX = {
-  maxWidth: { sm: 150 },
+  maxWidth: { sm: 125 },
   flex: { md: '1 1 0' },
 } as const;
 
@@ -48,7 +48,11 @@ export default function TransformForm({
 
   return (
     <Box component="form" onSubmit={handleSubmit}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={1.5}
+        sx={{ mb: 1.5 }}
+      >
         <TextField
           id={urlInputId}
           inputRef={inputRef}
@@ -68,6 +72,7 @@ export default function TransformForm({
           variant="contained"
           fullWidth
           disabled={loading}
+          size="small"
           sx={ACTION_BUTTON_SX}
         >
           {loading ? 'Converting...' : 'Convert'}

@@ -42,7 +42,7 @@ const DEFAULT_DOWNLOAD_FILE_NAME = 'page';
 const MARKDOWN_FONT_FAMILY = "'Geist Mono Variable', monospace";
 const TOGGLE_BUTTON_SX = { border: 0, minWidth: 50 } as const;
 const MARKDOWN_PANEL_SX = {
-  p: { xs: 1.5, sm: 2.5 },
+  p: { xs: 2, sm: 2.5 },
   maxHeight: { xs: 350, sm: 450, md: MARKDOWN_PANEL_MAX_HEIGHT },
   overflow: 'auto',
   border: '1px solid',
