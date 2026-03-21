@@ -24,6 +24,7 @@ interface MarkdownPreviewProps {
 }
 
 const remarkPlugins = [remarkGfm];
+const MONO_FONT_FAMILY = "'Geist Mono Variable', monospace";
 type TypographyVariant = ComponentProps<typeof Typography>['variant'];
 type FontWeight = ComponentProps<typeof Typography>['fontWeight'];
 type TextAlignStyle = Pick<CSSProperties, 'textAlign'>;
@@ -35,40 +36,55 @@ const MARKDOWN_ROOT_SX = {
   '& > :last-child': { mb: 0 },
 } as const;
 const BLOCKQUOTE_SX = {
-  borderLeft: 4,
-  borderColor: 'primary.main',
-  bgcolor: 'action.hover',
+  borderLeft: 3,
+  borderColor: 'divider',
+  bgcolor: 'action.selected',
   borderRadius: 1.5,
   pl: 2,
   pr: 2,
   py: 1,
   my: 2,
   mx: 0,
+  fontStyle: 'italic',
   color: 'text.secondary',
   '& > p': { mb: 0 },
 } as const;
 const BLOCK_CODE_SX = {
-  px: 2,
-  py: 1,
+  p: 2,
   overflow: 'auto',
+  fontFamily: MONO_FONT_FAMILY,
+  fontSize: '0.875rem',
+  bgcolor: 'action.hover',
+  borderRadius: 1.5,
+  whiteSpace: 'pre-wrap',
+  wordBreak: 'break-word',
 } as const;
 const INLINE_CODE_SX = {
-  px: 0.4,
-  py: 0.2,
+  px: 0.5,
+  py: 0.25,
   bgcolor: 'action.hover',
   borderRadius: 0.5,
+  fontFamily: MONO_FONT_FAMILY,
+  fontSize: '0.85em',
+  border: 1,
+  borderColor: 'divider',
 } as const;
 const IMAGE_SX = {
   maxWidth: '100%',
   height: 'auto',
   my: 1,
   borderRadius: 1,
+  display: 'block',
+  border: 1,
+  borderColor: 'divider',
 } as const;
 const LIST_SX = { pl: 3, my: 1 } as const;
 const LINK_SX = {
   fontWeight: 500,
   textUnderlineOffset: '0.18em',
   textDecorationThickness: '0.08em',
+  transition: 'all 0.2s ease',
+  '&:hover': { textDecorationThickness: '0.12em' },
 } as const;
 const PARAGRAPH_SX = {
   mb: { xs: 1, sm: 1.5 },
@@ -134,8 +150,12 @@ function createListRenderer(component: 'ul' | 'ol') {
 }
 
 const components: Components = {
-  h1: createHeadingRenderer('h4', 2),
-  h2: createHeadingRenderer('h5', 2),
+  h1: createHeadingRenderer('h4', 2, {
+    sx: { mt: 2, borderBottom: 1, borderColor: 'divider', pb: 0.5 },
+  }),
+  h2: createHeadingRenderer('h5', 2, {
+    sx: { mt: 2, borderBottom: 1, borderColor: 'divider', pb: 0.5 },
+  }),
   h3: createHeadingRenderer('h6', 1.5),
   h4: createHeadingRenderer('subtitle1', 1, { fontWeight: 'bold' }),
   h5: createHeadingRenderer('subtitle2', 0, { fontWeight: 'bold' }),
@@ -183,7 +203,7 @@ const components: Components = {
       checked={checked ?? false}
       disabled={disabled}
       size="small"
-      sx={{ p: 0, mr: 0.5 }}
+      sx={{ p: 0, mr: 0.5, verticalAlign: 'middle', pointerEvents: 'none' }}
     />
   ),
   hr: () => <Divider sx={{ my: 2 }} />,
@@ -206,15 +226,31 @@ const components: Components = {
       <Table size="small">{children}</Table>
     </TableContainer>
   ),
-  thead: ({ children }) => <TableHead>{children}</TableHead>,
+  thead: ({ children }) => (
+    <TableHead sx={{ bgcolor: 'action.hover' }}>{children}</TableHead>
+  ),
   tbody: ({ children }) => <TableBody>{children}</TableBody>,
-  tr: ({ children }) => <TableRow>{children}</TableRow>,
+  tr: ({ children }) => (
+    <TableRow
+      hover
+      sx={{
+        '&:nth-of-type(odd)': { bgcolor: 'action.hover' },
+        '&:last-child td, &:last-child th': { border: 0 },
+      }}
+    >
+      {children}
+    </TableRow>
+  ),
   th: createTableCellRenderer('bold'),
   td: createTableCellRenderer(),
   ul: createListRenderer('ul'),
   ol: createListRenderer('ol'),
   li: ({ children }) => (
-    <Typography component="li" variant="body1" sx={{ mb: 0.5 }}>
+    <Typography
+      component="li"
+      variant="body1"
+      sx={{ mb: 0.5, lineHeight: 1.75 }}
+    >
       {children}
     </Typography>
   ),
