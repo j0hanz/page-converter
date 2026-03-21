@@ -53,6 +53,31 @@ const SKELETON_PADDING_OFFSET = 25;
 const INTRO_LINE_WIDTHS = ['100%', '100%', '75%'] as const;
 const BODY_LINE_WIDTHS = ['100%', '90%', '100%', '60%'] as const;
 const OUTRO_LINE_WIDTHS = ['100%', '85%', '50%'] as const;
+interface MarkdownSkeletonSection {
+  heading: {
+    fontSize: string;
+    width: string;
+  };
+  lineWidths: readonly string[];
+  marginTop?: number;
+}
+
+const MARKDOWN_SKELETON_SECTIONS: readonly MarkdownSkeletonSection[] = [
+  {
+    heading: { fontSize: '2rem', width: '50%' },
+    lineWidths: INTRO_LINE_WIDTHS,
+  },
+  {
+    heading: { fontSize: '1.5rem', width: '35%' },
+    lineWidths: BODY_LINE_WIDTHS,
+    marginTop: 1,
+  },
+  {
+    heading: { fontSize: '1.5rem', width: '40%' },
+    lineWidths: OUTRO_LINE_WIDTHS,
+    marginTop: 0.5,
+  },
+] as const;
 
 function TextLine({ width = '100%' }: { width?: string }) {
   return <Skeleton animation="wave" variant="text" width={width} />;
@@ -70,6 +95,24 @@ function renderTextLines(widths: readonly string[]) {
   ));
 }
 
+function renderMarkdownSkeletonSection(
+  section: MarkdownSkeletonSection,
+  index: number
+) {
+  return (
+    <Box
+      key={`${section.heading.width}-${index}`}
+      sx={section.marginTop ? { mt: section.marginTop } : undefined}
+    >
+      <Heading
+        fontSize={section.heading.fontSize}
+        width={section.heading.width}
+      />
+      {renderTextLines(section.lineWidths)}
+    </Box>
+  );
+}
+
 export function MarkdownSkeleton() {
   return (
     <Stack
@@ -78,21 +121,15 @@ export function MarkdownSkeleton() {
       spacing={1}
       sx={{ height: MARKDOWN_PANEL_MAX_HEIGHT - SKELETON_PADDING_OFFSET }}
     >
-      <Heading fontSize="2rem" width="50%" />
-      {renderTextLines(INTRO_LINE_WIDTHS)}
-      <Box sx={{ mt: 1 }}>
-        <Heading fontSize="1.5rem" width="35%" />
-      </Box>
-      {renderTextLines(BODY_LINE_WIDTHS)}
+      {MARKDOWN_SKELETON_SECTIONS.slice(0, 2).map(
+        renderMarkdownSkeletonSection
+      )}
       <Skeleton
         animation="wave"
         variant="rounded"
         sx={{ flexGrow: 1, minHeight: 80 }}
       />
-      <Box sx={{ mt: 0.5 }}>
-        <Heading fontSize="1.5rem" width="40%" />
-      </Box>
-      {renderTextLines(OUTRO_LINE_WIDTHS)}
+      {renderMarkdownSkeletonSection(MARKDOWN_SKELETON_SECTIONS[2], 2)}
     </Stack>
   );
 }

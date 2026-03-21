@@ -2,6 +2,7 @@ import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 
 import type {
   TransformError,
+  TransformErrorDetails,
   TransformErrorResponse,
   TransformResponse,
 } from '@/lib/api';
@@ -16,7 +17,8 @@ const RETRYABLE_TRANSPORT_ERROR_CODES = new Set<number>([
 const MAX_TRANSFORM_ATTEMPTS = 2;
 
 interface TransportErrorPolicy {
-  details?: TransformError['details'];
+  code: 'ABORTED' | 'INTERNAL_ERROR';
+  details?: TransformErrorDetails;
   message: string;
   retryable: boolean;
 }
@@ -78,17 +80,22 @@ function readErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unknown error';
 }
 
+function hasErrorName(error: unknown, name: string): boolean {
+  return error instanceof Error && error.name === name;
+}
+
 function isAbortLikeError(error: unknown): boolean {
-  return error instanceof Error && error.name === 'AbortError';
+  return hasErrorName(error, 'AbortError');
 }
 
 function isTimeoutLikeError(error: unknown): boolean {
-  return error instanceof Error && error.name === 'TimeoutError';
+  return hasErrorName(error, 'TimeoutError');
 }
 
 function readTransportErrorPolicy(error: unknown): TransportErrorPolicy {
   if (isTimeoutLikeError(error)) {
     return {
+      code: 'ABORTED',
       message: readErrorMessage(error),
       retryable: true,
       details: { reason: 'timeout' },
@@ -97,6 +104,7 @@ function readTransportErrorPolicy(error: unknown): TransportErrorPolicy {
 
   if (isAbortLikeError(error)) {
     return {
+      code: 'ABORTED',
       message: readErrorMessage(error),
       retryable: true,
       details: { reason: 'aborted' },
@@ -105,12 +113,14 @@ function readTransportErrorPolicy(error: unknown): TransportErrorPolicy {
 
   if (error instanceof McpError) {
     return {
+      code: 'INTERNAL_ERROR',
       message: error.message,
       retryable: RETRYABLE_TRANSPORT_ERROR_CODES.has(error.code),
     };
   }
 
   return {
+    code: 'INTERNAL_ERROR',
     message: readErrorMessage(error),
     retryable: false,
   };
@@ -119,8 +129,8 @@ function readTransportErrorPolicy(error: unknown): TransportErrorPolicy {
 function mapTransportError(error: unknown): TransformError {
   const policy = readTransportErrorPolicy(error);
 
-  if (policy.details) {
-    return createTransformError('ABORTED', policy.message, {
+  if (policy.code === 'ABORTED') {
+    return createTransformError(policy.code, policy.message, {
       retryable: policy.retryable,
       details: policy.details,
     });

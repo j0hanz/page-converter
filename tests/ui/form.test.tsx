@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import TransformForm from '@/components/form';
+import { submitUrlForm } from '@/tests/setup';
 
 const onSubmit = vi.fn();
 const VALID_URL = 'https://example.com';
@@ -24,7 +24,7 @@ describe('TransformForm', () => {
 
   it('submits the current URL value', async () => {
     renderForm();
-    await submitUrl(`  ${VALID_URL}  `);
+    await submitUrlForm(`  ${VALID_URL}  `);
 
     expect(onSubmit).toHaveBeenCalledWith(VALID_URL);
   });
@@ -42,13 +42,4 @@ describe('TransformForm', () => {
 
 function renderForm({ loading = false }: { loading?: boolean } = {}) {
   return render(<TransformForm loading={loading} onSubmit={onSubmit} />);
-}
-
-async function submitUrl(url: string) {
-  const user = userEvent.setup();
-  const input = screen.getByLabelText(/URL/i);
-
-  await user.clear(input);
-  await user.type(input, url);
-  await user.click(screen.getByRole('button', { name: /convert/i }));
 }

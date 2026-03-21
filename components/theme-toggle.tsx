@@ -9,22 +9,25 @@ import Tooltip from '@mui/material/Tooltip';
 
 type Mode = 'light' | 'dark' | 'system';
 
-const MODE_CYCLE: Record<Mode, Mode> = {
-  light: 'dark',
-  dark: 'system',
-  system: 'light',
-};
-
-const MODE_ICON: Record<Mode, typeof DarkModeIcon> = {
-  light: LightModeIcon,
-  dark: DarkModeIcon,
-  system: SettingsBrightnessIcon,
-};
-
-const MODE_LABEL: Record<Mode, string> = {
-  light: 'Light mode',
-  dark: 'Dark mode',
-  system: 'System mode',
+const MODE_CONFIG: Record<
+  Mode,
+  { icon: typeof DarkModeIcon; label: string; next: Mode }
+> = {
+  light: {
+    icon: LightModeIcon,
+    label: 'Light mode',
+    next: 'dark',
+  },
+  dark: {
+    icon: DarkModeIcon,
+    label: 'Dark mode',
+    next: 'system',
+  },
+  system: {
+    icon: SettingsBrightnessIcon,
+    label: 'System mode',
+    next: 'light',
+  },
 };
 const THEME_ICON_SX = { fontSize: { xs: '1.25rem', sm: '1.5rem' } } as const;
 
@@ -39,15 +42,15 @@ export default function ThemeToggle() {
     return null;
   }
 
-  const nextMode = MODE_CYCLE[mode];
-  const nextLabel = MODE_LABEL[nextMode];
-  const Icon = MODE_ICON[mode];
-  const actionLabel = `Switch to ${nextLabel.toLowerCase()}`;
+  const currentMode = MODE_CONFIG[mode];
+  const nextMode = MODE_CONFIG[currentMode.next];
+  const actionLabel = `Switch to ${nextMode.label.toLowerCase()}`;
+  const Icon = currentMode.icon;
 
   return (
     <Tooltip title={actionLabel}>
       <IconButton
-        onClick={() => setMode(nextMode)}
+        onClick={() => setMode(currentMode.next)}
         aria-label={actionLabel}
         size="small"
       >

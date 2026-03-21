@@ -1,6 +1,10 @@
 import type { CSSProperties, ReactNode } from 'react';
 
-interface SocialImagePalette {
+import { ImageResponse } from 'next/og';
+
+import { SOCIAL_IMAGE_SIZE } from '@/lib/site';
+
+export interface SocialImagePalette {
   accentBackground: string;
   accentColor: string;
   background: string;
@@ -19,6 +23,18 @@ interface SocialFeaturePillProps {
   backgroundColor: string;
   color?: string;
   label: string;
+}
+
+export type SocialImageFeature = SocialFeaturePillProps;
+
+interface SocialImageResponseOptions {
+  body: string;
+  eyebrowLabel: string;
+  eyebrowVariant?: 'filled' | 'outlined';
+  features: readonly SocialImageFeature[];
+  maxWidth?: number;
+  palette: SocialImagePalette;
+  title: string;
 }
 
 const FONT_STACK = "'Geist Variable', sans-serif";
@@ -185,6 +201,37 @@ export function SocialFeaturePill({
     >
       {label}
     </li>
+  );
+}
+
+export function createSocialImageResponse({
+  body,
+  eyebrowLabel,
+  eyebrowVariant = 'filled',
+  features,
+  maxWidth,
+  palette,
+  title,
+}: SocialImageResponseOptions) {
+  return new ImageResponse(
+    <SocialImageFrame palette={palette}>
+      <SocialImageContent maxWidth={maxWidth}>
+        <SocialEyebrow
+          label={eyebrowLabel}
+          palette={palette}
+          variant={eyebrowVariant}
+        />
+        <SocialTitle>{title}</SocialTitle>
+        <SocialBody color={palette.bodyColor}>{body}</SocialBody>
+      </SocialImageContent>
+
+      <SocialFeatureList>
+        {features.map((feature) => (
+          <SocialFeaturePill key={feature.label} {...feature} />
+        ))}
+      </SocialFeatureList>
+    </SocialImageFrame>,
+    SOCIAL_IMAGE_SIZE
   );
 }
 

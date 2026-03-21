@@ -4,6 +4,7 @@ export interface TransformRequest {
 
 const URL_REQUIRED_MESSAGE =
   'Field "url" is required and must be a non-empty string.';
+const ALLOWED_REQUEST_FIELDS = new Set(['url']);
 const SUPPORTED_PROTOCOLS = new Set<URL['protocol']>(['http:', 'https:']);
 
 export class ValidationError extends Error {
@@ -17,13 +18,24 @@ export function parseUrlString(value: string): URL | null {
   return URL.parse(value);
 }
 
-export function validateTransformRequest(body: unknown): TransformRequest {
+function readTransformRequestRecord(body: unknown): Record<string, unknown> {
   if (body === null || typeof body !== 'object' || Array.isArray(body)) {
     throw new ValidationError('Request body must be a JSON object.');
   }
 
-  const record = body as Record<string, unknown>;
-  const unexpectedField = Object.keys(record).find((key) => key !== 'url');
+  return body as Record<string, unknown>;
+}
+
+function readUnexpectedField(
+  record: Record<string, unknown>
+): string | undefined {
+  return Object.keys(record).find((key) => !ALLOWED_REQUEST_FIELDS.has(key));
+}
+
+export function validateTransformRequest(body: unknown): TransformRequest {
+  const record = readTransformRequestRecord(body);
+  const unexpectedField = readUnexpectedField(record);
+
   if (unexpectedField !== undefined) {
     throw new ValidationError(`Unknown field: "${unexpectedField}".`);
   }

@@ -6,16 +6,18 @@ export type TransformErrorCode =
   | 'QUEUE_FULL'
   | 'INTERNAL_ERROR';
 
+export interface TransformErrorDetails {
+  retryAfter?: number | string | null;
+  timeout?: number;
+  reason?: string;
+}
+
 export interface TransformError {
   code: TransformErrorCode;
   message: string;
   retryable: boolean;
   statusCode?: number;
-  details?: {
-    retryAfter?: number | string | null;
-    timeout?: number;
-    reason?: string;
-  };
+  details?: TransformErrorDetails;
 }
 
 export interface TransformMetadata {
@@ -71,6 +73,17 @@ type TransformErrorOptions = Omit<TransformError, 'code' | 'message'>;
 
 type JsonRecord = Record<string, unknown>;
 
+function createOptionalTransformErrorFields(
+  options: Partial<TransformErrorOptions>
+): Partial<Pick<TransformError, 'details' | 'statusCode'>> {
+  return {
+    ...(options.statusCode !== undefined
+      ? { statusCode: options.statusCode }
+      : {}),
+    ...(options.details !== undefined ? { details: options.details } : {}),
+  };
+}
+
 export function createTransformError(
   code: TransformErrorCode,
   message: string,
@@ -80,10 +93,7 @@ export function createTransformError(
     code,
     message,
     retryable: options.retryable ?? false,
-    ...(options.statusCode !== undefined
-      ? { statusCode: options.statusCode }
-      : {}),
-    ...(options.details !== undefined ? { details: options.details } : {}),
+    ...createOptionalTransformErrorFields(options),
   };
 }
 

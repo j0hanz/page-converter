@@ -1,12 +1,6 @@
 'use client';
 
-import {
-  type Dispatch,
-  useCallback,
-  useEffect,
-  useReducer,
-  useRef,
-} from 'react';
+import { type Dispatch, useEffect, useReducer, useRef } from 'react';
 
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
@@ -47,12 +41,12 @@ interface RequestControllerOptions {
   dispatch: Dispatch<Action>;
 }
 
+type RequestAction = Exclude<Action, { type: 'submit' | 'dismiss_error' }>;
+type TerminalRequestAction = Extract<Action, { type: 'error' | 'result' }>;
+
 export interface RequestController {
   beginRequest: () => RequestSession;
-  dispatchIfActive: (
-    session: RequestSession,
-    action: Exclude<Action, { type: 'submit' | 'dismiss_error' }>
-  ) => void;
+  dispatchIfActive: (session: RequestSession, action: RequestAction) => void;
   isActiveRequest: (session: RequestSession) => boolean;
   releaseRequest: (session: RequestSession) => void;
   stopActiveRequest: () => void;
@@ -94,6 +88,12 @@ function reducer(state: State, action: Action): State {
   }
 }
 
+function isTerminalRequestAction(
+  action: RequestAction
+): action is TerminalRequestAction {
+  return action.type === 'result' || action.type === 'error';
+}
+
 export function createRequestController({
   clearInput,
   dispatch,
@@ -133,7 +133,7 @@ export function createRequestController({
       }
 
       dispatch(action);
-      if (action.type === 'result' || action.type === 'error') {
+      if (isTerminalRequestAction(action)) {
         clearInput();
       }
     },
@@ -150,17 +150,30 @@ export function createRequestController({
   };
 }
 
-export default function HomeClient() {
-  const [state, dispatch] = useReducer(reducer, initialState);
-  const formRef = useRef<TransformFormHandle>(null);
-  const { error, loading, progress, result } = state;
-  const showProgress = loading && progress !== null;
-  const showError = !loading && error !== null;
-  const showResult = !loading && result !== null;
+function createRequestHandlers(
+  requestController: RequestController,
+  session: RequestSession
+) {
+  return {
+    onProgress(event: StreamProgressEvent) {
+      requestController.dispatchIfActive(session, {
+        type: 'progress',
+        event,
+      });
+    },
+    onResult(result: TransformResult) {
+      requestController.dispatchIfActive(session, { type: 'result', result });
+    },
+    onError(error: TransformError) {
+      requestController.dispatchIfActive(session, { type: 'error', error });
+    },
+  };
+}
 
-  const clearInput = useCallback(() => {
-    formRef.current?.clear();
-  }, []);
+function useRequestController(
+  clearInput: () => void,
+  dispatch: Dispatch<Action>
+): RequestController {
   const requestControllerRef = useRef<RequestController | null>(null);
 
   if (!requestControllerRef.current) {
@@ -172,25 +185,27 @@ export default function HomeClient() {
 
   const requestController = requestControllerRef.current;
 
-  function dismissError() {
-    dispatch({ type: 'dismiss_error' });
+  useEffect(() => {
+    return () => {
+      requestController.stopActiveRequest();
+    };
+  }, [requestController]);
+
+  return requestController;
+}
+
+function useHomeClientModel() {
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const formRef = useRef<TransformFormHandle>(null);
+
+  function clearInput() {
+    formRef.current?.clear();
   }
 
-  function createRequestHandlers(session: RequestSession) {
-    return {
-      onProgress(event: StreamProgressEvent) {
-        requestController.dispatchIfActive(session, {
-          type: 'progress',
-          event,
-        });
-      },
-      onResult(result: TransformResult) {
-        requestController.dispatchIfActive(session, { type: 'result', result });
-      },
-      onError(error: TransformError) {
-        requestController.dispatchIfActive(session, { type: 'error', error });
-      },
-    };
+  const requestController = useRequestController(clearInput, dispatch);
+
+  function dismissError() {
+    dispatch({ type: 'dismiss_error' });
   }
 
   function handleSubmit(url: string) {
@@ -199,7 +214,7 @@ export default function HomeClient() {
 
     void submitTransformRequest(
       url,
-      createRequestHandlers(session),
+      createRequestHandlers(requestController, session),
       session.abortController.signal
     )
       .catch((error) => {
@@ -218,11 +233,22 @@ export default function HomeClient() {
       });
   }
 
-  useEffect(() => {
-    return () => {
-      requestController.stopActiveRequest();
-    };
-  }, [requestController]);
+  return { dismissError, formRef, handleSubmit, ...state };
+}
+
+export default function HomeClient() {
+  const {
+    dismissError,
+    error,
+    formRef,
+    handleSubmit,
+    loading,
+    progress,
+    result,
+  } = useHomeClientModel();
+  const showProgress = loading && progress !== null;
+  const showError = !loading && error !== null;
+  const showResult = !loading && result !== null;
 
   return (
     <>

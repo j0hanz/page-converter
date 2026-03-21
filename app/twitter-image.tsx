@@ -1,5 +1,3 @@
-import { ImageResponse } from 'next/og';
-
 import {
   SITE_NAME,
   SITE_TAGLINE,
@@ -8,14 +6,8 @@ import {
   SOCIAL_IMAGE_SIZE,
 } from '@/lib/site';
 import {
+  createSocialImageResponse,
   DARK_SOCIAL_PALETTE,
-  SocialBody,
-  SocialEyebrow,
-  SocialFeatureList,
-  SocialFeaturePill,
-  SocialImageContent,
-  SocialImageFrame,
-  SocialTitle,
 } from '@/lib/social-image';
 
 export const alt = SOCIAL_IMAGE_ALT;
@@ -41,26 +33,13 @@ const TWITTER_FEATURES = [
 ] as const;
 
 export default function TwitterImage() {
-  return new ImageResponse(
-    <SocialImageFrame palette={DARK_SOCIAL_PALETTE}>
-      <SocialImageContent maxWidth={860}>
-        <SocialEyebrow
-          label="Clean web page extraction"
-          palette={DARK_SOCIAL_PALETTE}
-          variant="outlined"
-        />
-        <SocialTitle>{SITE_NAME}</SocialTitle>
-        <SocialBody color={DARK_SOCIAL_PALETTE.bodyColor}>
-          {SITE_TAGLINE} with live progress and ready-to-share Markdown output.
-        </SocialBody>
-      </SocialImageContent>
-
-      <SocialFeatureList>
-        {TWITTER_FEATURES.map((feature) => (
-          <SocialFeaturePill key={feature.label} {...feature} />
-        ))}
-      </SocialFeatureList>
-    </SocialImageFrame>,
-    size
-  );
+  return createSocialImageResponse({
+    eyebrowLabel: 'Clean web page extraction',
+    eyebrowVariant: 'outlined',
+    body: `${SITE_TAGLINE} with live progress and ready-to-share Markdown output.`,
+    features: TWITTER_FEATURES,
+    maxWidth: 860,
+    palette: DARK_SOCIAL_PALETTE,
+    title: SITE_NAME,
+  });
 }

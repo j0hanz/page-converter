@@ -80,14 +80,13 @@ function downloadMarkdownFile(title: string | undefined, markdown: string) {
 type CopyStatus = 'idle' | 'copied' | 'failed';
 
 type IconButtonColor = React.ComponentProps<typeof IconButton>['color'];
-const COPY_STATUS_COLOR: Record<CopyStatus, IconButtonColor> = {
-  idle: 'default',
-  copied: 'success',
-  failed: 'error',
-};
-const COPY_STATUS_MESSAGE: Record<Exclude<CopyStatus, 'idle'>, string> = {
-  copied: 'Copied to clipboard',
-  failed: 'Failed to copy',
+const COPY_STATUS_DETAILS: Record<
+  CopyStatus,
+  { color: IconButtonColor; message?: string }
+> = {
+  idle: { color: 'default' },
+  copied: { color: 'success', message: 'Copied to clipboard' },
+  failed: { color: 'error', message: 'Failed to copy' },
 };
 
 interface ResultActionButtonProps {
@@ -206,7 +205,7 @@ function ResultActions({ copyStatus, onCopy, onDownload }: ResultActionsProps) {
         onClick={() => {
           void onCopy();
         }}
-        color={COPY_STATUS_COLOR[copyStatus]}
+        color={COPY_STATUS_DETAILS[copyStatus].color}
       >
         <ContentCopyIcon fontSize="small" />
       </ResultActionButton>
@@ -218,6 +217,79 @@ function ResultActions({ copyStatus, onCopy, onDownload }: ResultActionsProps) {
         <DownloadIcon fontSize="small" />
       </ResultActionButton>
     </Stack>
+  );
+}
+
+interface ResultViewToggleProps {
+  onChange: (
+    event: React.MouseEvent<HTMLElement>,
+    nextViewMode: ViewMode | null
+  ) => void;
+  viewMode: ViewMode;
+}
+
+function ResultViewToggle({ onChange, viewMode }: ResultViewToggleProps) {
+  return (
+    <ToggleButtonGroup
+      value={viewMode}
+      exclusive
+      onChange={onChange}
+      size="small"
+      aria-label="View mode"
+    >
+      <ToggleButton sx={TOGGLE_BUTTON_SX} value="preview" aria-label="Preview">
+        <VisibilityIcon fontSize="small" />
+      </ToggleButton>
+      <ToggleButton sx={TOGGLE_BUTTON_SX} value="code" aria-label="Code">
+        <CodeIcon fontSize="small" />
+      </ToggleButton>
+    </ToggleButtonGroup>
+  );
+}
+
+interface ResultMarkdownPanelProps {
+  isPreviewMode: boolean;
+  markdown: string;
+}
+
+function ResultMarkdownPanel({
+  isPreviewMode,
+  markdown,
+}: ResultMarkdownPanelProps) {
+  return (
+    <Paper sx={MARKDOWN_PANEL_SX}>
+      <Box sx={{ display: isPreviewMode ? 'block' : 'none' }}>
+        <MarkdownErrorBoundary resetKey={markdown}>
+          <PreviewContent markdown={markdown} />
+        </MarkdownErrorBoundary>
+      </Box>
+      <Box sx={{ display: !isPreviewMode ? 'block' : 'none' }}>
+        <Typography component="pre" variant="body2" sx={RAW_MARKDOWN_SX}>
+          {markdown}
+        </Typography>
+      </Box>
+    </Paper>
+  );
+}
+
+interface CopyFeedbackSnackbarProps {
+  copyStatus: CopyStatus;
+  onClose: () => void;
+  open: boolean;
+}
+
+function CopyFeedbackSnackbar({
+  copyStatus,
+  onClose,
+  open,
+}: CopyFeedbackSnackbarProps) {
+  return (
+    <Snackbar
+      open={open}
+      autoHideDuration={COPY_FEEDBACK_DELAY_MS}
+      onClose={onClose}
+      message={COPY_STATUS_DETAILS[copyStatus].message}
+    />
   );
 }
 
@@ -257,51 +329,26 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
           justifyContent="space-between"
           alignItems="center"
         >
-          <ToggleButtonGroup
-            value={viewMode}
-            exclusive
+          <ResultViewToggle
+            viewMode={viewMode}
             onChange={handleViewModeChange}
-            size="small"
-            aria-label="View mode"
-          >
-            <ToggleButton
-              sx={TOGGLE_BUTTON_SX}
-              value="preview"
-              aria-label="Preview"
-            >
-              <VisibilityIcon fontSize="small" />
-            </ToggleButton>
-            <ToggleButton sx={TOGGLE_BUTTON_SX} value="code" aria-label="Code">
-              <CodeIcon fontSize="small" />
-            </ToggleButton>
-          </ToggleButtonGroup>
+          />
           <ResultActions
             copyStatus={copyStatus}
             onCopy={handleCopy}
             onDownload={handleDownload}
           />
         </Stack>
-        <Paper sx={MARKDOWN_PANEL_SX}>
-          <Box sx={{ display: isPreviewMode ? 'block' : 'none' }}>
-            <MarkdownErrorBoundary resetKey={result.markdown}>
-              <PreviewContent markdown={result.markdown} />
-            </MarkdownErrorBoundary>
-          </Box>
-          <Box sx={{ display: !isPreviewMode ? 'block' : 'none' }}>
-            <Typography component="pre" variant="body2" sx={RAW_MARKDOWN_SX}>
-              {result.markdown}
-            </Typography>
-          </Box>
-        </Paper>
+        <ResultMarkdownPanel
+          isPreviewMode={isPreviewMode}
+          markdown={result.markdown}
+        />
       </section>
 
-      <Snackbar
-        open={copyFeedbackOpen}
-        autoHideDuration={COPY_FEEDBACK_DELAY_MS}
+      <CopyFeedbackSnackbar
+        copyStatus={copyStatus}
         onClose={clearCopyFeedback}
-        message={
-          copyStatus === 'idle' ? undefined : COPY_STATUS_MESSAGE[copyStatus]
-        }
+        open={copyFeedbackOpen}
       />
     </Stack>
   );

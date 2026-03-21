@@ -214,7 +214,11 @@ const components: Components = {
     />
   ),
   table: ({ children }) => (
-    <TableContainer component={Paper} variant="outlined" sx={TABLE_CONTAINER_SX}>
+    <TableContainer
+      component={Paper}
+      variant="outlined"
+      sx={TABLE_CONTAINER_SX}
+    >
       <Table size="small">{children}</Table>
     </TableContainer>
   ),

@@ -42,16 +42,20 @@ interface AboutTabDefinition {
 }
 
 const ABOUT_ICON_SX = { fontSize: { xs: '1.25rem', sm: '1.5rem' } } as const;
+const ABOUT_TABS = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'how-it-works', label: 'How It Works' },
+] as const satisfies readonly Pick<AboutTabDefinition, 'id' | 'label'>[];
 
 interface TabPanelProps {
   children: ReactNode;
-  panelId: string;
-  tabId: string;
+  tab: AboutTabId;
   visible: boolean;
 }
 
-function TabPanel({ children, panelId, tabId, visible }: TabPanelProps) {
+function TabPanel({ children, tab, visible }: TabPanelProps) {
   const hasRenderedRef = useRef(visible);
+  const { panelId, tabId } = readTabDomIds(tab);
 
   if (visible && !hasRenderedRef.current) {
     hasRenderedRef.current = true;
@@ -64,18 +68,19 @@ function TabPanel({ children, panelId, tabId, visible }: TabPanelProps) {
   );
 }
 
-function readTabId(tabId: AboutTabId): string {
-  return `about-tab-${tabId}`;
-}
-
-function readTabPanelId(tabId: AboutTabId): string {
-  return `about-tabpanel-${tabId}`;
+function readTabDomIds(tabId: AboutTabId) {
+  return {
+    panelId: `about-tabpanel-${tabId}`,
+    tabId: `about-tab-${tabId}`,
+  };
 }
 
 function readTabA11yProps(tabId: AboutTabId) {
+  const { panelId, tabId: resolvedTabId } = readTabDomIds(tabId);
+
   return {
-    id: readTabId(tabId),
-    'aria-controls': readTabPanelId(tabId),
+    id: resolvedTabId,
+    'aria-controls': panelId,
   };
 }
 
@@ -89,6 +94,13 @@ function MarkdownTabPanel({ children }: { children: string }) {
   );
 }
 
+function createAboutTabDefinitions(contentById: Record<AboutTabId, string>) {
+  return ABOUT_TABS.map((tab) => ({
+    ...tab,
+    content: contentById[tab.id],
+  }));
+}
+
 export default function AboutDialog({
   markdown,
   howItWorksMarkdown,
@@ -97,20 +109,28 @@ export default function AboutDialog({
   const [tab, setTab] = useState<AboutTabId>('overview');
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
-  const tabs: readonly AboutTabDefinition[] = [
-    { id: 'overview', label: 'Overview', content: markdown },
-    { id: 'how-it-works', label: 'How It Works', content: howItWorksMarkdown },
-  ];
+  const tabs = createAboutTabDefinitions({
+    overview: markdown,
+    'how-it-works': howItWorksMarkdown,
+  });
 
   function handleTabChange(_event: SyntheticEvent, nextTab: AboutTabId) {
     setTab(nextTab);
+  }
+
+  function handleOpen() {
+    setOpen(true);
+  }
+
+  function handleClose() {
+    setOpen(false);
   }
 
   return (
     <>
       <Tooltip title="About">
         <IconButton
-          onClick={() => setOpen(true)}
+          onClick={handleOpen}
           size="small"
           aria-label="About Fetch URL"
         >
@@ -120,7 +140,7 @@ export default function AboutDialog({
 
       <Dialog
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={handleClose}
         aria-labelledby="about-dialog-title"
         fullWidth
         fullScreen={fullScreen}
@@ -129,7 +149,7 @@ export default function AboutDialog({
         <DialogTitle id="about-dialog-title" sx={visuallyHidden}>
           About
         </DialogTitle>
-        <Box sx={{ borderBottom: 2, borderColor: 'divider' }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs
             value={tab}
             onChange={handleTabChange}
@@ -150,15 +170,14 @@ export default function AboutDialog({
           {tabs.map((tabDefinition) => (
             <TabPanel
               key={tabDefinition.id}
-              panelId={readTabPanelId(tabDefinition.id)}
-              tabId={readTabId(tabDefinition.id)}
+              tab={tabDefinition.id}
               visible={tab === tabDefinition.id}
             >
               <MarkdownTabPanel>{tabDefinition.content}</MarkdownTabPanel>
             </TabPanel>
           ))}
         </DialogContent>
-        <Button fullWidth size="large" onClick={() => setOpen(false)}>
+        <Button fullWidth size="large" onClick={handleClose}>
           Close
         </Button>
       </Dialog>

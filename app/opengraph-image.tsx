@@ -1,5 +1,3 @@
-import { ImageResponse } from 'next/og';
-
 import {
   SITE_NAME,
   SITE_TAGLINE,
@@ -8,14 +6,8 @@ import {
   SOCIAL_IMAGE_SIZE,
 } from '@/lib/site';
 import {
+  createSocialImageResponse,
   LIGHT_SOCIAL_PALETTE,
-  SocialBody,
-  SocialEyebrow,
-  SocialFeatureList,
-  SocialFeaturePill,
-  SocialImageContent,
-  SocialImageFrame,
-  SocialTitle,
 } from '@/lib/social-image';
 
 export const alt = SOCIAL_IMAGE_ALT;
@@ -29,25 +21,11 @@ const OG_FEATURES = [
 ] as const;
 
 export default function OpenGraphImage() {
-  return new ImageResponse(
-    <SocialImageFrame palette={LIGHT_SOCIAL_PALETTE}>
-      <SocialImageContent>
-        <SocialEyebrow
-          label="Web page to Markdown"
-          palette={LIGHT_SOCIAL_PALETTE}
-        />
-        <SocialTitle>{SITE_NAME}</SocialTitle>
-        <SocialBody color={LIGHT_SOCIAL_PALETTE.bodyColor}>
-          {SITE_TAGLINE} with live progress, preview, copy, and download.
-        </SocialBody>
-      </SocialImageContent>
-
-      <SocialFeatureList>
-        {OG_FEATURES.map((feature) => (
-          <SocialFeaturePill key={feature.label} {...feature} />
-        ))}
-      </SocialFeatureList>
-    </SocialImageFrame>,
-    size
-  );
+  return createSocialImageResponse({
+    eyebrowLabel: 'Web page to Markdown',
+    body: `${SITE_TAGLINE} with live progress, preview, copy, and download.`,
+    features: OG_FEATURES,
+    palette: LIGHT_SOCIAL_PALETTE,
+    title: SITE_NAME,
+  });
 }

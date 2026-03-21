@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import HomeClient, { createRequestController } from '@/components/home-client';
 import type { TransformResult } from '@/lib/api';
+import { submitUrlForm } from '@/tests/setup';
 
 const VALID_URL = 'https://example.com';
 const SUCCESS_RESULT: TransformResult = {
@@ -23,7 +24,7 @@ describe('HomeClient', () => {
     global.fetch = vi.fn().mockResolvedValue(stream.response);
 
     render(<HomeClient />);
-    await submitUrl(VALID_URL);
+    await submitUrlForm(VALID_URL);
 
     stream.emit({
       type: 'progress',
@@ -50,7 +51,7 @@ describe('HomeClient', () => {
     global.fetch = vi.fn().mockResolvedValue(stream.response);
 
     render(<HomeClient />);
-    await submitUrl(VALID_URL);
+    await submitUrlForm(VALID_URL);
 
     stream.emit({
       type: 'progress',
@@ -92,7 +93,7 @@ describe('HomeClient', () => {
     global.fetch = vi.fn().mockRejectedValue(new Error('Network fail'));
 
     render(<HomeClient />);
-    await submitUrl(VALID_URL);
+    await submitUrlForm(VALID_URL);
 
     expect(
       await screen.findByText('Network error. Please try again.')
@@ -108,7 +109,7 @@ describe('HomeClient', () => {
     });
 
     const { unmount } = render(<HomeClient />);
-    await submitUrl(VALID_URL);
+    await submitUrlForm(VALID_URL);
 
     unmount();
 
@@ -165,15 +166,6 @@ describe('createRequestController', () => {
     expect(clearInput).toHaveBeenCalledTimes(1);
   });
 });
-
-async function submitUrl(url: string) {
-  const user = userEvent.setup();
-  const input = screen.getByLabelText(/URL/i);
-
-  await user.clear(input);
-  await user.type(input, url);
-  await user.click(screen.getByRole('button', { name: /convert/i }));
-}
 
 function createControlledStreamResponse() {
   let controller: ReadableStreamDefaultController<Uint8Array> | null = null;

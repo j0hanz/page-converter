@@ -41,23 +41,41 @@ function parseStreamEvent(line: string): StreamEvent {
   return parsed;
 }
 
-function flushBufferedLines(
-  chunk: string,
+interface NdjsonStreamReader {
+  consume: (chunk: string) => void;
+  finalize: () => boolean;
+}
+
+function createNdjsonStreamReader(
   onEvent: (event: StreamEvent) => void
-): { remainder: string; sawTerminalEvent: boolean } {
-  const lines = chunk.split('\n');
-  const remainder = lines.pop() ?? '';
+): NdjsonStreamReader {
+  let buffer = '';
   let sawTerminalEvent = false;
 
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed.length > 0) {
-      sawTerminalEvent =
-        emitParsedStreamEvent(trimmed, onEvent) || sawTerminalEvent;
+  function emitLine(line: string): void {
+    const trimmedLine = line.trim();
+    if (trimmedLine.length === 0) {
+      return;
     }
+
+    sawTerminalEvent =
+      emitParsedStreamEvent(trimmedLine, onEvent) || sawTerminalEvent;
   }
 
-  return { remainder, sawTerminalEvent };
+  return {
+    consume(chunk) {
+      const lines = (buffer + chunk).split('\n');
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        emitLine(line);
+      }
+    },
+    finalize() {
+      emitLine(buffer);
+      return sawTerminalEvent;
+    },
+  };
 }
 
 function emitParsedStreamEvent(
@@ -65,21 +83,12 @@ function emitParsedStreamEvent(
   onEvent: (event: StreamEvent) => void
 ): boolean {
   const event = parseStreamEvent(line);
-
   onEvent(event);
   return event.type !== 'progress';
 }
 
-function emitTrailingStreamEvent(
-  buffer: string,
-  onEvent: (event: StreamEvent) => void
-): boolean {
-  const trailingContent = buffer.trim();
-  if (trailingContent.length === 0) {
-    return false;
-  }
-
-  return emitParsedStreamEvent(trailingContent, onEvent);
+function isNamedDomException(error: unknown, name: string): boolean {
+  return error instanceof DOMException && error.name === name;
 }
 
 async function readNdjsonStream(
@@ -93,8 +102,7 @@ async function readNdjsonStream(
   }
 
   const decoder = new TextDecoder();
-  let buffer = '';
-  let sawTerminalEvent = false;
+  const streamReader = createNdjsonStreamReader(onEvent);
 
   try {
     for (;;) {
@@ -103,16 +111,15 @@ async function readNdjsonStream(
         break;
       }
 
-      const flushResult = flushBufferedLines(
-        buffer + decoder.decode(value, { stream: true }),
-        onEvent
-      );
-      buffer = flushResult.remainder;
-      sawTerminalEvent = sawTerminalEvent || flushResult.sawTerminalEvent;
+      streamReader.consume(decoder.decode(value, { stream: true }));
     }
 
-    sawTerminalEvent =
-      emitTrailingStreamEvent(buffer, onEvent) || sawTerminalEvent;
+    const sawTerminalEvent = streamReader.finalize();
+    if (sawTerminalEvent || !signal.aborted) {
+      return sawTerminalEvent ? null : createUnexpectedResponseError();
+    }
+
+    return isTimeoutError(signal.reason) ? createTimeoutError() : null;
   } catch (error) {
     if (isTimeoutError(error)) {
       return createTimeoutError();
@@ -126,12 +133,6 @@ async function readNdjsonStream(
   } finally {
     reader.releaseLock();
   }
-
-  if (sawTerminalEvent || !signal.aborted) {
-    return sawTerminalEvent ? null : createUnexpectedResponseError();
-  }
-
-  return isTimeoutError(signal.reason) ? createTimeoutError() : null;
 }
 
 function handleStreamEvent(
@@ -156,7 +157,7 @@ function handleStreamEvent(
   handlers.onError(createUnexpectedResponseError());
 }
 
-function handleJsonFallback(
+function handleJsonErrorResponse(
   data: unknown,
   onError: ClientTransformHandlers['onError']
 ): void {
@@ -187,7 +188,7 @@ async function handleTransformResponse(
     return;
   }
 
-  handleJsonFallback(await response.json(), handlers.onError);
+  handleJsonErrorResponse(await response.json(), handlers.onError);
 }
 
 export async function submitTransformRequest(
@@ -218,9 +219,9 @@ export function mapClientTransformError(error: unknown): TransformError {
 }
 
 export function isAbortError(error: unknown): boolean {
-  return error instanceof DOMException && error.name === 'AbortError';
+  return isNamedDomException(error, 'AbortError');
 }
 
 function isTimeoutError(error: unknown): boolean {
-  return error instanceof DOMException && error.name === 'TimeoutError';
+  return isNamedDomException(error, 'TimeoutError');
 }

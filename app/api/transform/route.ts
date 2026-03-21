@@ -4,7 +4,7 @@ import {
   createStreamProgressEvent,
   createTransformError,
   NDJSON_CONTENT_TYPE,
-  type StreamEvent,
+  type StreamProgressEvent,
   type TransformError,
   type TransformErrorCode,
   type TransformErrorResponse,
@@ -35,13 +35,14 @@ const NDJSON_HEADERS = {
 
 const MAX_REQUEST_BODY_SIZE = 4096;
 
-interface StreamGuard {
+interface NdjsonStreamWriter {
   close: () => void;
-  write: (event: StreamEvent) => void;
+  writeProgress: (event: StreamProgressEvent) => void;
+  writeResult: (response: TransformResponse) => void;
 }
 
 interface BufferedProgressEmitter {
-  attachWriter: (writer: StreamGuard) => void;
+  attachWriter: (writer: NdjsonStreamWriter) => void;
   emitProgress: (progress: Progress) => void;
   hasProgress: () => boolean;
   waitForFirstProgressOrResponse: (
@@ -96,16 +97,16 @@ function createErrorResponse(error: TransformError): Response {
 
 function encodeNdjsonEvent(
   encoder: TextEncoder,
-  event: StreamEvent
+  event: StreamProgressEvent | ({ type: 'result' } & TransformResponse)
 ): Uint8Array {
   return encoder.encode(JSON.stringify(event) + '\n');
 }
 
-function createStreamGuard(
+function createNdjsonStreamWriter(
   request: Request,
   controller: ReadableStreamDefaultController<Uint8Array>,
   encoder: TextEncoder
-): StreamGuard {
+): NdjsonStreamWriter {
   let closed = false;
 
   const close = () => {
@@ -124,18 +125,27 @@ function createStreamGuard(
 
   request.signal.addEventListener('abort', close, { once: true });
 
+  function write(
+    event: StreamProgressEvent | ({ type: 'result' } & TransformResponse)
+  ) {
+    if (closed) {
+      return;
+    }
+
+    try {
+      controller.enqueue(encodeNdjsonEvent(encoder, event));
+    } catch {
+      // Ignore errors if client aborted the stream
+    }
+  }
+
   return {
     close,
-    write(event: StreamEvent) {
-      if (closed) {
-        return;
-      }
-
-      try {
-        controller.enqueue(encodeNdjsonEvent(encoder, event));
-      } catch {
-        // Ignore errors if client aborted the stream
-      }
+    writeProgress(event) {
+      write(event);
+    },
+    writeResult(response) {
+      write({ type: 'result', ...response });
     },
   };
 }
@@ -143,14 +153,18 @@ function createStreamGuard(
 function createNdjsonResponseStream(
   request: Request,
   responsePromise: Promise<TransformResponse>,
-  onStart: (streamGuard: StreamGuard) => void
+  onStart: (writer: NdjsonStreamWriter) => void
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
 
   return new ReadableStream<Uint8Array>({
     async start(controller: ReadableStreamDefaultController<Uint8Array>) {
-      const streamGuard = createStreamGuard(request, controller, encoder);
-      onStart(streamGuard);
+      const streamWriter = createNdjsonStreamWriter(
+        request,
+        controller,
+        encoder
+      );
+      onStart(streamWriter);
 
       try {
         if (request.signal.aborted) {
@@ -160,28 +174,21 @@ function createNdjsonResponseStream(
         const response = await responsePromise;
 
         if (!request.signal.aborted) {
-          writeResultEvent(streamGuard, response);
+          streamWriter.writeResult(response);
         }
       } finally {
-        streamGuard.close();
+        streamWriter.close();
       }
     },
   });
 }
 
-function writeResultEvent(
-  streamGuard: StreamGuard,
-  response: TransformResponse
-): void {
-  streamGuard.write({ type: 'result', ...response });
-}
-
 function createBufferedProgressEmitter(): BufferedProgressEmitter {
-  const bufferedEvents: StreamEvent[] = [];
+  const bufferedEvents: StreamProgressEvent[] = [];
   const { promise: firstProgressPromise, resolve: resolveFirstProgress } =
     Promise.withResolvers<void>();
   let sawProgress = false;
-  let writer: StreamGuard | null = null;
+  let writer: NdjsonStreamWriter | null = null;
 
   function markProgressSeen(): void {
     if (!sawProgress) {
@@ -195,7 +202,7 @@ function createBufferedProgressEmitter(): BufferedProgressEmitter {
       writer = nextWriter;
 
       for (const event of bufferedEvents) {
-        nextWriter.write(event);
+        nextWriter.writeProgress(event);
       }
 
       bufferedEvents.length = 0;
@@ -209,7 +216,7 @@ function createBufferedProgressEmitter(): BufferedProgressEmitter {
       );
 
       if (writer) {
-        writer.write(event);
+        writer.writeProgress(event);
         return;
       }
 
