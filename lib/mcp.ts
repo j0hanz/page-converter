@@ -217,6 +217,16 @@ type JsonRecord = Record<string, unknown>;
 type KnownMcpErrorCode = keyof typeof KNOWN_MCP_ERRORS;
 type KnownMcpErrorDefinition = (typeof KNOWN_MCP_ERRORS)[KnownMcpErrorCode];
 
+function createOptionalErrorFields(
+  statusCode?: number,
+  details?: TransformError["details"],
+): Partial<Pick<TransformError, "details" | "statusCode">> {
+  return {
+    ...(statusCode !== undefined ? { statusCode } : {}),
+    ...(details ? { details } : {}),
+  };
+}
+
 function isKnownMcpErrorCode(code: string): code is KnownMcpErrorCode {
   return code in KNOWN_MCP_ERRORS;
 }
@@ -234,12 +244,12 @@ function mapMcpError(errorPayload: JsonRecord): TransformError {
   const knownError = readKnownMcpError(code);
   const statusCode = readInteger(errorPayload.statusCode);
   const details = readErrorDetails(errorPayload);
+  const optionalFields = createOptionalErrorFields(statusCode, details);
 
   if (knownError) {
     return createTransformError(knownError.code, message, {
       retryable: knownError.retryable,
-      ...(statusCode !== undefined ? { statusCode } : {}),
-      ...(details ? { details } : {}),
+      ...optionalFields,
     });
   }
 
@@ -252,20 +262,17 @@ function mapUnknownMcpError(
   statusCode?: number,
   details?: TransformError["details"],
 ): TransformError {
+  const optionalFields = createOptionalErrorFields(statusCode, details);
   if (!code.startsWith(HTTP_ERROR_CODE_PREFIX)) {
     return createTransformError("INTERNAL_ERROR", message, {
-      ...(statusCode !== undefined ? { statusCode } : {}),
-      ...(details ? { details } : {}),
+      ...optionalFields,
     });
   }
 
   const resolvedStatusCode = statusCode ?? readHttpStatusCode(code);
   return createTransformError("HTTP_ERROR", message, {
     retryable: resolvedStatusCode !== undefined && resolvedStatusCode >= 500,
-    ...(resolvedStatusCode !== undefined
-      ? { statusCode: resolvedStatusCode }
-      : {}),
-    ...(details ? { details } : {}),
+    ...createOptionalErrorFields(resolvedStatusCode, details),
   });
 }
 
@@ -286,10 +293,8 @@ function extractMetadata(data: JsonRecord): TransformMetadata {
   return compactMetadata({
     description: readString(metadata.description),
     author: readString(metadata.author),
-    publishedAt:
-      readString(metadata.publishedAt) ?? readString(metadata.publishedDate),
-    modifiedAt:
-      readString(metadata.modifiedAt) ?? readString(metadata.modifiedDate),
+    publishedAt: readFirstString(metadata.publishedAt, metadata.publishedDate),
+    modifiedAt: readFirstString(metadata.modifiedAt, metadata.modifiedDate),
     image: readString(metadata.image),
     favicon: readString(metadata.favicon),
   });
@@ -297,7 +302,7 @@ function extractMetadata(data: JsonRecord): TransformMetadata {
 
 function mapToTransformResult(data: JsonRecord): TransformResult {
   return {
-    url: readString(data.url) ?? readString(data.inputUrl) ?? "",
+    url: readFirstString(data.url, data.inputUrl) ?? "",
     resolvedUrl: readString(data.resolvedUrl),
     finalUrl: readString(data.finalUrl),
     title: readString(data.title),
@@ -397,8 +402,7 @@ function unwrapRecord(record: JsonRecord, key: string): JsonRecord {
 
 function readMcpErrorMessage(errorPayload: JsonRecord): string {
   return (
-    readString(errorPayload.message) ??
-    readString(errorPayload.error) ??
+    readFirstString(errorPayload.message, errorPayload.error) ??
     UNKNOWN_MCP_ERROR_MESSAGE
   );
 }
@@ -414,15 +418,16 @@ function readErrorDetails(
   const retryAfter = details.retryAfter;
   const timeout = readInteger(details.timeout);
   const reason = readString(details.reason);
-  const mappedDetails = {
-    ...(typeof retryAfter === "number" ||
-    typeof retryAfter === "string" ||
-    retryAfter === null
-      ? { retryAfter }
-      : {}),
-    ...(timeout !== undefined ? { timeout } : {}),
-    ...(reason !== undefined ? { reason } : {}),
-  };
+  const mappedDetails = omitUndefinedFields({
+    retryAfter:
+      typeof retryAfter === "number" ||
+      typeof retryAfter === "string" ||
+      retryAfter === null
+        ? retryAfter
+        : undefined,
+    timeout,
+    reason,
+  });
 
   return Object.keys(mappedDetails).length > 0 ? mappedDetails : undefined;
 }
@@ -442,9 +447,24 @@ function asRecord(value: unknown): JsonRecord | null {
 }
 
 function compactMetadata(metadata: TransformMetadata): TransformMetadata {
+  return omitUndefinedFields(metadata) as TransformMetadata;
+}
+
+function omitUndefinedFields<T extends object>(value: T): Partial<T> {
   return Object.fromEntries(
-    Object.entries(metadata).filter(([, value]) => value !== undefined),
-  ) as TransformMetadata;
+    Object.entries(value).filter(([, item]) => item !== undefined),
+  ) as Partial<T>;
+}
+
+function readFirstString(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    const stringValue = readString(value);
+    if (stringValue !== undefined) {
+      return stringValue;
+    }
+  }
+
+  return undefined;
 }
 
 function readString(value: unknown): string | undefined {

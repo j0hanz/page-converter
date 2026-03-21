@@ -7,11 +7,20 @@ const URL_REQUIRED_MESSAGE =
   'Field "url" is required and must be a non-empty string.';
 const URL_INVALID_MESSAGE = 'Field "url" must be a valid URL.';
 const URL_PROTOCOL_MESSAGE = 'Field "url" must use http: or https: scheme.';
-const URL_FIELD = "url";
-const ALLOWED_FIELDS = new Set<string>([URL_FIELD]);
 const SUPPORTED_PROTOCOLS = new Set<URL["protocol"]>(["http:", "https:"]);
 
 type TransformRequestRecord = Record<string, unknown>;
+type TransformRequestField = keyof TransformRequest;
+type TransformRequestParserMap = {
+  [K in TransformRequestField]: (value: unknown) => TransformRequest[K];
+};
+
+const TRANSFORM_REQUEST_PARSERS = {
+  url: parseValidatedUrl,
+} satisfies TransformRequestParserMap;
+const ALLOWED_FIELDS = new Set<TransformRequestField>(
+  Object.keys(TRANSFORM_REQUEST_PARSERS) as TransformRequestField[],
+);
 
 export class ValidationError extends Error {
   constructor(message: string) {
@@ -23,9 +32,16 @@ export class ValidationError extends Error {
 export function validateTransformRequest(body: unknown): TransformRequest {
   const record = requireTransformRequestRecord(body);
   assertAllowedFields(record);
-  const url = parseValidatedUrl(record[URL_FIELD]);
 
-  return { url };
+  return parseTransformRequestRecord(record);
+}
+
+function parseTransformRequestRecord(
+  record: TransformRequestRecord,
+): TransformRequest {
+  return {
+    url: TRANSFORM_REQUEST_PARSERS.url(record.url),
+  };
 }
 
 function requireTransformRequestRecord(body: unknown): TransformRequestRecord {
@@ -45,8 +61,8 @@ function assertAllowedFields(record: TransformRequestRecord): void {
   }
 }
 
-function isAllowedField(key: string): key is keyof TransformRequest {
-  return ALLOWED_FIELDS.has(key);
+function isAllowedField(key: string): key is TransformRequestField {
+  return ALLOWED_FIELDS.has(key as TransformRequestField);
 }
 
 function parseValidatedUrl(value: unknown): string {

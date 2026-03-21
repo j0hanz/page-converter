@@ -25,11 +25,18 @@ import { MarkdownErrorBoundary } from "@/components/error";
 import { MarkdownSkeleton } from "@/components/loading";
 
 const MarkdownPreview = lazy(() => import("@/components/markdown-preview"));
-const ABOUT_TAB_LABELS = ["Overview", "How It Works"] as const;
 
 interface AboutDialogProps {
   markdown: string;
   howItWorksMarkdown: string;
+}
+
+type AboutTabId = "overview" | "how-it-works";
+
+interface AboutTabDefinition {
+  content: string;
+  id: AboutTabId;
+  label: string;
 }
 
 const ABOUT_ICON_SX = { fontSize: { xs: "1.25rem", sm: "1.5rem" } } as const;
@@ -55,10 +62,18 @@ function TabPanel({ children, panelId, tabId, visible }: TabPanelProps) {
   );
 }
 
-function readTabA11yProps(index: number) {
+function readTabId(tabId: AboutTabId): string {
+  return `about-tab-${tabId}`;
+}
+
+function readTabPanelId(tabId: AboutTabId): string {
+  return `about-tabpanel-${tabId}`;
+}
+
+function readTabA11yProps(tabId: AboutTabId) {
   return {
-    id: `about-tab-${index}`,
-    "aria-controls": `about-tabpanel-${index}`,
+    id: readTabId(tabId),
+    "aria-controls": readTabPanelId(tabId),
   };
 }
 
@@ -72,17 +87,31 @@ function MarkdownTabPanel({ children }: { children: string }) {
   );
 }
 
+function createAboutTabs(
+  markdown: string,
+  howItWorksMarkdown: string,
+): readonly AboutTabDefinition[] {
+  return [
+    { id: "overview", label: "Overview", content: markdown },
+    {
+      id: "how-it-works",
+      label: "How It Works",
+      content: howItWorksMarkdown,
+    },
+  ] as const;
+}
+
 export default function AboutDialog({
   markdown,
   howItWorksMarkdown,
 }: AboutDialogProps) {
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState<AboutTabId>("overview");
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
-  const tabPanels = [markdown, howItWorksMarkdown] as const;
+  const tabs = createAboutTabs(markdown, howItWorksMarkdown);
 
-  function handleTabChange(_event: SyntheticEvent, nextTab: number) {
+  function handleTabChange(_event: SyntheticEvent, nextTab: AboutTabId) {
     setTab(nextTab);
   }
 
@@ -116,20 +145,25 @@ export default function AboutDialog({
             variant="fullWidth"
             aria-label="About dialog tabs"
           >
-            {ABOUT_TAB_LABELS.map((label, index) => (
-              <Tab key={label} label={label} {...readTabA11yProps(index)} />
+            {tabs.map((tabDefinition) => (
+              <Tab
+                key={tabDefinition.id}
+                value={tabDefinition.id}
+                label={tabDefinition.label}
+                {...readTabA11yProps(tabDefinition.id)}
+              />
             ))}
           </Tabs>
         </Box>
         <DialogContent dividers>
-          {tabPanels.map((content, index) => (
+          {tabs.map((tabDefinition) => (
             <TabPanel
-              key={ABOUT_TAB_LABELS[index]}
-              panelId={`about-tabpanel-${index}`}
-              tabId={`about-tab-${index}`}
-              visible={tab === index}
+              key={tabDefinition.id}
+              panelId={readTabPanelId(tabDefinition.id)}
+              tabId={readTabId(tabDefinition.id)}
+              visible={tab === tabDefinition.id}
             >
-              <MarkdownTabPanel>{content}</MarkdownTabPanel>
+              <MarkdownTabPanel>{tabDefinition.content}</MarkdownTabPanel>
             </TabPanel>
           ))}
         </DialogContent>

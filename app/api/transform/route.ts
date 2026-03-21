@@ -12,6 +12,7 @@ import {
   type TransformResponse,
   type TransformError,
   type TransformErrorCode,
+  type TransformErrorResponse,
 } from "@/lib/api";
 import type { Progress } from "@modelcontextprotocol/sdk/types.js";
 
@@ -39,6 +40,15 @@ const REQUEST_BODY_TOO_LARGE_MESSAGE = "Request body too large.";
 interface StreamGuard {
   close: () => void;
   write: (event: StreamEvent) => void;
+}
+
+interface ProgressBridge {
+  attachStreamGuard: (streamGuard: StreamGuard) => void;
+  handleProgress: (progress: Progress) => void;
+  hasProgress: () => boolean;
+  readFirstOutcome: (
+    responsePromise: Promise<TransformResponse>,
+  ) => Promise<FirstTransformOutcome>;
 }
 
 type FirstTransformOutcome =
@@ -136,7 +146,6 @@ function createStreamGuard(
 
 function createNdjsonResponseStream(
   request: Request,
-  initialProgress: Progress[],
   responsePromise: Promise<TransformResponse>,
   onStart: (streamGuard: StreamGuard) => void,
 ): ReadableStream<Uint8Array> {
@@ -150,10 +159,6 @@ function createNdjsonResponseStream(
       try {
         if (request.signal.aborted) {
           return;
-        }
-
-        for (const progress of initialProgress) {
-          writeProgressEvent(streamGuard, progress);
         }
 
         const response = await responsePromise;
@@ -212,6 +217,63 @@ async function readFirstTransformOutcome(
   ]);
 }
 
+function createProgressBridge(): ProgressBridge {
+  const bufferedProgress: Progress[] = [];
+  const { promise: firstProgressPromise, resolve: resolveFirstProgress } =
+    createFirstProgressPromise();
+  let sawProgress = false;
+  let liveStreamGuard: StreamGuard | null = null;
+
+  function markProgressSeen(): void {
+    if (!sawProgress) {
+      sawProgress = true;
+      resolveFirstProgress();
+    }
+  }
+
+  return {
+    attachStreamGuard(streamGuard) {
+      liveStreamGuard = streamGuard;
+
+      for (const progress of bufferedProgress) {
+        writeProgressEvent(streamGuard, progress);
+      }
+
+      bufferedProgress.length = 0;
+    },
+    handleProgress(progress) {
+      markProgressSeen();
+
+      if (liveStreamGuard) {
+        writeProgressEvent(liveStreamGuard, progress);
+        return;
+      }
+
+      bufferedProgress.push(progress);
+    },
+    hasProgress() {
+      return sawProgress;
+    },
+    readFirstOutcome(responsePromise) {
+      return readFirstTransformOutcome(responsePromise, firstProgressPromise);
+    },
+  };
+}
+
+function shouldReturnImmediateErrorResponse(
+  firstOutcome: FirstTransformOutcome,
+  progressBridge: ProgressBridge,
+): firstOutcome is {
+  type: "response";
+  response: TransformErrorResponse;
+} {
+  return (
+    firstOutcome.type === "response" &&
+    !progressBridge.hasProgress() &&
+    !firstOutcome.response.ok
+  );
+}
+
 export async function POST(request: Request): Promise<Response> {
   if (isOversizedRequest(request)) {
     return createValidationErrorResponse(REQUEST_BODY_TOO_LARGE_MESSAGE);
@@ -219,49 +281,23 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     const validated = await parseTransformRequest(request);
-    const bufferedProgress: Progress[] = [];
-    const { promise: firstProgressPromise, resolve: resolveFirstProgress } =
-      createFirstProgressPromise();
-    let sawProgress = false;
-    let liveStreamGuard: StreamGuard | null = null;
+    const progressBridge = createProgressBridge();
 
     const responsePromise = transformUrl(
       validated,
-      (progress) => {
-        if (!sawProgress) {
-          sawProgress = true;
-          resolveFirstProgress();
-        }
-
-        if (liveStreamGuard) {
-          writeProgressEvent(liveStreamGuard, progress);
-          return;
-        }
-
-        bufferedProgress.push(progress);
-      },
+      progressBridge.handleProgress,
       request.signal,
     );
 
-    const firstOutcome = await readFirstTransformOutcome(
-      responsePromise,
-      firstProgressPromise,
-    );
-    if (
-      firstOutcome.type === "response" &&
-      !sawProgress &&
-      !firstOutcome.response.ok
-    ) {
+    const firstOutcome = await progressBridge.readFirstOutcome(responsePromise);
+    if (shouldReturnImmediateErrorResponse(firstOutcome, progressBridge)) {
       return createErrorResponse(firstOutcome.response.error);
     }
 
     const stream = createNdjsonResponseStream(
       request,
-      bufferedProgress,
       responsePromise,
-      (streamGuard) => {
-        liveStreamGuard = streamGuard;
-      },
+      progressBridge.attachStreamGuard,
     );
 
     return new Response(stream, { headers: NDJSON_HEADERS });

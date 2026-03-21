@@ -7,11 +7,14 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
 
-export interface ErrorStateProps {
+export interface ResettableErrorProps {
   error: Error & { digest?: string };
+  reset: () => void;
+}
+
+export interface ErrorStateProps extends ResettableErrorProps {
   fallbackMessage: string;
   minHeight: string;
-  reset: () => void;
 }
 
 export function ErrorState({

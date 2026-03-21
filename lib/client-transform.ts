@@ -50,18 +50,42 @@ function parseStreamEvent(line: string): StreamEvent {
 function flushBufferedLines(
   chunk: string,
   onEvent: (event: StreamEvent) => void,
-): string {
+): { remainder: string; sawTerminalEvent: boolean } {
   const lines = chunk.split("\n");
   const remainder = lines.pop() ?? "";
+  let sawTerminalEvent = false;
 
   for (const line of lines) {
     const trimmed = line.trim();
     if (trimmed.length > 0) {
-      onEvent(parseStreamEvent(trimmed));
+      sawTerminalEvent =
+        emitParsedStreamEvent(trimmed, onEvent) || sawTerminalEvent;
     }
   }
 
-  return remainder;
+  return { remainder, sawTerminalEvent };
+}
+
+function emitParsedStreamEvent(
+  line: string,
+  onEvent: (event: StreamEvent) => void,
+): boolean {
+  const event = parseStreamEvent(line);
+
+  onEvent(event);
+  return event.type !== "progress";
+}
+
+function emitTrailingStreamEvent(
+  buffer: string,
+  onEvent: (event: StreamEvent) => void,
+): boolean {
+  const trailingContent = buffer.trim();
+  if (trailingContent.length === 0) {
+    return false;
+  }
+
+  return emitParsedStreamEvent(trailingContent, onEvent);
 }
 
 async function readNdjsonStream(
@@ -85,27 +109,16 @@ async function readNdjsonStream(
         break;
       }
 
-      buffer = flushBufferedLines(
+      const flushResult = flushBufferedLines(
         buffer + decoder.decode(value, { stream: true }),
-        (event) => {
-          if (event.type !== "progress") {
-            sawTerminalEvent = true;
-          }
-
-          onEvent(event);
-        },
+        onEvent,
       );
+      buffer = flushResult.remainder;
+      sawTerminalEvent = sawTerminalEvent || flushResult.sawTerminalEvent;
     }
 
-    const trailingContent = buffer.trim();
-    if (trailingContent.length > 0) {
-      const event = parseStreamEvent(trailingContent);
-      if (event.type !== "progress") {
-        sawTerminalEvent = true;
-      }
-
-      onEvent(event);
-    }
+    sawTerminalEvent =
+      emitTrailingStreamEvent(buffer, onEvent) || sawTerminalEvent;
   } catch (error) {
     if (isTimeoutError(error)) {
       return createTimeoutError();

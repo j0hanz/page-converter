@@ -1,14 +1,8 @@
 "use client";
 
-import { ErrorState } from "@/components/error";
+import { ErrorState, type ResettableErrorProps } from "@/components/error";
 
-export default function Error({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+export default function Error({ error, reset }: ResettableErrorProps) {
   return (
     <ErrorState
       error={error}

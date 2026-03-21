@@ -30,6 +30,11 @@ interface State {
   progress: StreamProgressEvent | null;
 }
 
+interface RequestSession {
+  abortController: AbortController;
+  requestId: number;
+}
+
 type Action =
   | { type: "submit" }
   | { type: "progress"; event: StreamProgressEvent }
@@ -79,7 +84,7 @@ export default function HomeClient() {
     dispatch({ type: "dismiss_error" });
   }
 
-  function invalidateActiveRequest() {
+  function invalidateActiveRequest(): void {
     requestIdRef.current += 1;
     const abortController = abortControllerRef.current;
 
@@ -87,11 +92,7 @@ export default function HomeClient() {
     abortController?.abort();
   }
 
-  function isActiveRequest(requestId: number): boolean {
-    return requestIdRef.current === requestId;
-  }
-
-  function handleSubmit(url: string) {
+  function createRequestSession(): RequestSession {
     invalidateActiveRequest();
 
     const requestId = requestIdRef.current + 1;
@@ -99,48 +100,71 @@ export default function HomeClient() {
 
     requestIdRef.current = requestId;
     abortControllerRef.current = abortController;
+
+    return { abortController, requestId };
+  }
+
+  function isActiveRequest(session: RequestSession): boolean {
+    return requestIdRef.current === session.requestId;
+  }
+
+  function dispatchIfRequestActive(
+    session: RequestSession,
+    action: Exclude<Action, { type: "submit" | "dismiss_error" }>,
+  ): void {
+    if (isActiveRequest(session)) {
+      dispatch(action);
+    }
+  }
+
+  function releaseRequestSession(session: RequestSession): void {
+    if (
+      isActiveRequest(session) &&
+      abortControllerRef.current === session.abortController
+    ) {
+      abortControllerRef.current = null;
+    }
+  }
+
+  function createRequestHandlers(session: RequestSession) {
+    return {
+      onProgress(event: StreamProgressEvent) {
+        dispatchIfRequestActive(session, { type: "progress", event });
+      },
+      onResult(result: TransformResult) {
+        dispatchIfRequestActive(session, { type: "result", result });
+      },
+      onError(error: TransformError) {
+        dispatchIfRequestActive(session, { type: "error", error });
+      },
+    };
+  }
+
+  function handleSubmit(url: string) {
+    const session = createRequestSession();
     dispatch({ type: "submit" });
 
     void submitTransformRequest(
       url,
-      {
-        onProgress(event) {
-          if (isActiveRequest(requestId)) {
-            dispatch({ type: "progress", event });
-          }
-        },
-        onResult(nextResult) {
-          if (isActiveRequest(requestId)) {
-            dispatch({ type: "result", result: nextResult });
-          }
-        },
-        onError(nextError) {
-          if (isActiveRequest(requestId)) {
-            dispatch({ type: "error", error: nextError });
-          }
-        },
-      },
-      createClientTransformSignal(abortController),
+      createRequestHandlers(session),
+      createClientTransformSignal(session.abortController),
     )
       .catch((error) => {
-        if (!isActiveRequest(requestId) || isAbortError(error)) {
+        if (!isActiveRequest(session) || isAbortError(error)) {
           return;
         }
 
         dispatch({ type: "error", error: mapClientTransformError(error) });
       })
       .finally(() => {
-        if (
-          isActiveRequest(requestId) &&
-          abortControllerRef.current === abortController
-        ) {
-          abortControllerRef.current = null;
-        }
+        releaseRequestSession(session);
       });
   }
 
   useEffect(() => {
-    return () => invalidateActiveRequest();
+    return () => {
+      invalidateActiveRequest();
+    };
   }, []);
 
   return (

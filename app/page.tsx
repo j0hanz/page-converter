@@ -47,16 +47,16 @@ function readPublicMarkdown(fileName: string): Promise<string> {
 }
 
 async function readHomePageMarkdown() {
-  const [markdown, howItWorksMarkdown] = await Promise.all([
+  const [aboutMarkdown, howItWorksMarkdown] = await Promise.all([
     readPublicMarkdown(HOME_MARKDOWN_FILES.about),
     readPublicMarkdown(HOME_MARKDOWN_FILES.howItWorks),
   ]);
 
-  return { markdown, howItWorksMarkdown };
+  return { aboutMarkdown, howItWorksMarkdown };
 }
 
 export default async function Home() {
-  const { markdown, howItWorksMarkdown } = await readHomePageMarkdown();
+  const { aboutMarkdown, howItWorksMarkdown } = await readHomePageMarkdown();
 
   return (
     <Box sx={{ minHeight: "100dvh", py: { xs: 2, sm: 4, md: 6 } }}>
@@ -73,7 +73,7 @@ export default async function Home() {
             </Box>
             <Stack direction="row" spacing={{ xs: 1, sm: 2 }}>
               <AboutDialog
-                markdown={markdown}
+                markdown={aboutMarkdown}
                 howItWorksMarkdown={howItWorksMarkdown}
               />
               <Tooltip title="View on GitHub">

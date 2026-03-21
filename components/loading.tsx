@@ -5,13 +5,14 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Skeleton from "@mui/material/Skeleton";
-import { MARKDOWN_PANEL_MAX_HEIGHT } from "@/components/result";
 
 export interface TransformProgressProps {
   progress: number;
   total: number;
   message?: string;
 }
+
+export const MARKDOWN_PANEL_MAX_HEIGHT = 500;
 
 function computePercentage(progress: number, total: number): number {
   if (total <= 0) return 0;

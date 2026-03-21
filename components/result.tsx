@@ -19,10 +19,11 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import { useTheme } from "@mui/material/styles";
 import type { TransformResult } from "@/lib/api";
 import { MarkdownErrorBoundary } from "@/components/error";
-import { MarkdownSkeleton } from "@/components/loading";
+import {
+  MARKDOWN_PANEL_MAX_HEIGHT,
+  MarkdownSkeleton,
+} from "@/components/loading";
 import MarkdownPreview from "@/components/markdown-preview";
-
-export const MARKDOWN_PANEL_MAX_HEIGHT = 500;
 
 interface TransformResultProps {
   result: TransformResult;
@@ -56,14 +57,19 @@ function downloadMarkdownFile(title: string | undefined, markdown: string) {
   const blob = new Blob([markdown], { type: "text/markdown" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
+  let attached = false;
 
   try {
     link.href = url;
     link.download = `${title || DEFAULT_DOWNLOAD_FILE_NAME}.md`;
     document.body.appendChild(link);
+    attached = true;
     link.click();
   } finally {
-    document.body.removeChild(link);
+    if (attached) {
+      link.remove();
+    }
+
     URL.revokeObjectURL(url);
   }
 }
