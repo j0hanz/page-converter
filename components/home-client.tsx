@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useReducer, useRef } from "react";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import Alert from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
 import Collapse from "@mui/material/Collapse";
-import TransformForm from "@/components/form";
+import TransformForm, { type TransformFormHandle } from "@/components/form";
 import TransformResultPanel from "@/components/result";
 import { TransformProgress } from "@/components/loading";
 import type {
@@ -75,6 +75,7 @@ export default function HomeClient() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const abortControllerRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef(0);
+  const formRef = useRef<TransformFormHandle>(null);
   const { error, loading, progress, result } = state;
   const showProgress = loading && progress !== null;
   const showError = !loading && error !== null;
@@ -108,12 +109,19 @@ export default function HomeClient() {
     return requestIdRef.current === session.requestId;
   }
 
+  const clearInput = useCallback(() => {
+    formRef.current?.clear();
+  }, []);
+
   function dispatchIfRequestActive(
     session: RequestSession,
     action: Exclude<Action, { type: "submit" | "dismiss_error" }>,
   ): void {
     if (isActiveRequest(session)) {
       dispatch(action);
+      if (action.type === "result" || action.type === "error") {
+        clearInput();
+      }
     }
   }
 
@@ -155,6 +163,7 @@ export default function HomeClient() {
         }
 
         dispatch({ type: "error", error: mapClientTransformError(error) });
+        clearInput();
       })
       .finally(() => {
         releaseRequestSession(session);
@@ -169,7 +178,7 @@ export default function HomeClient() {
 
   return (
     <>
-      <TransformForm loading={loading} onSubmit={handleSubmit} />
+      <TransformForm ref={formRef} loading={loading} onSubmit={handleSubmit} />
 
       <div aria-live="polite">
         <Collapse in={showProgress} unmountOnExit>

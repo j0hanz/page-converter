@@ -1,12 +1,17 @@
 "use client";
 
-import { useId, useRef } from "react";
+import { useId, useImperativeHandle, useRef } from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 
+export interface TransformFormHandle {
+  clear: () => void;
+}
+
 interface TransformFormProps {
+  ref?: React.Ref<TransformFormHandle>;
   loading: boolean;
   onSubmit: (url: string) => void;
 }
@@ -18,11 +23,20 @@ const ACTION_BUTTON_SX = {
 } as const;
 
 export default function TransformForm({
+  ref,
   loading,
   onSubmit,
 }: TransformFormProps) {
   const urlInputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    clear() {
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+    },
+  }));
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
