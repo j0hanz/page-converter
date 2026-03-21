@@ -27,7 +27,7 @@ const theme = responsiveFontSizes(
       light: {
         palette: {
           background: {
-            default: '#ebebeb',
+            default: '#FFFFFF',
             paper: '#ffffffd8',
           },
         },
@@ -35,8 +35,8 @@ const theme = responsiveFontSizes(
       dark: {
         palette: {
           background: {
-            default: '#202020',
-            paper: '#000000d3',
+            default: '#0F1214',
+            paper: '#0f1214b2',
           },
         },
       },
