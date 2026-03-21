@@ -129,7 +129,7 @@ export default function AboutDialog({
         <DialogTitle id="about-dialog-title" sx={visuallyHidden}>
           About
         </DialogTitle>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Box sx={{ borderBottom: 2, borderColor: 'divider' }}>
           <Tabs
             value={tab}
             onChange={handleTabChange}

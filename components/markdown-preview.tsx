@@ -19,18 +19,8 @@ import Markdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-interface MarkdownPreviewProps {
-  children: string;
-}
-
 const remarkPlugins = [remarkGfm];
 const MONO_FONT_FAMILY = "'Geist Mono Variable', monospace";
-type TypographyVariant = ComponentProps<typeof Typography>['variant'];
-type FontWeight = ComponentProps<typeof Typography>['fontWeight'];
-type TextAlignStyle = Pick<CSSProperties, 'textAlign'>;
-interface RendererChildrenProps {
-  children?: ReactNode;
-}
 const MARKDOWN_ROOT_SX = {
   '& > :first-of-type': { mt: 0 },
   '& > :last-child': { mb: 0 },
@@ -40,8 +30,7 @@ const BLOCKQUOTE_SX = {
   borderColor: 'divider',
   bgcolor: 'action.selected',
   borderRadius: 1.5,
-  pl: 2,
-  pr: 2,
+  px: 2,
   py: 1,
   my: 2,
   mx: 0,
@@ -72,41 +61,31 @@ const INLINE_CODE_SX = {
 const IMAGE_SX = {
   maxWidth: '100%',
   height: 'auto',
-  my: 1,
+  my: 2,
   borderRadius: 1,
   display: 'block',
   border: 1,
   borderColor: 'divider',
 } as const;
-const LIST_SX = { pl: 3, my: 1 } as const;
 const LINK_SX = {
-  fontWeight: 500,
   textUnderlineOffset: '0.18em',
   textDecorationThickness: '0.08em',
   transition: 'all 0.2s ease',
   '&:hover': { textDecorationThickness: '0.12em' },
 } as const;
-const PARAGRAPH_SX = {
-  mb: { xs: 1, sm: 1.5 },
-  lineHeight: 1.75,
+const HEADING_BORDER_SX = {
+  my: 1.5,
+  pb: 0.5,
+  borderBottom: 2,
+  borderColor: 'divider',
 } as const;
-const TABLE_CONTAINER_SX = { my: 2, overflowX: 'auto' } as const;
-const TABLE_CELL_SX = { verticalAlign: 'top' } as const;
-
-interface TableCellRendererProps extends RendererChildrenProps {
-  style?: TextAlignStyle;
-}
-
-function readTextAlign(style?: TextAlignStyle) {
-  return style?.textAlign;
-}
 
 function createHeadingRenderer(
-  variant: TypographyVariant,
+  variant: ComponentProps<typeof Typography>['variant'],
   marginTop: number,
   props: Partial<ComponentProps<typeof Typography>> = {}
 ) {
-  return function HeadingRenderer({ children }: RendererChildrenProps) {
+  return function HeadingRenderer({ children }: { children?: ReactNode }) {
     return (
       <Typography
         variant={variant}
@@ -120,17 +99,22 @@ function createHeadingRenderer(
   };
 }
 
-function createTableCellRenderer(fontWeight?: FontWeight) {
+function createTableCellRenderer(
+  fontWeight?: ComponentProps<typeof Typography>['fontWeight']
+) {
   return function TableCellRenderer({
     children,
     style,
-  }: TableCellRendererProps) {
+  }: {
+    children?: ReactNode;
+    style?: Pick<CSSProperties, 'textAlign'>;
+  }) {
     return (
       <TableCell
         sx={{
-          ...TABLE_CELL_SX,
-          ...(fontWeight ? { fontWeight } : {}),
-          textAlign: readTextAlign(style),
+          verticalAlign: 'top',
+          ...(fontWeight && { fontWeight }),
+          textAlign: style?.textAlign,
         }}
       >
         {children}
@@ -140,9 +124,9 @@ function createTableCellRenderer(fontWeight?: FontWeight) {
 }
 
 function createListRenderer(component: 'ul' | 'ol') {
-  return function ListRenderer({ children }: RendererChildrenProps) {
+  return function ListRenderer({ children }: { children?: ReactNode }) {
     return (
-      <Box component={component} sx={LIST_SX}>
+      <Box component={component} sx={{ pl: 3, my: 2 }}>
         {children}
       </Box>
     );
@@ -150,18 +134,14 @@ function createListRenderer(component: 'ul' | 'ol') {
 }
 
 const components: Components = {
-  h1: createHeadingRenderer('h4', 2, {
-    sx: { mt: 2, borderBottom: 1, borderColor: 'divider', pb: 0.5 },
-  }),
-  h2: createHeadingRenderer('h5', 2, {
-    sx: { mt: 2, borderBottom: 1, borderColor: 'divider', pb: 0.5 },
-  }),
+  h1: createHeadingRenderer('h4', 2, { sx: HEADING_BORDER_SX }),
+  h2: createHeadingRenderer('h5', 2, { sx: HEADING_BORDER_SX }),
   h3: createHeadingRenderer('h6', 1.5),
   h4: createHeadingRenderer('subtitle1', 1, { fontWeight: 'bold' }),
   h5: createHeadingRenderer('subtitle2', 0, { fontWeight: 'bold' }),
   h6: createHeadingRenderer('subtitle2', 0, { color: 'text.secondary' }),
   p: ({ children }) => (
-    <Typography variant="body1" sx={PARAGRAPH_SX}>
+    <Typography variant="body1" sx={{ mb: { xs: 1, sm: 1.5 } }}>
       {children}
     </Typography>
   ),
@@ -221,7 +201,7 @@ const components: Components = {
     <TableContainer
       component={Paper}
       variant="outlined"
-      sx={TABLE_CONTAINER_SX}
+      sx={{ my: 2, overflowX: 'auto' }}
     >
       <Table size="small">{children}</Table>
     </TableContainer>
@@ -246,17 +226,13 @@ const components: Components = {
   ul: createListRenderer('ul'),
   ol: createListRenderer('ol'),
   li: ({ children }) => (
-    <Typography
-      component="li"
-      variant="body1"
-      sx={{ mb: 0.5, lineHeight: 1.75 }}
-    >
+    <Typography component="li" variant="body1" sx={{ mb: { xs: 0.5, sm: 1 } }}>
       {children}
     </Typography>
   ),
 };
 
-export default function MarkdownPreview({ children }: MarkdownPreviewProps) {
+export default function MarkdownPreview({ children }: { children: string }) {
   return (
     <Box component="article" sx={MARKDOWN_ROOT_SX}>
       <Markdown remarkPlugins={remarkPlugins} components={components}>
