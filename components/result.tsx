@@ -113,14 +113,6 @@ function ResultActionButton({
   );
 }
 
-function readCopyStatusColor(copyStatus: CopyStatus): IconButtonColor {
-  return COPY_STATUS_COLOR[copyStatus];
-}
-
-function readCopyStatusMessage(copyStatus: CopyStatus): string | undefined {
-  return copyStatus === 'idle' ? undefined : COPY_STATUS_MESSAGE[copyStatus];
-}
-
 function PreviewContent({ markdown }: PreviewContentProps) {
   const theme = useTheme();
   const [previewMarkdown, setPreviewMarkdown] = useState<string | null>(null);
@@ -239,7 +231,7 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
               ariaLabel="Copy Markdown"
               title="Copy Markdown"
               onClick={handleCopy}
-              color={readCopyStatusColor(copyStatus)}
+              color={COPY_STATUS_COLOR[copyStatus]}
             >
               <ContentCopyIcon fontSize="small" />
             </ResultActionButton>
@@ -270,7 +262,9 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
         open={copyFeedbackOpen}
         autoHideDuration={COPY_FEEDBACK_DELAY_MS}
         onClose={clearCopyFeedback}
-        message={readCopyStatusMessage(copyStatus)}
+        message={
+          copyStatus === 'idle' ? undefined : COPY_STATUS_MESSAGE[copyStatus]
+        }
       />
     </Stack>
   );

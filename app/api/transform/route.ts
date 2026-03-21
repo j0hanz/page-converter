@@ -34,9 +34,6 @@ const NDJSON_HEADERS = {
 } as const;
 
 const MAX_REQUEST_BODY_SIZE = 4096;
-const INVALID_REQUEST_MESSAGE = 'Invalid request.';
-const INVALID_JSON_BODY_MESSAGE = 'Invalid JSON body.';
-const REQUEST_BODY_TOO_LARGE_MESSAGE = 'Request body too large.';
 
 interface StreamGuard {
   close: () => void;
@@ -57,31 +54,21 @@ type FirstTransformOutcome =
   | { type: 'response'; response: TransformResponse };
 
 function readValidationErrorMessage(error: unknown): string {
-  return error instanceof ValidationError
-    ? error.message
-    : INVALID_REQUEST_MESSAGE;
+  return error instanceof ValidationError ? error.message : 'Invalid request.';
 }
 
 async function readRequestBody(request: Request): Promise<unknown> {
   try {
     return await request.json();
   } catch {
-    throw new ValidationError(INVALID_JSON_BODY_MESSAGE);
-  }
-}
-
-function validateRequestBody(body: unknown): TransformRequest {
-  try {
-    return validateTransformRequest(body);
-  } catch (error) {
-    throw new ValidationError(readValidationErrorMessage(error));
+    throw new ValidationError('Invalid JSON body.');
   }
 }
 
 async function parseTransformRequest(
   request: Request
 ): Promise<TransformRequest> {
-  return validateRequestBody(await readRequestBody(request));
+  return validateTransformRequest(await readRequestBody(request));
 }
 
 function isOversizedRequest(request: Request): boolean {
@@ -202,29 +189,10 @@ function writeResultEvent(
   streamGuard.write({ type: 'result', ...response });
 }
 
-function createFirstProgressPromise(): {
-  promise: Promise<void>;
-  resolve: () => void;
-} {
-  return Promise.withResolvers<void>();
-}
-
-async function readFirstTransformOutcome(
-  responsePromise: Promise<TransformResponse>,
-  firstProgressPromise: Promise<void>
-): Promise<FirstTransformOutcome> {
-  return Promise.race([
-    responsePromise.then(
-      (response) => ({ type: 'response', response }) as const
-    ),
-    firstProgressPromise.then(() => ({ type: 'progress' }) as const),
-  ]);
-}
-
 function createProgressBridge(): ProgressBridge {
   const bufferedProgress: Progress[] = [];
   const { promise: firstProgressPromise, resolve: resolveFirstProgress } =
-    createFirstProgressPromise();
+    Promise.withResolvers<void>();
   let sawProgress = false;
   let liveStreamGuard: StreamGuard | null = null;
 
@@ -259,7 +227,12 @@ function createProgressBridge(): ProgressBridge {
       return sawProgress;
     },
     readFirstOutcome(responsePromise) {
-      return readFirstTransformOutcome(responsePromise, firstProgressPromise);
+      return Promise.race([
+        responsePromise.then(
+          (response) => ({ type: 'response', response }) as const
+        ),
+        firstProgressPromise.then(() => ({ type: 'progress' }) as const),
+      ]);
     },
   };
 }
@@ -280,7 +253,7 @@ function shouldReturnImmediateErrorResponse(
 
 export async function POST(request: Request): Promise<Response> {
   if (isOversizedRequest(request)) {
-    return createValidationErrorResponse(REQUEST_BODY_TOO_LARGE_MESSAGE);
+    return createValidationErrorResponse('Request body too large.');
   }
 
   try {

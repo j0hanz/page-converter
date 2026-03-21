@@ -199,10 +199,6 @@ export function getFetchUrlTransportConfig(
 const MAX_STDERR_BUFFER_LENGTH = 4000;
 const MCP_MAX_TOTAL_TIMEOUT = 120_000;
 const HTTP_ERROR_CODE_PREFIX = 'HTTP_';
-const UNKNOWN_MCP_ERROR_MESSAGE = 'Unknown MCP error';
-const EMPTY_MCP_RESPONSE_MESSAGE = 'Empty MCP response';
-const INVALID_MCP_RESPONSE_MESSAGE = 'Failed to parse MCP response as JSON';
-const INVALID_MCP_ERROR_RESPONSE_MESSAGE = 'Failed to parse MCP error response';
 
 const KNOWN_MCP_ERRORS = {
   VALIDATION_ERROR: { code: 'VALIDATION_ERROR', retryable: false },
@@ -411,20 +407,20 @@ function createPayloadParseFailure(
   if (isError) {
     return {
       ok: false,
-      error: createInternalError(INVALID_MCP_ERROR_RESPONSE_MESSAGE),
+      error: createInternalError('Failed to parse MCP error response'),
     };
   }
 
   if (kind === 'invalid_text') {
     return {
       ok: false,
-      error: createInternalError(INVALID_MCP_RESPONSE_MESSAGE),
+      error: createInternalError('Failed to parse MCP response as JSON'),
     };
   }
 
   return {
     ok: false,
-    error: createInternalError(EMPTY_MCP_RESPONSE_MESSAGE),
+    error: createInternalError('Empty MCP response'),
   };
 }
 
@@ -444,7 +440,7 @@ function unwrapRecord(record: JsonRecord, key: string): JsonRecord {
 function readMcpErrorMessage(errorPayload: JsonRecord): string {
   return (
     readFirstString(errorPayload.message, errorPayload.error) ??
-    UNKNOWN_MCP_ERROR_MESSAGE
+    'Unknown MCP error'
   );
 }
 

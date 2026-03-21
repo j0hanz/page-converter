@@ -67,10 +67,6 @@ export type StreamEvent = StreamProgressEvent | StreamResultEvent;
 
 export const NDJSON_CONTENT_TYPE = 'application/x-ndjson';
 export const STREAM_PROGRESS_TOTAL = 8;
-const NETWORK_ERROR_MESSAGE = 'Network error. Please try again.';
-const UNEXPECTED_RESPONSE_MESSAGE = 'Unexpected response format.';
-const EMPTY_STREAM_MESSAGE = '';
-
 type TransformErrorOptions = Omit<TransformError, 'code' | 'message'>;
 
 type JsonRecord = Record<string, unknown>;
@@ -99,19 +95,21 @@ export function createInternalError(
 }
 
 export function createNetworkError(): TransformError {
-  return createInternalError(NETWORK_ERROR_MESSAGE, true);
+  return createInternalError('Network error. Please try again.', true);
 }
 
-const TIMEOUT_ERROR_MESSAGE = 'Request timed out. Please try again.';
-
 export function createTimeoutError(): TransformError {
-  return createTransformError('ABORTED', TIMEOUT_ERROR_MESSAGE, {
-    retryable: true,
-  });
+  return createTransformError(
+    'ABORTED',
+    'Request timed out. Please try again.',
+    {
+      retryable: true,
+    }
+  );
 }
 
 export function createUnexpectedResponseError(): TransformError {
-  return createInternalError(UNEXPECTED_RESPONSE_MESSAGE, false);
+  return createInternalError('Unexpected response format.', false);
 }
 
 function resolveProgressTotal(
@@ -130,7 +128,7 @@ export function createStreamProgressEvent(
     type: 'progress',
     progress,
     total: resolveProgressTotal(total),
-    message: message ?? EMPTY_STREAM_MESSAGE,
+    message: message ?? '',
   };
 }
 

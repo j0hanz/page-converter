@@ -14,8 +14,6 @@ const RETRYABLE_TRANSPORT_ERROR_CODES = new Set<number>([
   ErrorCode.ConnectionClosed,
 ]);
 const MAX_TRANSFORM_ATTEMPTS = 2;
-const FALLBACK_INTERNAL_ERROR_MESSAGE = 'Transform failed to execute.';
-const UNKNOWN_ERROR_MESSAGE = 'Unknown error';
 
 async function executeTransform(
   request: TransformRequest,
@@ -49,7 +47,10 @@ export async function transformUrl(
     }
   }
 
-  return createInternalErrorResponse(FALLBACK_INTERNAL_ERROR_MESSAGE);
+  return {
+    ok: false,
+    error: createInternalError('Transform failed to execute.'),
+  };
 }
 
 function isRetryableErrorResponse(
@@ -67,19 +68,8 @@ function shouldRetryResponse(
   return isRetryableErrorResponse(response) && attempt < MAX_TRANSFORM_ATTEMPTS;
 }
 
-function createInternalErrorResponse(message: string): TransformErrorResponse {
-  return {
-    ok: false,
-    error: createInternalError(message),
-  };
-}
-
-function isRetryableTransportError(code: number): boolean {
-  return RETRYABLE_TRANSPORT_ERROR_CODES.has(code);
-}
-
 function readErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : UNKNOWN_ERROR_MESSAGE;
+  return error instanceof Error ? error.message : 'Unknown error';
 }
 
 function isAbortLikeError(error: unknown): boolean {
@@ -108,7 +98,7 @@ function mapTransportError(error: unknown): TransformError {
   if (error instanceof McpError) {
     return createInternalError(
       error.message,
-      isRetryableTransportError(error.code)
+      RETRYABLE_TRANSPORT_ERROR_CODES.has(error.code)
     );
   }
 

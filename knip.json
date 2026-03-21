@@ -7,5 +7,5 @@
   "next": true,
   "vitest": true,
   "eslint": true,
-  "ignoreDependencies": ["@j0hanz/fetch-url-mcp"]
+  "ignoreDependencies": ["@j0hanz/fetch-url-mcp", "@mui/utils"]
 }

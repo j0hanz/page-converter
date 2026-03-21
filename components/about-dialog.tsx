@@ -89,20 +89,6 @@ function MarkdownTabPanel({ children }: { children: string }) {
   );
 }
 
-function createAboutTabs(
-  markdown: string,
-  howItWorksMarkdown: string
-): readonly AboutTabDefinition[] {
-  return [
-    { id: 'overview', label: 'Overview', content: markdown },
-    {
-      id: 'how-it-works',
-      label: 'How It Works',
-      content: howItWorksMarkdown,
-    },
-  ] as const;
-}
-
 export default function AboutDialog({
   markdown,
   howItWorksMarkdown,
@@ -111,7 +97,10 @@ export default function AboutDialog({
   const [tab, setTab] = useState<AboutTabId>('overview');
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
-  const tabs = createAboutTabs(markdown, howItWorksMarkdown);
+  const tabs: readonly AboutTabDefinition[] = [
+    { id: 'overview', label: 'Overview', content: markdown },
+    { id: 'how-it-works', label: 'How It Works', content: howItWorksMarkdown },
+  ];
 
   function handleTabChange(_event: SyntheticEvent, nextTab: AboutTabId) {
     setTab(nextTab);

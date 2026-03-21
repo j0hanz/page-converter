@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  createClientTransformSignal,
   mapClientTransformError,
   submitTransformRequest,
 } from '@/lib/client-transform';
@@ -31,7 +30,7 @@ describe('client-transform', () => {
     await submitTransformRequest(
       `  ${VALID_URL}  `,
       { onError, onProgress: vi.fn(), onResult: vi.fn() },
-      createClientTransformSignal(new AbortController())
+      new AbortController().signal
     );
 
     const [requestUrl, requestInit] =
@@ -74,7 +73,7 @@ describe('client-transform', () => {
     await submitTransformRequest(
       VALID_URL,
       { onError: vi.fn(), onProgress, onResult },
-      createClientTransformSignal(new AbortController())
+      new AbortController().signal
     );
 
     expect(onProgress).toHaveBeenCalledWith(
@@ -98,7 +97,7 @@ describe('client-transform', () => {
     await submitTransformRequest(
       VALID_URL,
       { onError, onProgress: vi.fn(), onResult: vi.fn() },
-      createClientTransformSignal(new AbortController())
+      new AbortController().signal
     );
 
     expect(onError).toHaveBeenCalledWith(

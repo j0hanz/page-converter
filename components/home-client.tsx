@@ -19,7 +19,6 @@ import {
   normalizeStreamProgressEvent,
 } from '@/lib/api';
 import {
-  createClientTransformSignal,
   isAbortError,
   mapClientTransformError,
   submitTransformRequest,
@@ -157,7 +156,7 @@ export default function HomeClient() {
     void submitTransformRequest(
       url,
       createRequestHandlers(session),
-      createClientTransformSignal(session.abortController)
+      session.abortController.signal
     )
       .catch((error) => {
         if (!isActiveRequest(session) || isAbortError(error)) {

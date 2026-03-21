@@ -15,7 +15,6 @@ import {
   isTransformErrorResponse,
   NDJSON_CONTENT_TYPE,
 } from '@/lib/api';
-import type { TransformRequest } from '@/lib/validate';
 
 interface ClientTransformHandlers {
   onError: (error: TransformError) => void;
@@ -25,10 +24,6 @@ interface ClientTransformHandlers {
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' } as const;
 const TRANSFORM_ENDPOINT = '/api/transform';
-
-function createRequestBody(url: string): TransformRequest {
-  return { url: url.trim() };
-}
 
 function isNdjsonResponse(response: Response): boolean {
   return (response.headers.get('Content-Type') ?? '').includes(
@@ -206,17 +201,11 @@ export async function submitTransformRequest(
   const response = await fetch(TRANSFORM_ENDPOINT, {
     method: 'POST',
     headers: JSON_HEADERS,
-    body: JSON.stringify(createRequestBody(url)),
+    body: JSON.stringify({ url: url.trim() }),
     signal,
   });
 
   await handleTransformResponse(response, signal, handlers);
-}
-
-export function createClientTransformSignal(
-  abortController: AbortController
-): AbortSignal {
-  return abortController.signal;
 }
 
 export function mapClientTransformError(error: unknown): TransformError {
