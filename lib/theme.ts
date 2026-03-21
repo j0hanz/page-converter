@@ -27,8 +27,8 @@ const theme = responsiveFontSizes(
       light: {
         palette: {
           background: {
-            default: '#FFFFFF',
-            paper: '#ffffffd8',
+            default: '#ffffff',
+            paper: '#ffffff',
           },
         },
       },
@@ -36,7 +36,7 @@ const theme = responsiveFontSizes(
         palette: {
           background: {
             default: '#0F1214',
-            paper: '#0f1214d3',
+            paper: '#0b0f13',
           },
         },
       },
@@ -48,6 +48,17 @@ const theme = responsiveFontSizes(
       MuiAlert: {
         defaultProps: {
           variant: 'outlined',
+        },
+      },
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            '.dark &': {
+              background: 'rgba(85, 85, 85, 0.31)',
+              backdropFilter: 'blur(17.5px)',
+              WebkitBackdropFilter: 'blur(17.5px)',
+            },
+          },
         },
       },
       MuiPaper: {
