@@ -127,7 +127,11 @@ function createStreamGuard(
 
     closed = true;
     request.signal.removeEventListener("abort", close);
-    controller.close();
+    try {
+      controller.close();
+    } catch {
+      // Ignore errors if stream is already closed by client abort
+    }
   };
 
   request.signal.addEventListener("abort", close, { once: true });
@@ -139,7 +143,11 @@ function createStreamGuard(
         return;
       }
 
-      controller.enqueue(encodeNdjsonEvent(encoder, event));
+      try {
+        controller.enqueue(encodeNdjsonEvent(encoder, event));
+      } catch {
+        // Ignore errors if client aborted the stream
+      }
     },
   };
 }
@@ -197,12 +205,7 @@ function createFirstProgressPromise(): {
   promise: Promise<void>;
   resolve: () => void;
 } {
-  let resolve = () => {};
-  const promise = new Promise<void>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-
-  return { promise, resolve };
+  return Promise.withResolvers<void>();
 }
 
 async function readFirstTransformOutcome(

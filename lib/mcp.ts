@@ -4,7 +4,7 @@ import type {
   CallToolResult,
   Progress,
 } from "@modelcontextprotocol/sdk/types.js";
-import { McpError } from "@modelcontextprotocol/sdk/types.js";
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import path from "node:path";
 import type {
   TransformError,
@@ -58,7 +58,12 @@ function createTransport(): StdioClientTransport {
 }
 
 function resetInstance() {
+  const instance = globalForMcp.__mcpInstance;
   globalForMcp.__mcpInstance = undefined;
+
+  if (instance) {
+    instance.transport.close().catch(() => {});
+  }
 }
 
 function createClient(): Client {
@@ -136,9 +141,28 @@ export async function callFetchUrl(
 
     return result as CallToolResult;
   } catch (error) {
-    resetInstance();
+    if (shouldResetInstance(error)) {
+      resetInstance();
+    }
     throw createTransportError(error);
   }
+}
+
+function shouldResetInstance(error: unknown): boolean {
+  if (error instanceof Error && error.name === "AbortError") {
+    return false;
+  }
+
+  if (error instanceof McpError) {
+    // Only reset for transport/connection level errors.
+    // InvalidParams, MethodNotFound, RequestTimeout etc. do not mean the transport is dead.
+    return (
+      error.code === (ErrorCode.ConnectionClosed as number) ||
+      error.code === (ErrorCode.InternalError as number)
+    );
+  }
+
+  return true;
 }
 
 export function getFetchUrlTransportConfig(

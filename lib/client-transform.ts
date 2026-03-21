@@ -23,7 +23,6 @@ interface ClientTransformHandlers {
   onResult: (result: TransformResult) => void;
 }
 
-const FETCH_TIMEOUT_MS = 60_000;
 const JSON_HEADERS = { "Content-Type": "application/json" } as const;
 const TRANSFORM_ENDPOINT = "/api/transform";
 
@@ -217,10 +216,7 @@ export async function submitTransformRequest(
 export function createClientTransformSignal(
   abortController: AbortController,
 ): AbortSignal {
-  return AbortSignal.any([
-    abortController.signal,
-    AbortSignal.timeout(FETCH_TIMEOUT_MS),
-  ]);
+  return abortController.signal;
 }
 
 export function mapClientTransformError(error: unknown): TransformError {
