@@ -56,7 +56,7 @@ const theme = responsiveFontSizes(
         styleOverrides: {
           paper: {
             '.dark &': {
-              background: 'rgba(85, 85, 85, 0.31)',
+              background: 'rgba(63, 63, 63, 0.48)',
               backdropFilter: 'blur(17.5px)',
               WebkitBackdropFilter: 'blur(17.5px)',
             },
