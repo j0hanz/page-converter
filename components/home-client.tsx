@@ -131,12 +131,11 @@ export function createRequestController({
     beginRequest() {
       stopActiveRequest();
 
-      const session = {
+      const session: RequestSession = {
         abortController: new AbortController(),
-        requestId: requestId + 1,
+        requestId,
       };
 
-      requestId = session.requestId;
       abortController = session.abortController;
 
       return session;

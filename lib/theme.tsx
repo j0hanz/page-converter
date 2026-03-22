@@ -1,6 +1,6 @@
 'use client';
 
-import { createElement, Fragment, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -96,20 +96,16 @@ const theme = responsiveFontSizes(
 );
 
 export function AppThemeProviders({ children }: { children: ReactNode }) {
-  return createElement(
-    Fragment,
-    null,
-    createElement(InitColorSchemeScript, { attribute: 'class' }),
-    createElement(
-      AppRouterCacheProvider,
-      null,
-      createElement(
-        ThemeProvider,
-        { theme },
-        createElement(CssBaseline),
-        children
-      )
-    )
+  return (
+    <>
+      <InitColorSchemeScript attribute="class" />
+      <AppRouterCacheProvider>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          {children}
+        </ThemeProvider>
+      </AppRouterCacheProvider>
+    </>
   );
 }
 
