@@ -51,7 +51,7 @@ export function StatusShell({
           variant="body2"
           color="text.secondary"
           textAlign="center"
-          sx={{ maxWidth: 400 }}
+          sx={{ maxWidth: '45ch' }}
         >
           {message}
         </Typography>

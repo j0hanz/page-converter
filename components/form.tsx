@@ -19,8 +19,7 @@ interface TransformFormProps {
 
 const URL_INPUT_SX = { flexGrow: 1, flex: { md: '2 1 0' } } as const;
 const ACTION_BUTTON_SX = {
-  maxWidth: { sm: 125 },
-  flex: { md: '1 1 0' },
+  flex: { sm: '0 1 auto', md: '1 1 0' },
 } as const;
 
 export default function TransformForm({

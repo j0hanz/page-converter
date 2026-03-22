@@ -20,10 +20,7 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 
 import { MarkdownErrorBoundary } from '@/components/error';
-import {
-  MARKDOWN_PANEL_MAX_HEIGHT,
-  MarkdownSkeleton,
-} from '@/components/loading';
+import { MarkdownSkeleton } from '@/components/loading';
 import MarkdownPreview from '@/components/markdown-preview';
 import type { TransformResult } from '@/lib/api';
 import { MONO_FONT_FAMILY } from '@/lib/theme';
@@ -44,7 +41,7 @@ const TOGGLE_BUTTON_SX = { border: 0, minWidth: 50 } as const;
 const MARKDOWN_PANEL_SX = {
   p: { xs: 2, sm: 2.5 },
   flex: 1,
-  maxHeight: { xs: 350, sm: 450, md: MARKDOWN_PANEL_MAX_HEIGHT },
+  maxHeight: { xs: '50dvh', sm: '55dvh', md: '60dvh' },
   overflow: 'auto',
   border: '1px solid',
   borderColor: 'divider',

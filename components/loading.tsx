@@ -12,8 +12,6 @@ export interface TransformProgressProps {
   message?: string;
 }
 
-export const MARKDOWN_PANEL_MAX_HEIGHT = 500;
-
 function computePercentage(progress: number, total: number): number {
   if (total <= 0) return 0;
 
@@ -49,7 +47,11 @@ export function TransformProgress({
   );
 }
 
-const SKELETON_PADDING_OFFSET = 25;
+const SKELETON_MAX_HEIGHT_SX = {
+  xs: '45dvh',
+  sm: '50dvh',
+  md: '55dvh',
+} as const;
 const INTRO_LINE_WIDTHS = ['100%', '100%', '75%'] as const;
 const BODY_LINE_WIDTHS = ['100%', '90%', '100%', '60%'] as const;
 const OUTRO_LINE_WIDTHS = ['100%', '85%', '50%'] as const;
@@ -144,7 +146,7 @@ export function MarkdownSkeleton() {
       role="status"
       aria-label="Markdown preview loading"
       spacing={1}
-      sx={{ height: MARKDOWN_PANEL_MAX_HEIGHT - SKELETON_PADDING_OFFSET }}
+      sx={{ maxHeight: SKELETON_MAX_HEIGHT_SX }}
     >
       {MARKDOWN_SKELETON_LAYOUT.map(renderMarkdownSkeletonItem)}
     </Stack>

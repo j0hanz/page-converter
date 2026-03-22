@@ -82,12 +82,7 @@ export default async function Home() {
           <Stack direction="row" gap={1.5} alignItems="center">
             <LogoIcon
               sx={{
-                fontSize: {
-                  xs: '1.5rem',
-                  sm: '1.7rem',
-                  md: '1.8rem',
-                  lg: '2rem',
-                },
+                fontSize: { xs: '1.5rem', sm: '2rem' },
               }}
             />
             <Typography variant="h4" component="h1">
