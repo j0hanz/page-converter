@@ -1,9 +1,15 @@
 'use client';
 
-import type { ComponentProps, CSSProperties, ReactNode } from 'react';
+import type {
+  ComponentProps,
+  CSSProperties,
+  ElementType,
+  ReactNode,
+} from 'react';
 
 import Box from '@mui/material/Box';
 import Checkbox from '@mui/material/Checkbox';
+import Chip from '@mui/material/Chip';
 import Divider from '@mui/material/Divider';
 import Link from '@mui/material/Link';
 import Paper from '@mui/material/Paper';
@@ -64,7 +70,21 @@ const IMAGE_SX = {
   height: 'auto',
   my: 2,
   display: 'block',
+  border: 1,
   borderColor: 'divider',
+  borderRadius: 1,
+} as const;
+const CODE_BLOCK_WRAPPER_SX = {
+  position: 'relative',
+} as const;
+const LANG_CHIP_SX = {
+  position: 'absolute',
+  top: 8,
+  right: 8,
+  fontFamily: MONO_FONT_FAMILY,
+  height: 20,
+  opacity: 0.7,
+  zIndex: 1,
 } as const;
 const LINK_SX = {
   textUnderlineOffset: '0.18em',
@@ -88,7 +108,7 @@ const HEADING_BORDER_SX = {
 } as const;
 const TABLE_CONTAINER_SX = { my: 2, overflowX: 'auto' } as const;
 const TABLE_ROW_SX = {
-  '&:nth-of-type(odd)': { bgcolor: 'action.hover' },
+  '&:nth-of-type(odd)': { bgcolor: 'action.selected' },
   '&:last-child td, &:last-child th': { border: 0 },
 } as const;
 
@@ -103,6 +123,7 @@ interface TableCellRendererProps extends MarkdownNodeProps {
 interface HeadingRendererOptions {
   bordered?: boolean;
   color?: ComponentProps<typeof Typography>['color'];
+  component?: ElementType;
   fontWeight?: ComponentProps<typeof Typography>['fontWeight'];
 }
 
@@ -111,12 +132,13 @@ function createHeadingRenderer(
   marginTop: number,
   options: HeadingRendererOptions = {}
 ) {
-  const { bordered = false, color, fontWeight } = options;
+  const { bordered = false, color, component, fontWeight } = options;
 
   return function HeadingRenderer({ children }: { children?: ReactNode }) {
     return (
       <Typography
         variant={variant}
+        {...(component && { component })}
         gutterBottom
         color={color}
         fontWeight={fontWeight}
@@ -162,19 +184,34 @@ function createListRenderer(component: 'ul' | 'ol') {
 }
 
 const components: Components = {
-  h1: createHeadingRenderer('h4', 2, { bordered: true }),
-  h2: createHeadingRenderer('h5', 2, { bordered: true }),
-  h3: createHeadingRenderer('h6', 1.5),
-  h4: createHeadingRenderer('subtitle1', 1, { fontWeight: 'bold' }),
-  h5: createHeadingRenderer('subtitle2', 0, { fontWeight: 'bold' }),
-  h6: createHeadingRenderer('subtitle2', 0, { color: 'text.secondary' }),
+  h1: createHeadingRenderer('h4', 2, { bordered: true, component: 'h1' }),
+  h2: createHeadingRenderer('h5', 2, { bordered: true, component: 'h2' }),
+  h3: createHeadingRenderer('h6', 1.5, { component: 'h3' }),
+  h4: createHeadingRenderer('subtitle1', 1, {
+    component: 'h4',
+    fontWeight: 'bold',
+  }),
+  h5: createHeadingRenderer('subtitle2', 0, {
+    component: 'h5',
+    fontWeight: 'bold',
+  }),
+  h6: createHeadingRenderer('subtitle2', 0, {
+    color: 'text.secondary',
+    component: 'h6',
+  }),
   p: ({ children }) => (
     <Typography variant="body1" sx={PARAGRAPH_SX}>
       {children}
     </Typography>
   ),
   a: ({ href, children }) => (
-    <Link href={href} target="_blank" rel="noopener noreferrer" sx={LINK_SX}>
+    <Link
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      underline="hover"
+      sx={LINK_SX}
+    >
       {children}
     </Link>
   ),
@@ -188,10 +225,21 @@ const components: Components = {
       className?.startsWith('language-') ||
       node?.position?.start.line !== node?.position?.end.line;
     if (isBlock) {
+      const language = className?.replace('language-', '');
       return (
-        <Paper variant="outlined" component="pre" sx={BLOCK_CODE_SX}>
-          <code>{children}</code>
-        </Paper>
+        <Box sx={CODE_BLOCK_WRAPPER_SX}>
+          {language && (
+            <Chip
+              label={language}
+              size="small"
+              variant="outlined"
+              sx={LANG_CHIP_SX}
+            />
+          )}
+          <Paper variant="outlined" component="pre" sx={BLOCK_CODE_SX}>
+            <code>{children}</code>
+          </Paper>
+        </Box>
       );
     }
     return (
@@ -206,11 +254,12 @@ const components: Components = {
       {children}
     </Typography>
   ),
-  input: ({ checked, disabled }) => (
+  input: ({ checked }) => (
     <Checkbox
       checked={checked ?? false}
-      disabled={disabled}
       size="small"
+      disableRipple
+      tabIndex={-1}
       sx={CHECKBOX_SX}
     />
   ),
@@ -231,7 +280,9 @@ const components: Components = {
       variant="outlined"
       sx={TABLE_CONTAINER_SX}
     >
-      <Table size="small">{children}</Table>
+      <Table size="small" aria-label="data table">
+        {children}
+      </Table>
     </TableContainer>
   ),
   thead: ({ children }) => (
