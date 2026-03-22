@@ -37,11 +37,11 @@ type ViewMode = 'preview' | 'code';
 
 const COPY_FEEDBACK_DELAY_MS = 2000;
 const DEFAULT_DOWNLOAD_FILE_NAME = 'page';
-const TOGGLE_BUTTON_SX = { border: 0, minWidth: 50 } as const;
+const TOGGLE_BUTTON_SX = { border: 0 } as const;
 const MARKDOWN_PANEL_SX = {
-  p: { xs: 2, sm: 2.5 },
+  p: { xs: 1.5, sm: 2.5 },
   flex: 1,
-  maxHeight: { xs: '50dvh', sm: '55dvh', md: '60dvh' },
+  maxHeight: { xs: '55dvh', sm: '60dvh', md: '65dvh' },
   overflow: 'auto',
   border: '1px solid',
   borderColor: 'divider',

@@ -26,6 +26,7 @@ import { visuallyHidden } from '@mui/utils';
 
 import { MarkdownErrorBoundary } from '@/components/error';
 import { MarkdownSkeleton } from '@/components/loading';
+import { HEADER_ICON_SX } from '@/lib/theme';
 
 const MarkdownPreview = lazy(() => import('@/components/markdown-preview'));
 
@@ -44,7 +45,6 @@ interface AboutTabDefinition {
   tabId: string;
 }
 
-const ABOUT_ICON_SX = { fontSize: { xs: '1.25rem', sm: '1.5rem' } } as const;
 const ABOUT_TABS = [
   {
     id: 'overview',
@@ -132,7 +132,7 @@ export default function AboutDialog({
           aria-label="About Fetch URL"
           size="small"
         >
-          <InfoOutlinedIcon sx={ABOUT_ICON_SX} />
+          <InfoOutlinedIcon sx={HEADER_ICON_SX} />
         </IconButton>
       </Tooltip>
 

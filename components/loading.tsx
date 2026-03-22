@@ -47,11 +47,6 @@ export function TransformProgress({
   );
 }
 
-const SKELETON_MAX_HEIGHT_SX = {
-  xs: '45dvh',
-  sm: '50dvh',
-  md: '55dvh',
-} as const;
 const INTRO_LINE_WIDTHS = ['100%', '100%', '75%'] as const;
 const BODY_LINE_WIDTHS = ['100%', '90%', '100%', '60%'] as const;
 const OUTRO_LINE_WIDTHS = ['100%', '85%', '50%'] as const;
@@ -146,7 +141,7 @@ export function MarkdownSkeleton() {
       role="status"
       aria-label="Markdown preview loading"
       spacing={1}
-      sx={{ maxHeight: SKELETON_MAX_HEIGHT_SX }}
+      sx={{ maxHeight: '70dvh', overflow: 'hidden' }}
     >
       {MARKDOWN_SKELETON_LAYOUT.map(renderMarkdownSkeletonItem)}
     </Stack>

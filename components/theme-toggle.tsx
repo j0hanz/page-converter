@@ -7,6 +7,8 @@ import IconButton from '@mui/material/IconButton';
 import { useColorScheme } from '@mui/material/styles';
 import Tooltip from '@mui/material/Tooltip';
 
+import { HEADER_ICON_SX } from '@/lib/theme';
+
 type Mode = 'light' | 'dark' | 'system';
 
 const MODE_CONFIG: Record<
@@ -29,7 +31,6 @@ const MODE_CONFIG: Record<
     next: 'light',
   },
 };
-const THEME_ICON_SX = { fontSize: { xs: '1.25rem', sm: '1.5rem' } } as const;
 
 function isMode(value: string | undefined): value is Mode {
   return value === 'light' || value === 'dark' || value === 'system';
@@ -54,7 +55,7 @@ export default function ThemeToggle() {
         aria-label={actionLabel}
         size="small"
       >
-        <Icon sx={THEME_ICON_SX} />
+        <Icon sx={HEADER_ICON_SX} />
       </IconButton>
     </Tooltip>
   );

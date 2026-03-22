@@ -16,9 +16,9 @@ import HomeClient from '@/components/home-client';
 import LogoIcon from '@/components/logo-icon';
 import ThemeToggle from '@/components/theme-toggle';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_REPOSITORY_URL } from '@/lib/site';
+import { HEADER_ICON_SX } from '@/lib/theme';
 
 const PUBLIC_DIRECTORY = join(process.cwd(), 'public');
-const GITHUB_ICON_SX = { fontSize: { xs: '1.25rem', sm: '1.5rem' } } as const;
 const HOME_MARKDOWN_FILES = {
   about: 'about.md',
   howItWorks: 'how-it-works.md',
@@ -67,12 +67,17 @@ export default async function Home() {
         minHeight: '100dvh',
         display: 'flex',
         flexDirection: 'column',
-        pt: { xs: 3, sm: 4 },
+        pt: { xs: 2, sm: 3, md: 4 },
       }}
     >
       <Container
         maxWidth="lg"
-        sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: { xs: 2, sm: 3 },
+        }}
       >
         <Stack
           direction="row"
@@ -103,7 +108,7 @@ export default async function Home() {
                 rel="noopener noreferrer"
                 aria-label="View on GitHub"
               >
-                <GitHubIcon sx={GITHUB_ICON_SX} />
+                <GitHubIcon sx={HEADER_ICON_SX} />
               </IconButton>
             </Tooltip>
             <ThemeToggle />

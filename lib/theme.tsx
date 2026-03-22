@@ -10,6 +10,10 @@ import { ThemeProvider } from '@mui/material/styles';
 
 export const MONO_FONT_FAMILY = "'Geist Mono Variable', monospace";
 
+export const HEADER_ICON_SX = {
+  fontSize: { xs: '1.25rem', sm: '1.5rem' },
+} as const;
+
 const PAPER_ROOT_SX = {
   borderRadius: 16,
   boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
@@ -79,6 +83,11 @@ const theme = responsiveFontSizes(
               ...AUTOFILL_TEXT_SX,
             },
           },
+        },
+      },
+      MuiStack: {
+        defaultProps: {
+          useFlexGap: true,
         },
       },
       MuiTypography: {
