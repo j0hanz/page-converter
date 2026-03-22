@@ -40,8 +40,13 @@ export const metadata: Metadata = {
   },
 };
 
-function readPublicMarkdown(fileName: string): Promise<string> {
-  return readFile(join(PUBLIC_DIRECTORY, fileName), 'utf-8');
+async function readPublicMarkdown(fileName: string): Promise<string> {
+  try {
+    return await readFile(join(PUBLIC_DIRECTORY, fileName), 'utf-8');
+  } catch (error) {
+    console.error(`Failed to read markdown file: ${fileName}`, error);
+    return '';
+  }
 }
 
 async function readHomePageMarkdown() {
