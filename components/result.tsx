@@ -270,7 +270,7 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
       )}
 
       {/* Markdown Section */}
-      <Stack gap={0.1} component="section">
+      <Stack gap={0.2} sx={{ pt: 2 }} component="section">
         <Stack
           direction="row"
           justifyContent="space-between"
