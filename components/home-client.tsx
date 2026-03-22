@@ -40,9 +40,65 @@ function useHomeClientModel() {
     };
   }, []);
 
+  function isActiveRequest(requestController: AbortController): boolean {
+    return abortControllerRef.current === requestController;
+  }
+
+  function completeRequest(
+    requestController: AbortController,
+    onComplete: () => void
+  ) {
+    if (!isActiveRequest(requestController)) {
+      return;
+    }
+
+    abortControllerRef.current = null;
+    onComplete();
+  }
+
+  function handleProgressEvent(
+    requestController: AbortController,
+    event: StreamProgressEvent
+  ) {
+    if (!isActiveRequest(requestController)) {
+      return;
+    }
+
+    setProgress((prev) => {
+      if (prev && isTerminalStreamProgressEvent(prev)) {
+        return prev;
+      }
+
+      return normalizeStreamProgressEvent(event, prev);
+    });
+  }
+
+  function handleRequestResult(
+    requestController: AbortController,
+    nextResult: TransformResult
+  ) {
+    completeRequest(requestController, () => {
+      setResult(nextResult);
+      setProgress(null);
+      setLoading(false);
+      formRef.current?.clear();
+    });
+  }
+
+  function handleRequestError(
+    requestController: AbortController,
+    nextError: TransformError
+  ) {
+    completeRequest(requestController, () => {
+      setError(nextError);
+      setProgress(null);
+      setLoading(false);
+    });
+  }
+
   function handleAction(formData: FormData) {
-    const url = formData.get('url') as string;
-    if (!url) {
+    const url = formData.get('url');
+    if (typeof url !== 'string' || url === '') {
       return;
     }
 
@@ -57,49 +113,23 @@ function useHomeClientModel() {
 
     const handlers = {
       onProgress(event: StreamProgressEvent) {
-        if (abortControllerRef.current !== abortController) {
-          return;
-        }
-
-        setProgress((prev) => {
-          if (prev && isTerminalStreamProgressEvent(prev)) {
-            return prev;
-          }
-          return normalizeStreamProgressEvent(event, prev);
-        });
+        handleProgressEvent(abortController, event);
       },
       onResult(res: TransformResult) {
-        if (abortControllerRef.current !== abortController) {
-          return;
-        }
-
-        setResult(res);
-        setProgress(null);
-        setLoading(false);
-        formRef.current?.clear();
+        handleRequestResult(abortController, res);
       },
       onError(err: TransformError) {
-        if (abortControllerRef.current !== abortController) {
-          return;
-        }
-
-        setError(err);
-        setProgress(null);
-        setLoading(false);
+        handleRequestError(abortController, err);
       },
     };
 
     void submitTransformRequest(url, handlers, abortController.signal).catch(
       (err) => {
-        if (
-          abortControllerRef.current !== abortController ||
-          isAbortError(err)
-        ) {
+        if (isAbortError(err) || !isActiveRequest(abortController)) {
           return;
         }
 
-        setError(mapClientTransformError(err));
-        setLoading(false);
+        handleRequestError(abortController, mapClientTransformError(err));
       }
     );
   }

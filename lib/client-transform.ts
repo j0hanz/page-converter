@@ -183,6 +183,20 @@ function handleJsonErrorResponse(
   onError(createUnexpectedResponseError());
 }
 
+async function readJsonResponse(
+  response: Response
+): Promise<{ ok: true; data: unknown } | { ok: false }> {
+  try {
+    return { ok: true, data: await response.json() };
+  } catch (error) {
+    if (isTimeoutError(error) || isAbortError(error)) {
+      throw error;
+    }
+
+    return { ok: false };
+  }
+}
+
 async function handleTransformResponse(
   response: Response,
   signal: AbortSignal,
@@ -202,7 +216,13 @@ async function handleTransformResponse(
     return;
   }
 
-  handleJsonErrorResponse(await response.json(), handlers.onError);
+  const jsonResponse = await readJsonResponse(response);
+  if (!jsonResponse.ok) {
+    handlers.onError(createUnexpectedResponseError());
+    return;
+  }
+
+  handleJsonErrorResponse(jsonResponse.data, handlers.onError);
 }
 
 export async function submitTransformRequest(
