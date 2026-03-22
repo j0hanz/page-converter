@@ -3,6 +3,7 @@ import type { NextConfig } from 'next';
 import fs from 'node:fs';
 import { findPackageJSON } from 'node:module';
 import path from 'node:path';
+import process from 'node:process';
 
 interface LockfilePackage {
   dependencies?: Record<string, string>;
@@ -31,7 +32,8 @@ function readPackageLockPackages(): Record<string, LockfilePackage> {
 function toLockfilePackagePath(absolutePackagePath: string): string {
   return path
     .relative(process.cwd(), absolutePackagePath)
-    .replaceAll('\\', '/');
+    .split(path.sep)
+    .join('/');
 }
 
 function readFetchUrlPackagePath(): string {
