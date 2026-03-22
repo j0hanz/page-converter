@@ -220,7 +220,7 @@ function readFetchUrlPackageSearchBase(
   currentWorkingDirectory?: string
 ): string {
   return currentWorkingDirectory
-    ? path.join(currentWorkingDirectory, 'package.json')
+    ? path.resolve(currentWorkingDirectory, 'package.json')
     : import.meta.url;
 }
 
