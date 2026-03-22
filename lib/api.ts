@@ -70,22 +70,8 @@ export type StreamEvent = StreamProgressEvent | StreamResultEvent;
 export const NDJSON_CONTENT_TYPE = 'application/x-ndjson';
 export const STREAM_PROGRESS_TOTAL = 8;
 type TransformErrorOptions = Omit<TransformError, 'code' | 'message'>;
-type OptionalTransformErrorFields = Pick<
-  TransformError,
-  'details' | 'statusCode'
->;
 
 export type JsonRecord = Record<string, unknown>;
-
-export function createOptionalTransformErrorFields(
-  statusCode?: number,
-  details?: TransformError['details']
-): Partial<OptionalTransformErrorFields> {
-  return {
-    ...(statusCode !== undefined ? { statusCode } : {}),
-    ...(details !== undefined ? { details } : {}),
-  };
-}
 
 export function createTransformError(
   code: TransformErrorCode,
@@ -96,7 +82,10 @@ export function createTransformError(
     code,
     message,
     retryable: options.retryable ?? false,
-    ...createOptionalTransformErrorFields(options.statusCode, options.details),
+    ...(options.statusCode !== undefined
+      ? { statusCode: options.statusCode }
+      : {}),
+    ...(options.details !== undefined ? { details: options.details } : {}),
   };
 }
 
@@ -315,4 +304,10 @@ export function isTransformErrorResponse(
   }
 
   return isTransformError(value.error);
+}
+
+export function mapClientTransformError(error: unknown): TransformError {
+  if (isTimeoutError(error)) return createTimeoutError();
+  if (isTransformError(error)) return error;
+  return createNetworkError();
 }

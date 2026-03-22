@@ -5,7 +5,6 @@ import type {
   TransformResult,
 } from '@/lib/api';
 import {
-  createNetworkError,
   createTimeoutError,
   createUnexpectedResponseError,
   hasTransformError,
@@ -16,9 +15,10 @@ import {
   isStreamProgressEvent,
   isStreamResultEvent,
   isTimeoutError,
-  isTransformError,
   isTransformErrorResponse,
 } from '@/lib/api';
+
+export { mapClientTransformError } from '@/lib/api';
 
 interface ClientTransformHandlers {
   onError: (error: TransformError) => void;
@@ -218,16 +218,4 @@ export async function submitTransformRequest(
   });
 
   await handleTransformResponse(response, signal, handlers);
-}
-
-export function mapClientTransformError(error: unknown): TransformError {
-  if (isTimeoutError(error)) {
-    return createTimeoutError();
-  }
-
-  if (isTransformError(error)) {
-    return error;
-  }
-
-  return createNetworkError();
 }

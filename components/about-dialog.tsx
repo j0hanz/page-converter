@@ -68,7 +68,8 @@ interface TabPanelProps {
 
 function TabPanel({ children, tab, visible }: TabPanelProps) {
   const hasRenderedRef = useRef(visible);
-  const { panelId, tabId } = getAboutTab(tab);
+  const { panelId, tabId } =
+    ABOUT_TABS.find((t) => t.id === tab) ?? ABOUT_TABS[0];
 
   if (visible && !hasRenderedRef.current) {
     hasRenderedRef.current = true;
@@ -79,10 +80,6 @@ function TabPanel({ children, tab, visible }: TabPanelProps) {
       {(hasRenderedRef.current || visible) && children}
     </div>
   );
-}
-
-function getAboutTab(tabId: AboutTabId) {
-  return ABOUT_TABS.find((tab) => tab.id === tabId) ?? ABOUT_TABS[0];
 }
 
 function MarkdownTabPanel({ children }: { children: string }) {

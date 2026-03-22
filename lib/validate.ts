@@ -4,7 +4,6 @@ export interface TransformRequest {
 
 const URL_REQUIRED_MESSAGE =
   'Field "url" is required and must be a non-empty string.';
-const ALLOWED_REQUEST_FIELDS = new Set(['url']);
 const SUPPORTED_PROTOCOLS = new Set<URL['protocol']>(['http:', 'https:']);
 
 export class ValidationError extends Error {
@@ -26,29 +25,21 @@ function readTransformRequestRecord(body: unknown): Record<string, unknown> {
   return body as Record<string, unknown>;
 }
 
-function readUnexpectedField(
-  record: Record<string, unknown>
-): string | undefined {
-  return Object.keys(record).find((key) => !ALLOWED_REQUEST_FIELDS.has(key));
-}
-
 export function validateTransformRequest(body: unknown): TransformRequest {
   const record = readTransformRequestRecord(body);
-  const unexpectedField = readUnexpectedField(record);
+  const unexpectedField = Object.keys(record).find((key) => key !== 'url');
 
   if (unexpectedField !== undefined) {
     throw new ValidationError(`Unknown field: "${unexpectedField}".`);
   }
 
-  return { url: parseValidatedUrl(record.url) };
-}
+  const { url } = record;
 
-function parseValidatedUrl(value: unknown): string {
-  if (typeof value !== 'string') {
+  if (typeof url !== 'string') {
     throw new ValidationError(URL_REQUIRED_MESSAGE);
   }
 
-  const trimmed = value.trim();
+  const trimmed = url.trim();
   if (trimmed === '') {
     throw new ValidationError(URL_REQUIRED_MESSAGE);
   }
@@ -62,5 +53,5 @@ function parseValidatedUrl(value: unknown): string {
     throw new ValidationError('Field "url" must use http: or https: scheme.');
   }
 
-  return trimmed;
+  return { url: trimmed };
 }

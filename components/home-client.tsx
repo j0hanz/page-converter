@@ -161,29 +161,6 @@ export function createRequestController({
   };
 }
 
-function createRequestHandlers(
-  requestController: RequestController,
-  session: RequestSession
-) {
-  return {
-    onProgress(event: StreamProgressEvent) {
-      requestController.pushProgressIfActive(session, event);
-    },
-    onResult(result: TransformResult) {
-      requestController.finishRequestIfActive(session, {
-        type: 'result',
-        result,
-      });
-    },
-    onError(error: TransformError) {
-      requestController.finishRequestIfActive(session, {
-        type: 'error',
-        error,
-      });
-    },
-  };
-}
-
 function useRequestController(
   clearInput: () => void,
   dispatch: Dispatch<Action>
@@ -226,11 +203,25 @@ function useHomeClientModel() {
     const session = requestController.beginRequest();
     dispatch({ type: 'submit' });
 
-    void submitTransformRequest(
-      url,
-      createRequestHandlers(requestController, session),
-      session.abortController.signal
-    )
+    const handlers = {
+      onProgress(event: StreamProgressEvent) {
+        requestController.pushProgressIfActive(session, event);
+      },
+      onResult(result: TransformResult) {
+        requestController.finishRequestIfActive(session, {
+          type: 'result',
+          result,
+        });
+      },
+      onError(error: TransformError) {
+        requestController.finishRequestIfActive(session, {
+          type: 'error',
+          error,
+        });
+      },
+    };
+
+    void submitTransformRequest(url, handlers, session.abortController.signal)
       .catch((error) => {
         if (
           !requestController.isActiveRequest(session) ||

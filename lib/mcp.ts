@@ -17,7 +17,6 @@ import type {
 } from '@/lib/api';
 import {
   createInternalError,
-  createOptionalTransformErrorFields,
   createTransformError,
   type JsonRecord,
 } from '@/lib/api';
@@ -324,19 +323,18 @@ function readKnownMcpError(code: string): KnownMcpErrorDefinition | undefined {
  */
 function mapMcpError(errorPayload: JsonRecord): TransformError {
   const code = readString(errorPayload.code) ?? '';
-  const message = readMcpErrorMessage(errorPayload);
+  const message =
+    readFirstString(errorPayload.message, errorPayload.error) ??
+    'Unknown MCP error';
   const knownError = readKnownMcpError(code);
   const statusCode = readInteger(errorPayload.statusCode);
   const details = readErrorDetails(errorPayload);
-  const optionalFields = createOptionalTransformErrorFields(
-    statusCode,
-    details
-  );
 
   if (knownError) {
     return createTransformError(knownError.code, message, {
       retryable: knownError.retryable,
-      ...optionalFields,
+      statusCode,
+      details,
     });
   }
 
@@ -349,20 +347,18 @@ function mapUnknownMcpError(
   statusCode?: number,
   details?: TransformError['details']
 ): TransformError {
-  const optionalFields = createOptionalTransformErrorFields(
-    statusCode,
-    details
-  );
   if (!code.startsWith(HTTP_ERROR_CODE_PREFIX)) {
     return createTransformError('INTERNAL_ERROR', message, {
-      ...optionalFields,
+      statusCode,
+      details,
     });
   }
 
   const resolvedStatusCode = statusCode ?? readHttpStatusCode(code);
   return createTransformError('HTTP_ERROR', message, {
     retryable: resolvedStatusCode !== undefined && resolvedStatusCode >= 500,
-    ...createOptionalTransformErrorFields(resolvedStatusCode, details),
+    statusCode: resolvedStatusCode,
+    details,
   });
 }
 
@@ -380,14 +376,14 @@ function extractMetadata(data: JsonRecord): TransformMetadata {
     return {};
   }
 
-  return compactMetadata({
+  return omitUndefinedFields({
     description: readString(metadata.description),
     author: readString(metadata.author),
     publishedAt: readFirstString(metadata.publishedAt, metadata.publishedDate),
     modifiedAt: readFirstString(metadata.modifiedAt, metadata.modifiedDate),
     image: readString(metadata.image),
     favicon: readString(metadata.favicon),
-  });
+  }) as TransformMetadata;
 }
 
 function mapToTransformResult(data: JsonRecord): TransformResult {
@@ -490,13 +486,6 @@ function unwrapRecord(record: JsonRecord, key: string): JsonRecord {
   return asRecord(record[key]) ?? record;
 }
 
-function readMcpErrorMessage(errorPayload: JsonRecord): string {
-  return (
-    readFirstString(errorPayload.message, errorPayload.error) ??
-    'Unknown MCP error'
-  );
-}
-
 function readErrorDetails(
   errorPayload: JsonRecord
 ): TransformError['details'] | undefined {
@@ -534,10 +523,6 @@ function asRecord(value: unknown): JsonRecord | null {
   return typeof value === 'object' && value !== null
     ? (value as JsonRecord)
     : null;
-}
-
-function compactMetadata(metadata: TransformMetadata): TransformMetadata {
-  return omitUndefinedFields(metadata) as TransformMetadata;
 }
 
 function omitUndefinedFields<T extends object>(value: T): Partial<T> {

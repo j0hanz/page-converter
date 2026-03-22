@@ -239,16 +239,16 @@ function createBufferedProgressEmitter(): BufferedProgressEmitter {
 }
 
 function shouldReturnImmediateErrorResponse(
-  firstOutcome: FirstTransformOutcome,
+  initialOutcome: FirstTransformOutcome,
   progressEmitter: BufferedProgressEmitter
-): firstOutcome is {
+): initialOutcome is {
   type: 'response';
   response: TransformErrorResponse;
 } {
   return (
-    firstOutcome.type === 'response' &&
+    initialOutcome.type === 'response' &&
     !progressEmitter.hasProgress() &&
-    !firstOutcome.response.ok
+    !initialOutcome.response.ok
   );
 }
 
@@ -267,10 +267,10 @@ export async function POST(request: Request): Promise<Response> {
       request.signal
     );
 
-    const firstOutcome =
+    const initialOutcome =
       await progressEmitter.waitForFirstProgressOrResponse(responsePromise);
-    if (shouldReturnImmediateErrorResponse(firstOutcome, progressEmitter)) {
-      return createErrorResponse(firstOutcome.response.error);
+    if (shouldReturnImmediateErrorResponse(initialOutcome, progressEmitter)) {
+      return createErrorResponse(initialOutcome.response.error);
     }
 
     const stream = createNdjsonResponseStream(
