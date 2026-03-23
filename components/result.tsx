@@ -230,7 +230,7 @@ function ResultHeader({ result }: TransformResultProps) {
   const { title, url, metadata, fromCache } = result;
 
   return (
-    <Stack direction="row" gap={1.5} alignItems="flex-start">
+    <Stack direction="row" gap={1.5} alignItems="center">
       <Tooltip title={fromCache ? 'Served from cache' : 'Freshly fetched'}>
         <Badge
           variant="dot"
@@ -240,7 +240,7 @@ function ResultHeader({ result }: TransformResultProps) {
         >
           <Avatar
             src={metadata.favicon}
-            sx={{ width: 28, height: 28 }}
+            sx={{ width: 32, height: 32 }}
             alt={title ?? url}
           >
             {title?.[0]}
