@@ -304,6 +304,7 @@ function ResultHeaderWithDetails({ result }: TransformResultProps) {
                 src={metadata.favicon || undefined}
                 sx={{ width: tokens.sizes.avatar, height: tokens.sizes.avatar }}
                 alt={title ?? url}
+                variant="square"
               >
                 {title?.[0]}
               </Avatar>
