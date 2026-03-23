@@ -119,6 +119,62 @@ describe('TransformResultPanel', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('renders favicon avatar with site icon', () => {
+    renderPanel({
+      result: {
+        ...baseResult,
+        metadata: {
+          ...baseResult.metadata,
+          favicon: 'https://example.com/favicon.ico',
+        },
+      },
+    });
+
+    const avatar = screen.getByRole('img', { name: 'Example Domain' });
+    expect(avatar).toHaveAttribute('src', 'https://example.com/favicon.ico');
+  });
+
+  it('renders letter fallback when favicon is missing', () => {
+    renderPanel();
+
+    expect(screen.getByText('E')).toBeInTheDocument();
+  });
+
+  it('shows cache badge when fromCache is true', () => {
+    const { container } = renderPanel({
+      result: { ...baseResult, fromCache: true },
+    });
+
+    const badge = container.querySelector('.MuiBadge-dot');
+    expect(badge).toBeInTheDocument();
+  });
+
+  it('hides cache badge when fromCache is false', () => {
+    const { container } = renderPanel({
+      result: { ...baseResult, fromCache: false },
+    });
+
+    const badge = container.querySelector('.MuiBadge-dot');
+    expect(badge).toHaveClass('MuiBadge-invisible');
+  });
+
+  it('renders author chip when author exists', () => {
+    renderPanel();
+
+    expect(screen.getByText('IANA')).toBeInTheDocument();
+  });
+
+  it('does not render author chip when author is missing', () => {
+    renderPanel({
+      result: {
+        ...baseResult,
+        metadata: { ...baseResult.metadata, author: undefined },
+      },
+    });
+
+    expect(screen.queryByText('IANA')).not.toBeInTheDocument();
+  });
+
   it('shows the skeleton again when new preview content arrives', async () => {
     const { rerender } = renderPanel();
 

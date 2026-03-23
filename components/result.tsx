@@ -7,7 +7,10 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DownloadIcon from '@mui/icons-material/Download';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import Alert from '@mui/material/Alert';
+import Avatar from '@mui/material/Avatar';
+import Badge from '@mui/material/Badge';
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import Fade from '@mui/material/Fade';
 import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
@@ -41,7 +44,7 @@ const TOGGLE_BUTTON_SX = { border: 0 } as const;
 const MARKDOWN_PANEL_SX = {
   p: { xs: 1.5, sm: 2.5 },
   flex: 1,
-  maxHeight: { xs: '55dvh', sm: '60dvh', md: '65dvh' },
+  maxHeight: { xs: '50dvh', sm: '55dvh', md: '60dvh' },
   overflow: 'auto',
   border: '1px solid',
   borderColor: 'divider',
@@ -52,6 +55,20 @@ const RAW_MARKDOWN_SX = {
   fontSize: { xs: '0.8125rem', sm: '0.875rem' },
   whiteSpace: 'pre-wrap',
   wordBreak: 'break-word',
+} as const;
+
+const RESULT_URL_TITLE = {
+  color: 'text.primary',
+  overflow: 'hidden',
+  whiteSpace: 'nowrap',
+  maxWidth: { xs: '30ch', sm: '50ch', md: '70ch' },
+} as const;
+const RESULT_URL_SX = {
+  color: 'text.secondary',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  maxWidth: { xs: '30ch', sm: '50ch', md: '70ch' },
 } as const;
 
 function downloadMarkdownFile(title: string | undefined, markdown: string) {
@@ -213,6 +230,43 @@ function ResultMarkdownPanel({
   );
 }
 
+function ResultHeader({ result }: TransformResultProps) {
+  const { title, url, metadata, fromCache } = result;
+
+  return (
+    <Stack direction="row" spacing={1} alignItems="center">
+      <Tooltip title={fromCache ? 'Served from cache' : 'Freshly fetched'}>
+        <Badge
+          variant="dot"
+          color="success"
+          invisible={!fromCache}
+          overlap="circular"
+        >
+          <Avatar src={metadata.favicon} alt={title ?? url}>
+            {title?.[0]}
+          </Avatar>
+        </Badge>
+      </Tooltip>
+      <Stack>
+        {title && (
+          <Typography variant="caption" sx={RESULT_URL_TITLE} noWrap>
+            {title}
+          </Typography>
+        )}
+        <Typography variant="caption" sx={RESULT_URL_SX}>
+          {url}
+        </Typography>
+      </Stack>
+      {metadata.author && (
+        <Chip
+          avatar={<Avatar>{metadata.author[0]}</Avatar>}
+          label={metadata.author}
+        />
+      )}
+    </Stack>
+  );
+}
+
 function useResultModel(result: TransformResult) {
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
   const { clearCopyFeedback, copyFeedbackOpen, copyStatus, handleCopy } =
@@ -266,8 +320,11 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
         </Alert>
       )}
 
+      {/* Result Header */}
+      <ResultHeader result={result} />
+
       {/* Markdown Section */}
-      <Stack gap={0.2} sx={{ pt: 2 }} component="section">
+      <Stack gap={0.2} sx={{ pt: 1 }} component="section">
         <Stack
           direction="row"
           justifyContent="space-between"
@@ -307,7 +364,13 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
               title="Download Markdown"
               onClick={handleDownload}
             >
-              <DownloadIcon fontSize="small" />
+              <Badge
+                variant="dot"
+                color="warning"
+                invisible={!result.truncated}
+              >
+                <DownloadIcon fontSize="small" />
+              </Badge>
             </ResultActionButton>
           </Stack>
         </Stack>

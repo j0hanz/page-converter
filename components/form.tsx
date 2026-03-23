@@ -35,7 +35,7 @@ export default function TransformForm({
 
   return (
     <Box component="form" action={action}>
-      <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
+      <Grid container spacing={1} sx={{ mb: 1.5 }}>
         <Grid size={{ xs: 12, sm: 8 }}>
           <TextField
             id={urlInputId}
