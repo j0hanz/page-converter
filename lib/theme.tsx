@@ -181,14 +181,14 @@ export const theme = responsiveFontSizes(
     colorSchemes: {
       light: {
         palette: {
-          background: { default: '#FFFFFF', paper: '#FFFFFF' },
-          brand: { primary: '#202020', secondary: '#FFFCD4' },
+          background: { default: '#FEFBFF', paper: '#FFFFFF' },
+          brand: { primary: '#141314', secondary: '#000000' },
         },
       },
       dark: {
         palette: {
-          background: { default: '#1C1B1D', paper: '#181818' },
-          brand: { primary: '#FFFCD4', secondary: '#202020' },
+          background: { default: '#141314', paper: '#000000' },
+          brand: { primary: '#FEFBFF', secondary: '#FFFFFF' },
         },
       },
     },
@@ -205,7 +205,7 @@ export const theme = responsiveFontSizes(
         styleOverrides: {
           paper: {
             '.dark &': {
-              background: 'rgba(63, 63, 63, 0.48)',
+              background: 'rgba(63, 63, 63, 0.71)',
               backdropFilter: `blur(${tokens.blur.dialog})`,
               WebkitBackdropFilter: `blur(${tokens.blur.dialog})`,
             },

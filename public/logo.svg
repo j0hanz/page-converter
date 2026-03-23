@@ -5,20 +5,20 @@
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="web globe icon">
     <style>
         .primary {
-            fill: #202020;
+            fill: #141314;
         }
 
         .secondary {
-            fill: #FFFCD4;
+            fill: #000000;
         }
 
         @media (prefers-color-scheme: dark) {
             .primary {
-                fill: #FFFCD4;
+                fill: #FEFBFF;
             }
 
             .secondary {
-                fill: #202020;
+                fill: #FFFFFF;
             }
         }
     </style>
