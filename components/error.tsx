@@ -80,7 +80,7 @@ export function ErrorState({
       }
     >
       {error.digest && (
-        <Typography variant="caption" color="text.disabled">
+        <Typography variant="caption" color="text.secondary">
           Ref: {error.digest}
         </Typography>
       )}

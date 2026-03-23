@@ -39,7 +39,7 @@ export function TransformProgress({
         </Box>
       </Stack>
       {message && (
-        <Typography variant="caption" color="text.disabled">
+        <Typography variant="caption" color="text.secondary">
           {message}
         </Typography>
       )}

@@ -141,7 +141,7 @@ export const sx = {
     maxWidth: responsive.truncateWidth,
   },
   resultUrl: {
-    color: 'text.disabled',
+    opacity: 0.8,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     maxWidth: responsive.truncateWidth,
@@ -181,7 +181,7 @@ export const theme = responsiveFontSizes(
     colorSchemes: {
       light: {
         palette: {
-          background: { default: '#F8F1F6', paper: '#ffffff' },
+          background: { default: '#FFFFFF', paper: '#FFFFFF' },
           brand: { primary: '#202020', secondary: '#FFFCD4' },
         },
       },

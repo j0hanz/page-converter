@@ -310,7 +310,7 @@ function ResultHeaderWithDetails({ result }: TransformResultProps) {
             </Badge>
             <Stack>
               {title && (
-                <Typography variant="caption" sx={sx.truncatedText} noWrap>
+                <Typography variant="body2" sx={sx.truncatedText} noWrap>
                   {title}
                 </Typography>
               )}
