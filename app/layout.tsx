@@ -11,7 +11,7 @@ import {
   SITE_KEYWORDS,
   SITE_NAME,
 } from '@/lib/site';
-import { AppThemeProviders } from '@/lib/theme';
+import { AppThemeProviders } from '@/lib/theme-provider';
 
 const metadataBase = resolveSiteUrl();
 

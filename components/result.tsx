@@ -27,7 +27,7 @@ import { MarkdownErrorBoundary } from '@/components/error';
 import { MarkdownSkeleton } from '@/components/loading';
 import MarkdownPreview from '@/components/markdown-preview';
 import type { TransformResult } from '@/lib/api';
-import { MONO_FONT_FAMILY } from '@/lib/theme';
+import { sx, tokens } from '@/lib/theme';
 
 // ============================================================================
 // Types & Interfaces
@@ -58,40 +58,6 @@ const COPY_STATUS_DETAILS: Record<
   copied: { color: 'success', message: 'Copied to clipboard' },
   failed: { color: 'error', message: 'Failed to copy' },
 };
-
-const STYLES = {
-  toggleButton: { border: 0 },
-  markdownPanel: {
-    p: { xs: 1.5, sm: 2.5 },
-    flex: 1,
-    maxHeight: { xs: '50dvh', sm: '55dvh', md: '60dvh' },
-    overflow: 'auto',
-    border: '1px solid',
-    borderColor: 'divider',
-    borderRadius: 1.5,
-  },
-  rawMarkdown: {
-    fontFamily: MONO_FONT_FAMILY,
-    fontSize: { xs: '0.8125rem', sm: '0.875rem' },
-    whiteSpace: 'pre-wrap',
-    wordBreak: 'break-word',
-  },
-  resultUrlTitle: {
-    overflow: 'hidden',
-    maxWidth: { xs: '30ch', sm: '50ch', md: '70ch' },
-  },
-  resultUrl: {
-    color: 'text.disabled',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    maxWidth: { xs: '30ch', sm: '50ch', md: '70ch' },
-  },
-  headerButton: {
-    justifyContent: 'flex-start',
-    textAlign: 'left',
-    width: '100%',
-  },
-} as const;
 
 // ============================================================================
 // Utility Functions
@@ -241,14 +207,14 @@ function ResultMarkdownPanel({
   markdown: string;
 }) {
   return (
-    <Paper sx={STYLES.markdownPanel}>
+    <Paper sx={sx.markdownPanel}>
       <Box sx={{ display: isPreviewMode ? 'block' : 'none' }}>
         <MarkdownErrorBoundary resetKey={markdown}>
           <PreviewContent markdown={markdown} />
         </MarkdownErrorBoundary>
       </Box>
       <Box sx={{ display: !isPreviewMode ? 'block' : 'none' }}>
-        <Typography component="pre" variant="body2" sx={STYLES.rawMarkdown}>
+        <Typography component="pre" variant="body2" sx={sx.rawMarkdown}>
           {markdown}
         </Typography>
       </Box>
@@ -324,7 +290,7 @@ function ResultHeaderWithDetails({ result }: TransformResultProps) {
         <ButtonBase
           onClick={() => setDetailDialogOpen(true)}
           disableRipple={true}
-          sx={STYLES.headerButton}
+          sx={sx.headerButton}
           aria-label="View page details"
         >
           <Stack direction="row" gap={1.5} alignItems="center">
@@ -336,7 +302,7 @@ function ResultHeaderWithDetails({ result }: TransformResultProps) {
             >
               <Avatar
                 src={metadata.favicon || undefined}
-                sx={{ width: 32, height: 32 }}
+                sx={{ width: tokens.sizes.avatar, height: tokens.sizes.avatar }}
                 alt={title ?? url}
               >
                 {title?.[0]}
@@ -344,11 +310,11 @@ function ResultHeaderWithDetails({ result }: TransformResultProps) {
             </Badge>
             <Stack>
               {title && (
-                <Typography variant="caption" sx={STYLES.resultUrlTitle} noWrap>
+                <Typography variant="caption" sx={sx.truncatedText} noWrap>
                   {title}
                 </Typography>
               )}
-              <Typography variant="caption" sx={STYLES.resultUrl} noWrap>
+              <Typography variant="caption" sx={sx.resultUrl} noWrap>
                 {url}
               </Typography>
             </Stack>
@@ -397,13 +363,13 @@ function ResultActionBar({
           aria-label="View mode"
         >
           <ToggleButton
-            sx={STYLES.toggleButton}
+            sx={sx.toggleButton}
             value="preview"
             aria-label="Preview"
           >
             <VisibilityIcon fontSize="small" />
           </ToggleButton>
-          <ToggleButton sx={STYLES.toggleButton} value="code" aria-label="Code">
+          <ToggleButton sx={sx.toggleButton} value="code" aria-label="Code">
             <CodeIcon fontSize="small" />
           </ToggleButton>
         </ToggleButtonGroup>

@@ -24,6 +24,7 @@ import {
   mapClientTransformError,
   submitTransformRequest,
 } from '@/lib/client-transform';
+import { sx as themeSx } from '@/lib/theme';
 
 function useHomeClientModel() {
   const [result, setResult] = useState<TransformResult | null>(null);
@@ -165,13 +166,10 @@ export default function HomeClient() {
   const showResult = !loading && result !== null;
 
   return (
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+    <Box sx={themeSx.flexColumn}>
       <TransformForm ref={formRef} loading={loading} action={handleAction} />
 
-      <Box
-        aria-live="polite"
-        sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-      >
+      <Box aria-live="polite" sx={themeSx.flexColumn}>
         <Collapse in={showProgress} unmountOnExit>
           {progress && (
             <TransformProgress

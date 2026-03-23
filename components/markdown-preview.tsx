@@ -15,82 +15,10 @@ import type { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { markdownTableComponents } from '@/components/table';
-import { MONO_FONT_FAMILY } from '@/lib/theme';
+import { sx } from '@/lib/theme';
 
 const remarkPlugins = [remarkGfm];
-const MARKDOWN_ROOT_SX = {
-  '& > :first-of-type': { mt: 0 },
-  '& > :last-child': { mb: 0 },
-} as const;
-const BLOCKQUOTE_SX = {
-  borderLeft: 3,
-  borderColor: 'divider',
-  bgcolor: 'action.selected',
-  borderRadius: 1,
-  px: 2,
-  py: 1,
-  my: 2,
-  mx: 0,
-  fontStyle: 'italic',
-  color: 'text.secondary',
-  '& > p': { mb: 0 },
-} as const;
-const BLOCK_CODE_SX = {
-  p: 2,
-  overflow: 'auto',
-  fontFamily: MONO_FONT_FAMILY,
-  fontSize: '0.875rem',
-  bgcolor: 'action.hover',
-  borderRadius: 1,
-  whiteSpace: 'pre-wrap',
-  wordBreak: 'break-word',
-} as const;
-const INLINE_CODE_SX = {
-  px: 0.5,
-  py: 0.25,
-  bgcolor: 'action.hover',
-  borderRadius: 1,
-  fontFamily: MONO_FONT_FAMILY,
-  fontSize: '0.85em',
-  border: 1,
-  borderColor: 'divider',
-} as const;
-const IMAGE_SX = {
-  maxWidth: '100%',
-  height: 'auto',
-} as const;
-const CODE_BLOCK_WRAPPER_SX = {
-  position: 'relative',
-} as const;
-const LANG_CHIP_SX = {
-  position: 'absolute',
-  top: 8,
-  right: 8,
-  fontFamily: MONO_FONT_FAMILY,
-  height: 20,
-  opacity: 0.7,
-  zIndex: 1,
-} as const;
-const LINK_SX = {
-  textUnderlineOffset: '0.18em',
-  textDecorationThickness: '0.08em',
-  transition: 'all 0.2s ease',
-  '&:hover': { textDecorationThickness: '0.12em' },
-} as const;
-const PARAGRAPH_SX = { mb: { xs: 1, sm: 1.5 } } as const;
-const LIST_ITEM_SX = { mb: { xs: 0.5, sm: 1 } } as const;
-const CHECKBOX_SX = {
-  p: 0,
-  mr: 0.5,
-  verticalAlign: 'middle',
-  pointerEvents: 'none',
-} as const;
-const HEADING_BORDER_SX = {
-  my: 1.5,
-  pb: 0.5,
-  borderBottom: 1,
-  borderColor: 'divider',
-} as const;
+
 interface MarkdownNodeProps {
   children?: ReactNode;
 }
@@ -118,7 +46,7 @@ function createHeadingRenderer(
         color={color}
         fontWeight={fontWeight}
         sx={
-          bordered ? { mt: marginTop, ...HEADING_BORDER_SX } : { mt: marginTop }
+          bordered ? { mt: marginTop, ...sx.headingBorder } : { mt: marginTop }
         }
       >
         {children}
@@ -155,7 +83,7 @@ const components: Components = {
     component: 'h6',
   }),
   p: ({ children }) => (
-    <Typography variant="body1" sx={PARAGRAPH_SX}>
+    <Typography variant="body1" sx={sx.paragraph}>
       {children}
     </Typography>
   ),
@@ -165,13 +93,13 @@ const components: Components = {
       target="_blank"
       rel="noopener noreferrer"
       underline="hover"
-      sx={LINK_SX}
+      sx={sx.link}
     >
       {children}
     </Link>
   ),
   blockquote: ({ children }) => (
-    <Box component="blockquote" sx={BLOCKQUOTE_SX}>
+    <Box component="blockquote" sx={sx.blockquote}>
       {children}
     </Box>
   ),
@@ -182,23 +110,23 @@ const components: Components = {
     if (isBlock) {
       const language = className?.replace('language-', '');
       return (
-        <Box sx={CODE_BLOCK_WRAPPER_SX}>
+        <Box sx={sx.codeBlockWrapper}>
           {language && (
             <Chip
               label={language}
               size="small"
               variant="outlined"
-              sx={LANG_CHIP_SX}
+              sx={sx.langChip}
             />
           )}
-          <Paper variant="outlined" component="pre" sx={BLOCK_CODE_SX}>
+          <Paper variant="outlined" component="pre" sx={sx.codeBlock}>
             <code>{children}</code>
           </Paper>
         </Box>
       );
     }
     return (
-      <Box component="code" sx={INLINE_CODE_SX}>
+      <Box component="code" sx={sx.inlineCode}>
         {children}
       </Box>
     );
@@ -215,7 +143,7 @@ const components: Components = {
       size="small"
       disableRipple
       tabIndex={-1}
-      sx={CHECKBOX_SX}
+      sx={sx.checkbox}
     />
   ),
   hr: () => <Divider sx={{ my: 2 }} />,
@@ -226,13 +154,13 @@ const components: Components = {
       alt={alt ?? ''}
       loading="lazy"
       decoding="async"
-      sx={IMAGE_SX}
+      sx={sx.image}
     />
   ),
   ul: createListRenderer('ul'),
   ol: createListRenderer('ol'),
   li: ({ children }) => (
-    <Typography component="li" variant="body1" sx={LIST_ITEM_SX}>
+    <Typography component="li" variant="body1" sx={sx.listItem}>
       {children}
     </Typography>
   ),
@@ -240,7 +168,7 @@ const components: Components = {
 
 export default function MarkdownPreview({ children }: { children: string }) {
   return (
-    <Box component="article" sx={MARKDOWN_ROOT_SX}>
+    <Box component="article" sx={sx.markdownRoot}>
       <Markdown remarkPlugins={remarkPlugins} components={components}>
         {children}
       </Markdown>

@@ -16,7 +16,7 @@ import HomeClient from '@/components/home-client';
 import LogoIcon from '@/components/logo-icon';
 import ThemeToggle from '@/components/theme-toggle';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_REPOSITORY_URL } from '@/lib/site';
-import { HEADER_ICON_SX } from '@/lib/theme';
+import { HEADER_ICON_SX, responsive } from '@/lib/theme';
 
 const PUBLIC_DIRECTORY = join(process.cwd(), 'public');
 const HOME_MARKDOWN_FILES = {
@@ -67,7 +67,7 @@ export default async function Home() {
         minHeight: '100dvh',
         display: 'flex',
         flexDirection: 'column',
-        pt: { xs: 2, sm: 3, md: 4 },
+        pt: responsive.pagePt,
       }}
     >
       <Container
@@ -76,7 +76,7 @@ export default async function Home() {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          gap: { xs: 2, sm: 3 },
+          gap: responsive.containerGap,
         }}
       >
         <Stack
@@ -87,7 +87,7 @@ export default async function Home() {
           <Stack direction="row" gap={1.5} alignItems="center">
             <LogoIcon
               sx={{
-                fontSize: { xs: '1.5rem', sm: '2rem' },
+                fontSize: responsive.logoSize,
               }}
             />
             <Typography variant="h4" component="h1">

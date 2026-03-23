@@ -3,14 +3,10 @@
 import type { SxProps, Theme } from '@mui/material/styles';
 import SvgIcon, { type SvgIconProps } from '@mui/material/SvgIcon';
 
-const colorSx: SxProps<Theme> = (theme) => ({
-  '& .logo-primary': { fill: '#202020' },
-  '& .logo-secondary': { fill: '#FFFCD4' },
-  ...theme.applyStyles('dark', {
-    '& .logo-primary': { fill: '#FFFCD4' },
-    '& .logo-secondary': { fill: '#202020' },
-  }),
-});
+const colorSx: SxProps<Theme> = {
+  '& .logo-primary': { fill: 'var(--mui-palette-brand-primary)' },
+  '& .logo-secondary': { fill: 'var(--mui-palette-brand-secondary)' },
+};
 
 function mergeSx(extra?: SxProps<Theme>): SxProps<Theme> {
   if (!extra) return colorSx;
