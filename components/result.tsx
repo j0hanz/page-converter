@@ -240,7 +240,7 @@ function ResultHeader({ result }: TransformResultProps) {
         >
           <Avatar
             src={metadata.favicon}
-            sx={{ width: 32, height: 32 }}
+            sx={{ width: 28, height: 28 }}
             alt={title ?? url}
           >
             {title?.[0]}
