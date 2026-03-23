@@ -29,7 +29,6 @@ export const responsive = {
   codeFontSize: { xs: '0.8125rem', sm: '0.875rem' },
   truncateWidth: { xs: '30ch', sm: '50ch', md: '70ch' },
   panelMaxHeight: { xs: '50dvh', sm: '55dvh', md: '60dvh' },
-  headerSpacing: { xs: 1, sm: 2 },
   paragraphMb: { xs: 1, sm: 1.5 },
   listItemMb: { xs: 0.5, sm: 1 },
   logoSize: { xs: '1.5rem', sm: '2rem' },

@@ -21,7 +21,7 @@ import {
   type JsonRecord,
 } from '@/lib/api';
 
-export interface FetchUrlArgs {
+interface FetchUrlArgs {
   url: string;
 }
 
@@ -401,7 +401,7 @@ function mapToTransformResult(data: JsonRecord): TransformResult {
   };
 }
 
-export type ParsedMcpResult =
+type ParsedMcpResult =
   | { ok: true; result: TransformResult }
   | { ok: false; error: TransformError };
 

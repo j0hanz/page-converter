@@ -13,7 +13,7 @@ export interface ResettableErrorProps {
   reset: () => void;
 }
 
-export interface ErrorStateProps extends ResettableErrorProps {
+interface ErrorStateProps extends ResettableErrorProps {
   fallbackMessage: string;
   minHeight: string;
 }

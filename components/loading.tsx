@@ -6,7 +6,7 @@ import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
-export interface TransformProgressProps {
+interface TransformProgressProps {
   progress: number;
   total: number;
   message?: string;
