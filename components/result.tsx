@@ -63,6 +63,16 @@ const COPY_STATUS_DETAILS: Record<
 // Utility Functions
 // ============================================================================
 
+function isSafeImageUrl(url: string | undefined): url is string {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 function downloadMarkdownFile(title: string | undefined, markdown: string) {
   const blob = new Blob([markdown], { type: 'text/markdown' });
   const url = URL.createObjectURL(blob);
@@ -267,7 +277,7 @@ function ResultDetailDialog({
         )}
         <DetailRow label="Size:" value={formatBytes(contentSize)} />
         {truncated && <DetailRow label="Truncated:" value="Yes" />}
-        {metadata.image && (
+        {isSafeImageUrl(metadata.image) && (
           <Box
             component="img"
             src={metadata.image}
@@ -301,7 +311,11 @@ function ResultHeaderWithDetails({ result }: TransformResultProps) {
               overlap="circular"
             >
               <Avatar
-                src={metadata.favicon || undefined}
+                src={
+                  isSafeImageUrl(metadata.favicon)
+                    ? metadata.favicon
+                    : undefined
+                }
                 sx={{ width: tokens.sizes.avatar, height: tokens.sizes.avatar }}
                 alt={title ?? url}
                 variant="square"

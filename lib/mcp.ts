@@ -154,6 +154,15 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function verifyToolAvailability(client: Client): Promise<void> {
+  const { tools } = await client.listTools();
+  if (!tools.some((tool) => tool.name === FETCH_URL_TOOL_NAME)) {
+    throw new Error(
+      `MCP server does not expose the required "${FETCH_URL_TOOL_NAME}" tool.`
+    );
+  }
+}
+
 async function connectClient(state: McpRuntimeState): Promise<Client> {
   const backoff = computeReconnectDelay(state.failureCount ?? 0);
   if (backoff > 0) {
@@ -165,6 +174,7 @@ async function connectClient(state: McpRuntimeState): Promise<Client> {
 
   try {
     await client.connect(transport);
+    await verifyToolAvailability(client);
     state.instance = { client, transport };
     state.failureCount = 0;
     return client;

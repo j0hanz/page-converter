@@ -63,6 +63,7 @@ async function loadMcpModuleWithMocks(options?: {
     connect = vi.fn(async () => {
       await connectDeferred?.promise;
     });
+    listTools = vi.fn().mockResolvedValue({ tools: [{ name: 'fetch-url' }] });
     onclose?: () => void;
     onerror?: () => void;
 
