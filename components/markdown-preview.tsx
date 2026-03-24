@@ -20,25 +20,22 @@ import { sx } from '@/lib/theme';
 const remarkPlugins = [remarkGfm];
 
 const SAFE_LINK_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
+const IMAGE_PROTOCOLS = new Set(['http:', 'https:']);
 
-function isSafeImageSrc(src: unknown): src is string {
-  if (typeof src !== 'string') return false;
+function isSafeUrl(value: unknown, protocols: Set<string>): value is string {
+  if (typeof value !== 'string') return false;
   try {
-    const { protocol } = new URL(src);
-    return protocol === 'http:' || protocol === 'https:';
+    return protocols.has(new URL(value).protocol);
   } catch {
     return false;
   }
 }
 
-function isSafeHref(href: unknown): href is string {
-  if (typeof href !== 'string') return false;
-  try {
-    return SAFE_LINK_PROTOCOLS.has(new URL(href).protocol);
-  } catch {
-    return false;
-  }
-}
+const isSafeImageSrc = (src: unknown): src is string =>
+  isSafeUrl(src, IMAGE_PROTOCOLS);
+
+const isSafeHref = (href: unknown): href is string =>
+  isSafeUrl(href, SAFE_LINK_PROTOCOLS);
 
 interface MarkdownNodeProps {
   children?: ReactNode;
@@ -129,11 +126,10 @@ const components: Components = {
       {children}
     </Box>
   ),
-  code: ({ className, children, node }) => {
+  code: ({ className, children }) => {
     const isBlock =
       className?.startsWith('language-') ||
-      (node?.position != null &&
-        node.position.end.line - node.position.start.line >= 2);
+      (typeof children === 'string' && children.includes('\n'));
     if (isBlock) {
       const language = className?.replace('language-', '');
       return (

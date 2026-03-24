@@ -61,4 +61,19 @@ describe('MarkdownPreview', () => {
     const link = screen.getByRole('link', { name: 'email' });
     expect(link).toHaveAttribute('href', 'mailto:user@example.com');
   });
+
+  it('renders fenced code blocks with a pre wrapper', () => {
+    render(<MarkdownPreview>{'```\nline one\nline two\n```'}</MarkdownPreview>);
+
+    const pre = document.querySelector('pre');
+    expect(pre).toBeInTheDocument();
+    expect(pre).toHaveTextContent('line one line two');
+  });
+
+  it('renders inline code without a pre wrapper', () => {
+    render(<MarkdownPreview>{'Use `npm install` to begin'}</MarkdownPreview>);
+
+    expect(screen.getByText('npm install')).toBeInTheDocument();
+    expect(document.querySelector('pre')).toBeNull();
+  });
 });
