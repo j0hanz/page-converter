@@ -152,6 +152,8 @@ export const sx = {
     textAlign: 'left',
     width: '100%',
   },
+  transitionGrid: { flex: 1, display: 'grid', alignItems: 'start' },
+  transitionCell: { gridArea: '1 / 1' },
 
   // Table
   tableContainer: { my: 2, overflowX: 'auto' },

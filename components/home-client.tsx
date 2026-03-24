@@ -5,31 +5,37 @@ import { useEffect, useRef, useState } from 'react';
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
 import Box from '@mui/material/Box';
-import Collapse from '@mui/material/Collapse';
+import Fade from '@mui/material/Fade';
+import Paper from '@mui/material/Paper';
 
 import TransformForm, { type TransformFormHandle } from '@/components/form';
-import { TransformProgress } from '@/components/loading';
+import { MarkdownSkeleton } from '@/components/loading';
+import PreviewPlaceholder from '@/components/preview-placeholder';
 import TransformResultPanel from '@/components/result';
-import type {
-  StreamProgressEvent,
-  TransformError,
-  TransformResult,
-} from '@/lib/api';
-import {
-  isAbortError,
-  isTerminalStreamProgressEvent,
-  normalizeStreamProgressEvent,
-} from '@/lib/api';
+import type { TransformError, TransformResult } from '@/lib/api';
+import { isAbortError } from '@/lib/api';
 import {
   mapClientTransformError,
   submitTransformRequest,
 } from '@/lib/client-transform';
-import { sx as themeSx } from '@/lib/theme';
+import { sx } from '@/lib/theme';
+
+type ViewState = 'idle' | 'loading' | 'error' | 'result';
+
+function deriveViewState(
+  loading: boolean,
+  error: TransformError | null,
+  result: TransformResult | null
+): ViewState {
+  if (!loading && result !== null) return 'result';
+  if (!loading && error !== null) return 'error';
+  if (loading) return 'loading';
+  return 'idle';
+}
 
 function useHomeClientModel() {
   const [result, setResult] = useState<TransformResult | null>(null);
   const [error, setError] = useState<TransformError | null>(null);
-  const [progress, setProgress] = useState<StreamProgressEvent | null>(null);
   const [loading, setLoading] = useState(false);
 
   const formRef = useRef<TransformFormHandle>(null);
@@ -58,30 +64,12 @@ function useHomeClientModel() {
     onComplete();
   }
 
-  function handleProgressEvent(
-    requestController: AbortController,
-    event: StreamProgressEvent
-  ) {
-    if (!isActiveRequest(requestController)) {
-      return;
-    }
-
-    setProgress((prev) => {
-      if (prev && isTerminalStreamProgressEvent(prev)) {
-        return prev;
-      }
-
-      return normalizeStreamProgressEvent(event, prev);
-    });
-  }
-
   function handleRequestResult(
     requestController: AbortController,
     nextResult: TransformResult
   ) {
     completeRequest(requestController, () => {
       setResult(nextResult);
-      setProgress(null);
       setLoading(false);
       formRef.current?.clear();
     });
@@ -93,7 +81,6 @@ function useHomeClientModel() {
   ) {
     completeRequest(requestController, () => {
       setError(nextError);
-      setProgress(null);
       setLoading(false);
     });
   }
@@ -111,12 +98,9 @@ function useHomeClientModel() {
     setLoading(true);
     setError(null);
     setResult(null);
-    setProgress(null);
 
     const handlers = {
-      onProgress(event: StreamProgressEvent) {
-        handleProgressEvent(abortController, event);
-      },
+      onProgress() {},
       onResult(res: TransformResult) {
         handleRequestResult(abortController, res);
       },
@@ -146,54 +130,50 @@ function useHomeClientModel() {
     formRef,
     handleAction,
     loading,
-    progress,
     result,
   };
 }
 
 export default function HomeClient() {
-  const {
-    dismissError,
-    error,
-    formRef,
-    handleAction,
-    loading,
-    progress,
-    result,
-  } = useHomeClientModel();
+  const { dismissError, error, formRef, handleAction, loading, result } =
+    useHomeClientModel();
 
-  const showProgress = loading && progress !== null;
-  const showError = !loading && error !== null;
-  const showResult = !loading && result !== null;
+  const viewState = deriveViewState(loading, error, result);
 
   return (
-    <Box sx={themeSx.flexColumn}>
+    <Box sx={sx.flexColumn}>
       <TransformForm ref={formRef} loading={loading} action={handleAction} />
 
-      <Box aria-live="polite" sx={themeSx.flexColumn}>
-        <Collapse in={showProgress} unmountOnExit>
-          {progress && (
-            <TransformProgress
-              progress={progress.progress}
-              total={progress.total}
-              message={progress.message}
-            />
-          )}
-        </Collapse>
+      <Box aria-live="polite" sx={sx.transitionGrid}>
+        <Fade in={viewState === 'idle'} mountOnEnter unmountOnExit>
+          <Box sx={sx.transitionCell}>
+            <PreviewPlaceholder />
+          </Box>
+        </Fade>
 
-        <Collapse in={showError} unmountOnExit>
-          {error && (
-            <Alert severity="error" onClose={dismissError}>
-              <AlertTitle>{error.message}</AlertTitle>
-              Code: {error.code}
-              {error.retryable && ' · Retryable'}
-            </Alert>
-          )}
-        </Collapse>
+        <Fade in={viewState === 'loading'} mountOnEnter unmountOnExit>
+          <Paper sx={{ ...sx.markdownPanel, ...sx.transitionCell }}>
+            <MarkdownSkeleton />
+          </Paper>
+        </Fade>
 
-        <Collapse in={showResult} unmountOnExit>
-          {result && <TransformResultPanel result={result} />}
-        </Collapse>
+        <Fade in={viewState === 'error'} mountOnEnter unmountOnExit>
+          <Box sx={sx.transitionCell}>
+            {error && (
+              <Alert severity="error" onClose={dismissError}>
+                <AlertTitle>{error.message}</AlertTitle>
+                Code: {error.code}
+                {error.retryable && ' · Retryable'}
+              </Alert>
+            )}
+          </Box>
+        </Fade>
+
+        <Fade in={viewState === 'result'} mountOnEnter unmountOnExit>
+          <Box sx={sx.transitionCell}>
+            {result && <TransformResultPanel result={result} />}
+          </Box>
+        </Fade>
       </Box>
     </Box>
   );

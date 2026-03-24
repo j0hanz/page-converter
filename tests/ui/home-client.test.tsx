@@ -19,22 +19,17 @@ const SUCCESS_RESULT: TransformResult = {
 };
 
 describe('HomeClient', () => {
-  it('transitions from streamed progress to the final result', async () => {
+  it('shows skeleton loading then transitions to the final result', async () => {
     const stream = createControlledStreamResponse();
     global.fetch = vi.fn().mockResolvedValue(stream.response);
 
     render(<HomeClient />);
     await submitUrlForm(VALID_URL);
 
-    stream.emit({
-      type: 'progress',
-      progress: 1,
-      total: 8,
-      message: 'Fetching',
-    });
-
     await waitFor(() => {
-      expect(screen.getByText('Fetching')).toBeInTheDocument();
+      expect(
+        screen.getByRole('status', { name: /markdown preview loading/i })
+      ).toBeInTheDocument();
     });
 
     stream.emit({ type: 'result', ok: true, result: SUCCESS_RESULT });
@@ -43,25 +38,19 @@ describe('HomeClient', () => {
     await waitFor(() => {
       expect(screen.getByText('Example')).toBeInTheDocument();
     });
-    expect(screen.queryByText('Fetching')).not.toBeInTheDocument();
   });
 
-  it('transitions from streamed progress to an error and allows dismissing it', async () => {
+  it('shows skeleton loading then transitions to an error and allows dismissing it', async () => {
     const stream = createControlledStreamResponse();
     global.fetch = vi.fn().mockResolvedValue(stream.response);
 
     render(<HomeClient />);
     await submitUrlForm(VALID_URL);
 
-    stream.emit({
-      type: 'progress',
-      progress: 1,
-      total: 8,
-      message: 'Fetching',
-    });
-
     await waitFor(() => {
-      expect(screen.getByText('Fetching')).toBeInTheDocument();
+      expect(
+        screen.getByRole('status', { name: /markdown preview loading/i })
+      ).toBeInTheDocument();
     });
 
     stream.emit({
@@ -78,7 +67,6 @@ describe('HomeClient', () => {
     await waitFor(() => {
       expect(screen.getByText('Upstream unavailable')).toBeInTheDocument();
     });
-    expect(screen.queryByText('Fetching')).not.toBeInTheDocument();
 
     await userEvent.setup().click(screen.getByLabelText(/close/i));
 
