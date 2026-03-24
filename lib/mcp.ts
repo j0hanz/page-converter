@@ -96,7 +96,7 @@ async function resetRuntimeState(
     state.lastStderr = undefined;
   }
 
-  await instance?.transport?.close().catch(() => {});
+  await instance?.client?.close().catch(() => {});
 }
 
 export async function resetMcpRuntimeStateForTests(): Promise<void> {

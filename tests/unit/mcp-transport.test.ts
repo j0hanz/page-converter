@@ -59,6 +59,7 @@ async function loadMcpModuleWithMocks(options?: {
 
   class FakeClient {
     callTool = vi.fn().mockResolvedValue({ content: [] });
+    close = vi.fn().mockResolvedValue(undefined);
     connect = vi.fn(async () => {
       await connectDeferred?.promise;
     });
@@ -157,7 +158,7 @@ describe('callFetchUrl runtime lifecycle', () => {
 
     await callFetchUrl({ url: 'https://example.com/recovered' });
 
-    expect(transports[0]?.close).toHaveBeenCalled();
+    expect(clients[0]?.close).toHaveBeenCalled();
     expect(clients).toHaveLength(2);
     expect(clients[1]?.connect).toHaveBeenCalledTimes(1);
   });
