@@ -24,7 +24,7 @@ import Typography from '@mui/material/Typography';
 
 import { BaseDialog } from '@/components/dialog';
 import { MarkdownErrorBoundary } from '@/components/error';
-import { MarkdownSkeleton } from '@/components/loading';
+import { MarkdownSkeleton, ResultHeaderSkeleton } from '@/components/loading';
 import MarkdownPreview from '@/components/markdown-preview';
 import type { TransformResult } from '@/lib/api';
 import { sx, tokens } from '@/lib/theme';
@@ -179,9 +179,18 @@ function ResultActionButton({
 }
 
 function PreviewContent({ markdown }: { markdown: string }) {
-  const { isPending, previewMarkdown, previewTransitionDuration } =
-    usePreviewMarkdown(markdown);
+  return <MarkdownPreview>{markdown}</MarkdownPreview>;
+}
 
+function PreviewSurface({
+  isPending,
+  markdown,
+  previewTransitionDuration,
+}: {
+  isPending: boolean;
+  markdown: string;
+  previewTransitionDuration: number;
+}) {
   return (
     <Box aria-busy={isPending}>
       <Fade
@@ -202,7 +211,7 @@ function PreviewContent({ markdown }: { markdown: string }) {
         unmountOnExit
       >
         <Box>
-          <MarkdownPreview>{previewMarkdown ?? ''}</MarkdownPreview>
+          <PreviewContent markdown={markdown} />
         </Box>
       </Fade>
     </Box>
@@ -212,15 +221,25 @@ function PreviewContent({ markdown }: { markdown: string }) {
 function ResultMarkdownPanel({
   isPreviewMode,
   markdown,
+  previewMarkdown,
+  isPending,
+  previewTransitionDuration,
 }: {
   isPreviewMode: boolean;
   markdown: string;
+  previewMarkdown: string;
+  isPending: boolean;
+  previewTransitionDuration: number;
 }) {
   return (
     <Paper sx={sx.markdownPanel}>
       <Box sx={{ display: isPreviewMode ? 'block' : 'none' }}>
         <MarkdownErrorBoundary resetKey={markdown}>
-          <PreviewContent markdown={markdown} />
+          <PreviewSurface
+            isPending={isPending}
+            markdown={previewMarkdown}
+            previewTransitionDuration={previewTransitionDuration}
+          />
         </MarkdownErrorBoundary>
       </Box>
       <Box sx={{ display: !isPreviewMode ? 'block' : 'none' }}>
@@ -290,52 +309,84 @@ function ResultDetailDialog({
   );
 }
 
-function ResultHeaderWithDetails({ result }: TransformResultProps) {
+function ResultHeaderWithDetails({
+  result,
+  isPending,
+  previewTransitionDuration,
+}: TransformResultProps & {
+  isPending: boolean;
+  previewTransitionDuration: number;
+}) {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const { title, url, metadata, fromCache } = result;
 
   return (
     <>
-      <Tooltip title="View page details">
-        <ButtonBase
-          onClick={() => setDetailDialogOpen(true)}
-          disableRipple={true}
-          sx={sx.headerButton}
-          aria-label="View page details"
+      <Box sx={sx.transitionGrid}>
+        <Fade
+          in={isPending}
+          appear
+          timeout={previewTransitionDuration}
+          mountOnEnter
+          unmountOnExit
         >
-          <Stack direction="row" gap={1.5} alignItems="center">
-            <Badge
-              variant="dot"
-              color="success"
-              invisible={!fromCache}
-              overlap="circular"
-            >
-              <Avatar
-                src={
-                  isSafeImageUrl(metadata.favicon)
-                    ? metadata.favicon
-                    : undefined
-                }
-                sx={{ width: tokens.sizes.avatar, height: tokens.sizes.avatar }}
-                alt={title ?? url}
-                variant="square"
+          <Box sx={sx.transitionCell}>
+            <ResultHeaderSkeleton />
+          </Box>
+        </Fade>
+        <Fade
+          in={!isPending}
+          timeout={previewTransitionDuration}
+          mountOnEnter
+          unmountOnExit
+        >
+          <Box sx={sx.transitionCell}>
+            <Tooltip title="View page details">
+              <ButtonBase
+                onClick={() => setDetailDialogOpen(true)}
+                disableRipple={true}
+                sx={sx.headerButton}
+                aria-label="View page details"
               >
-                {title?.[0]}
-              </Avatar>
-            </Badge>
-            <Stack>
-              {title && (
-                <Typography variant="body2" sx={sx.truncatedText} noWrap>
-                  {title}
-                </Typography>
-              )}
-              <Typography variant="caption" sx={sx.resultUrl} noWrap>
-                {url}
-              </Typography>
-            </Stack>
-          </Stack>
-        </ButtonBase>
-      </Tooltip>
+                <Stack direction="row" gap={1.5} alignItems="center">
+                  <Badge
+                    variant="dot"
+                    color="success"
+                    invisible={!fromCache}
+                    overlap="circular"
+                  >
+                    <Avatar
+                      src={
+                        isSafeImageUrl(metadata.favicon)
+                          ? metadata.favicon
+                          : undefined
+                      }
+                      sx={{
+                        width: tokens.sizes.avatar,
+                        height: tokens.sizes.avatar,
+                      }}
+                      alt={title ?? url}
+                      variant="square"
+                    >
+                      {title?.[0]}
+                    </Avatar>
+                  </Badge>
+                  <Stack>
+                    {title && (
+                      <Typography variant="body2" sx={sx.truncatedText} noWrap>
+                        {title}
+                      </Typography>
+                    )}
+                    <Typography variant="caption" sx={sx.resultUrl} noWrap>
+                      {url}
+                    </Typography>
+                  </Stack>
+                </Stack>
+              </ButtonBase>
+            </Tooltip>
+          </Box>
+        </Fade>
+      </Box>
       <ResultDetailDialog
         open={detailDialogOpen}
         onClose={() => setDetailDialogOpen(false)}
@@ -425,6 +476,8 @@ function ResultActionBar({
 
 export default function TransformResultPanel({ result }: TransformResultProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
+  const { isPending, previewMarkdown, previewTransitionDuration } =
+    usePreviewMarkdown(result.markdown);
 
   function handleViewModeChange(
     _event: React.MouseEvent<HTMLElement>,
@@ -444,7 +497,11 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
         </Alert>
       )}
 
-      <ResultHeaderWithDetails result={result} />
+      <ResultHeaderWithDetails
+        result={result}
+        isPending={isPending}
+        previewTransitionDuration={previewTransitionDuration}
+      />
 
       <Stack gap={0.2} sx={{ pt: 1 }} component="section">
         <ResultActionBar
@@ -455,6 +512,9 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
         <ResultMarkdownPanel
           isPreviewMode={viewMode === 'preview'}
           markdown={result.markdown}
+          previewMarkdown={previewMarkdown ?? ''}
+          isPending={isPending}
+          previewTransitionDuration={previewTransitionDuration}
         />
       </Stack>
     </Stack>

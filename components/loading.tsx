@@ -4,6 +4,8 @@ import Box from '@mui/material/Box';
 import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 
+import { tokens } from '@/lib/theme';
+
 const INTRO_LINE_WIDTHS = ['100%', '100%', '75%'] as const;
 const BODY_LINE_WIDTHS = ['100%', '90%', '100%', '60%'] as const;
 const OUTRO_LINE_WIDTHS = ['100%', '85%', '50%'] as const;
@@ -101,6 +103,30 @@ export function MarkdownSkeleton() {
       sx={{ maxHeight: '70dvh', overflow: 'hidden' }}
     >
       {MARKDOWN_SKELETON_LAYOUT.map(renderMarkdownSkeletonItem)}
+    </Stack>
+  );
+}
+
+export function ResultHeaderSkeleton() {
+  return (
+    <Stack
+      role="status"
+      aria-label="Result header loading"
+      direction="row"
+      gap={1.5}
+      alignItems="center"
+      sx={{ width: '100%' }}
+    >
+      <Skeleton
+        animation="wave"
+        variant="rounded"
+        width={tokens.sizes.avatar}
+        height={tokens.sizes.avatar}
+      />
+      <Stack spacing={0.5} sx={{ flex: 1, minWidth: 0 }}>
+        <Skeleton animation="wave" variant="text" width="36%" />
+        <Skeleton animation="wave" variant="text" width="58%" />
+      </Stack>
     </Stack>
   );
 }

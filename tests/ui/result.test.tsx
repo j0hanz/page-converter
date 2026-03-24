@@ -29,6 +29,9 @@ describe('TransformResultPanel', () => {
     expect(
       screen.getByRole('status', { name: /markdown preview loading/i })
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: /result header loading/i })
+    ).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('Example')).toBeInTheDocument();
@@ -130,32 +133,40 @@ describe('TransformResultPanel', () => {
       },
     });
 
-    const avatar = screen.getByRole('img', { name: 'Example Domain' });
-    expect(avatar).toHaveAttribute('src', 'https://example.com/favicon.ico');
+    return waitFor(() => {
+      const avatar = screen.getByRole('img', { name: 'Example Domain' });
+      expect(avatar).toHaveAttribute('src', 'https://example.com/favicon.ico');
+    });
   });
 
-  it('renders letter fallback when favicon is missing', () => {
+  it('renders letter fallback when favicon is missing', async () => {
     renderPanel();
 
-    expect(screen.getByText('E')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('E')).toBeInTheDocument();
+    });
   });
 
-  it('shows cache badge when fromCache is true', () => {
+  it('shows cache badge when fromCache is true', async () => {
     const { container } = renderPanel({
       result: { ...baseResult, fromCache: true },
     });
 
-    const badge = container.querySelector('.MuiBadge-dot');
-    expect(badge).toBeInTheDocument();
+    await waitFor(() => {
+      const badge = container.querySelector('.MuiBadge-dot');
+      expect(badge).toBeInTheDocument();
+    });
   });
 
-  it('hides cache badge when fromCache is false', () => {
+  it('hides cache badge when fromCache is false', async () => {
     const { container } = renderPanel({
       result: { ...baseResult, fromCache: false },
     });
 
-    const badge = container.querySelector('.MuiBadge-dot');
-    expect(badge).toHaveClass('MuiBadge-invisible');
+    await waitFor(() => {
+      const badge = container.querySelector('.MuiBadge-dot');
+      expect(badge).toHaveClass('MuiBadge-invisible');
+    });
   });
 
   it('shows the skeleton again when new preview content arrives', async () => {
@@ -170,6 +181,7 @@ describe('TransformResultPanel', () => {
         result={{
           ...baseResult,
           fetchedAt: '2026-03-10T12:01:00.000Z',
+          title: 'Updated Domain',
           markdown: '# Updated',
         }}
       />
@@ -178,10 +190,14 @@ describe('TransformResultPanel', () => {
     expect(
       screen.getByRole('status', { name: /markdown preview loading/i })
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: /result header loading/i })
+    ).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('Updated')).toBeInTheDocument();
     });
+    expect(screen.getByText('Updated Domain')).toBeInTheDocument();
   });
 });
 
