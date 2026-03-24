@@ -115,7 +115,9 @@ export async function resetMcpRuntimeStateForTests(): Promise<void> {
 }
 
 function createClient(state: McpRuntimeState): Client {
-  const client = new Client(CLIENT_INFO);
+  const client = new Client(CLIENT_INFO, {
+    capabilities: {},
+  });
 
   client.onerror = () => {
     void resetRuntimeState(state, { expectedClient: client });
@@ -155,8 +157,19 @@ function delay(ms: number): Promise<void> {
 }
 
 async function verifyToolAvailability(client: Client): Promise<void> {
-  const { tools } = await client.listTools();
-  if (!tools.some((tool) => tool.name === FETCH_URL_TOOL_NAME)) {
+  let hasTool = false;
+  let cursor: string | undefined = undefined;
+
+  do {
+    const response = await client.listTools(cursor ? { cursor } : undefined);
+    if (response.tools.some((tool) => tool.name === FETCH_URL_TOOL_NAME)) {
+      hasTool = true;
+      break;
+    }
+    cursor = response.nextCursor;
+  } while (cursor);
+
+  if (!hasTool) {
     throw new Error(
       `MCP server does not expose the required "${FETCH_URL_TOOL_NAME}" tool.`
     );
