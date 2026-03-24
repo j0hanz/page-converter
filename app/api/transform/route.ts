@@ -61,8 +61,16 @@ function readValidationErrorMessage(error: unknown): string {
 }
 
 async function readRequestBody(request: Request): Promise<unknown> {
+  const text = await request.text().catch(() => {
+    throw new ValidationError('Invalid JSON body.');
+  });
+
+  if (text.length > MAX_REQUEST_BODY_SIZE) {
+    throw new ValidationError('Request body too large.');
+  }
+
   try {
-    return await request.json();
+    return JSON.parse(text) as unknown;
   } catch {
     throw new ValidationError('Invalid JSON body.');
   }
@@ -72,16 +80,6 @@ async function parseTransformRequest(
   request: Request
 ): Promise<TransformRequest> {
   return validateTransformRequest(await readRequestBody(request));
-}
-
-function isOversizedRequest(request: Request): boolean {
-  const contentLength = request.headers.get('content-length');
-  if (contentLength === null) {
-    return false;
-  }
-
-  const size = Number.parseInt(contentLength, 10);
-  return !Number.isNaN(size) && size > MAX_REQUEST_BODY_SIZE;
 }
 
 function createValidationErrorResponse(message: string): Response {
@@ -180,6 +178,10 @@ function createNdjsonResponseStream(
         streamWriter.close();
       }
     },
+    cancel() {
+      // Called by the runtime when the client disconnects.
+      // streamWriter.close() is idempotent via the closed flag.
+    },
   });
 }
 
@@ -251,10 +253,6 @@ function shouldReturnImmediateErrorResponse(
 }
 
 export async function POST(request: Request): Promise<Response> {
-  if (isOversizedRequest(request)) {
-    return createValidationErrorResponse('Request body too large.');
-  }
-
   try {
     const validated = await parseTransformRequest(request);
     const progressEmitter = createBufferedProgressEmitter();
