@@ -178,6 +178,74 @@ describe('client-transform', () => {
     );
   });
 
+  it('skips malformed NDJSON lines and continues streaming', async () => {
+    const onProgress = vi.fn();
+    const onResult = vi.fn();
+    const onError = vi.fn();
+
+    const validProgress = JSON.stringify({
+      type: 'progress',
+      progress: 1,
+      total: 8,
+      message: 'Fetching',
+    });
+    const malformedLine = '{not valid json';
+    const validResult = JSON.stringify({
+      type: 'result',
+      ok: true,
+      result: {
+        url: VALID_URL,
+        markdown: '# OK',
+        metadata: {},
+        fromCache: false,
+        fetchedAt: '2026-03-20T00:00:00.000Z',
+        contentSize: 4,
+        truncated: false,
+      },
+    });
+
+    const raw = [validProgress, malformedLine, validResult]
+      .map((l) => l + '\n')
+      .join('');
+    const encoded = new TextEncoder().encode(raw);
+
+    global.fetch = vi.fn().mockResolvedValue({
+      headers: new Headers({ 'Content-Type': 'application/x-ndjson' }),
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoded);
+          controller.close();
+        },
+      }),
+    });
+
+    await submitTransformRequest(
+      VALID_URL,
+      { onError, onProgress, onResult },
+      new AbortController().signal
+    );
+
+    expect(onProgress).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'progress', progress: 1 })
+    );
+    expect(onResult).toHaveBeenCalledWith(
+      expect.objectContaining({ url: VALID_URL, markdown: '# OK' })
+    );
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('maps abort errors to non-retryable abort responses', () => {
+    expect(
+      mapClientTransformError(new DOMException('Aborted', 'AbortError'))
+    ).toEqual(
+      expect.objectContaining({
+        code: 'ABORTED',
+        message: 'Request was cancelled.',
+        retryable: false,
+      })
+    );
+  });
+
   it('maps timeout errors to retryable abort responses', () => {
     expect(
       mapClientTransformError(new DOMException('Timed out', 'TimeoutError'))

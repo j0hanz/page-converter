@@ -64,6 +64,7 @@ interface McpRuntimeState {
   connecting?: Promise<Client>;
   instance?: McpInstance;
   lastStderr?: string;
+  failureCount?: number;
 }
 
 const globalForMcp = globalThis as typeof globalThis & McpGlobalState;
@@ -133,15 +134,32 @@ async function getConnectedClient(): Promise<Client> {
   return state.connecting;
 }
 
+function computeReconnectDelay(failureCount: number): number {
+  if (failureCount <= 0) return 0;
+  const delay = RECONNECT_BASE_DELAY_MS * 2 ** (failureCount - 1);
+  return Math.min(delay, RECONNECT_MAX_DELAY_MS);
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function connectClient(state: McpRuntimeState): Promise<Client> {
+  const backoff = computeReconnectDelay(state.failureCount ?? 0);
+  if (backoff > 0) {
+    await delay(backoff);
+  }
+
   const transport = createTransport(state);
   const client = createClient(state);
 
   try {
     await client.connect(transport);
     state.instance = { client, transport };
+    state.failureCount = 0;
     return client;
   } catch (error) {
+    state.failureCount = (state.failureCount ?? 0) + 1;
     await closeTransportQuietly(transport);
     throw createTransportError(error, state);
   } finally {
@@ -253,6 +271,8 @@ export function getFetchUrlTransportConfig(
 const MAX_STDERR_BUFFER_LENGTH = 4000;
 const MCP_MAX_TOTAL_TIMEOUT = 120_000;
 const HTTP_ERROR_CODE_PREFIX = 'HTTP_';
+const RECONNECT_BASE_DELAY_MS = 500;
+const RECONNECT_MAX_DELAY_MS = 5000;
 
 const KNOWN_MCP_ERRORS = {
   VALIDATION_ERROR: { code: 'VALIDATION_ERROR', retryable: false },

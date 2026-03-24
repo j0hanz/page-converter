@@ -192,8 +192,8 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
-function isOptionalString(value: unknown): value is string | undefined {
-  return value === undefined || typeof value === 'string';
+function isOptionalString(value: unknown): value is string | null | undefined {
+  return value == null || typeof value === 'string';
 }
 
 function isTransformMetadata(value: unknown): value is TransformMetadata {
@@ -308,6 +308,8 @@ export function isTransformErrorResponse(
 
 export function mapClientTransformError(error: unknown): TransformError {
   if (isTimeoutError(error)) return createTimeoutError();
+  if (isAbortError(error))
+    return createTransformError('ABORTED', 'Request was cancelled.');
   if (isTransformError(error)) return error;
   return createNetworkError();
 }

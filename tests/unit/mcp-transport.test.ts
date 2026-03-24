@@ -140,7 +140,7 @@ describe('callFetchUrl runtime lifecycle', () => {
   });
 
   it('resets the runtime instance after a connection-closed error', async () => {
-    const { ErrorCode, FakeMcpError, callFetchUrl, clients, transports } =
+    const { ErrorCode, FakeMcpError, callFetchUrl, clients } =
       await loadMcpModuleWithMocks();
 
     await callFetchUrl({ url: 'https://example.com' });

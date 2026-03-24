@@ -60,8 +60,12 @@ function createNdjsonStreamReader(
       return;
     }
 
-    sawTerminalEvent =
-      emitParsedStreamEvent(trimmedLine, onEvent) || sawTerminalEvent;
+    try {
+      sawTerminalEvent =
+        emitParsedStreamEvent(trimmedLine, onEvent) || sawTerminalEvent;
+    } catch {
+      // Skip malformed lines instead of aborting the entire stream.
+    }
   }
 
   return {
@@ -140,6 +144,7 @@ async function readNdjsonStream(
 
     return createUnexpectedResponseError();
   } finally {
+    await reader.cancel().catch(() => {});
     reader.releaseLock();
   }
 }
