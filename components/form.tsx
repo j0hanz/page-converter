@@ -41,11 +41,11 @@ export default function TransformForm({
             id={urlInputId}
             inputRef={inputRef}
             name="url"
-            label="Paste a public URL to convert"
+            label="Enter URL to convert"
             type="url"
             required
             fullWidth
-            placeholder="https://example.com"
+            placeholder="https://..."
             defaultValue=""
             disabled={loading}
             variant="outlined"
