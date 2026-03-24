@@ -122,6 +122,7 @@ export default function AboutDialog({
           onClick={handleOpen}
           aria-label="About Fetch URL"
           size="small"
+          disableRipple={true}
         >
           <InfoOutlinedIcon sx={HEADER_ICON_SX} />
         </IconButton>

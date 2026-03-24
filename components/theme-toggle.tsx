@@ -54,6 +54,7 @@ export default function ThemeToggle() {
         onClick={() => setMode(currentMode.next)}
         aria-label={actionLabel}
         size="small"
+        disableRipple={true}
       >
         <Icon sx={HEADER_ICON_SX} />
       </IconButton>

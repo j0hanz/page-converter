@@ -212,6 +212,26 @@ export const theme = responsiveFontSizes(
           },
         },
       },
+      MuiAppBar: {
+        defaultProps: {
+          position: 'sticky',
+          color: 'transparent',
+          elevation: 0,
+        },
+        styleOverrides: {
+          root: {
+            borderRadius: 0,
+            boxShadow: 'none',
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none',
+          },
+        },
+      },
+      MuiToolbar: {
+        defaultProps: {
+          disableGutters: true,
+        },
+      },
       MuiPaper: {
         styleOverrides: {
           root: PAPER_ROOT_SX,
