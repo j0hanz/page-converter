@@ -19,11 +19,7 @@ export const tokens = {
   radius: { panel: 16, code: 1 },
   blur: { paper: '12.3px', dialog: '17.5px' },
   sizes: { avatar: 32, chipHeight: 20, loader: 32 },
-  scrollbar: {
-    width: 'thin' as const,
-    thumb: 'var(--mui-palette-action-disabled)',
-    track: 'transparent',
-  },
+  scrollbar: { width: 'none' as const },
 } as const;
 
 // ── Responsive value maps ───────────────────────────────────────
@@ -205,12 +201,9 @@ export const theme = responsiveFontSizes(
         styleOverrides: {
           html: {
             scrollbarWidth: tokens.scrollbar.width,
-            scrollbarColor: `${tokens.scrollbar.thumb} ${tokens.scrollbar.track}`,
-            scrollbarGutter: 'stable',
           },
           '*, *::before, *::after': {
             scrollbarWidth: 'inherit',
-            scrollbarColor: 'inherit',
           },
         },
       },
