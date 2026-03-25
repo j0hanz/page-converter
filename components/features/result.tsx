@@ -206,7 +206,7 @@ function ResultMarkdownPanel({
 
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <Stack direction="row" gap={2.5}>
+    <Stack direction="row" gap={2}>
       <Typography variant="body2" color="text.secondary">
         {label}
       </Typography>
@@ -443,7 +443,7 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
   }
 
   return (
-    <Stack spacing={3}>
+    <Stack spacing={2}>
       {result.truncated && (
         <Alert severity="warning">
           Content was truncated. The full page may be too large to return in one
@@ -457,7 +457,7 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
         previewTransitionDuration={previewTransitionDuration}
       />
 
-      <Stack gap={0.2} sx={{ pt: 1 }} component="section">
+      <Stack gap={0.2} component="section">
         <ResultActionBar
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}

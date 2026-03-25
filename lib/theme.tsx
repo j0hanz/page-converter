@@ -19,12 +19,17 @@ export const tokens = {
   radius: { panel: 16, code: 1 },
   blur: { paper: '12.3px', dialog: '17.5px' },
   sizes: { avatar: 32, chipHeight: 20, loader: 32 },
+  scrollbar: {
+    width: 'thin' as const,
+    thumb: 'var(--mui-palette-action-disabled)',
+    track: 'transparent',
+  },
 } as const;
 
 // ── Responsive value maps ───────────────────────────────────────
 export const responsive = {
   pagePt: { xs: 2, sm: 3, md: 4 },
-  containerGap: { xs: 2, sm: 3 },
+  containerGap: { xs: 1.5, sm: 2 },
   panelPadding: { xs: 1.5, sm: 2.5 },
   codeFontSize: { xs: '0.8125rem', sm: '0.875rem' },
   truncateWidth: { xs: '30ch', sm: '50ch', md: '70ch' },
@@ -69,6 +74,7 @@ export const sx = {
   codeBlock: {
     p: 2,
     overflow: 'auto',
+
     fontFamily: tokens.fonts.mono,
     fontSize: '0.875rem',
     bgcolor: 'action.hover',
@@ -195,6 +201,19 @@ export const theme = responsiveFontSizes(
       fontFamily: tokens.fonts.sans,
     },
     components: {
+      MuiCssBaseline: {
+        styleOverrides: {
+          html: {
+            scrollbarWidth: tokens.scrollbar.width,
+            scrollbarColor: `${tokens.scrollbar.thumb} ${tokens.scrollbar.track}`,
+            scrollbarGutter: 'stable',
+          },
+          '*, *::before, *::after': {
+            scrollbarWidth: 'inherit',
+            scrollbarColor: 'inherit',
+          },
+        },
+      },
       MuiAlert: {
         defaultProps: {
           variant: 'outlined',
