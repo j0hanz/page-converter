@@ -13,7 +13,7 @@ export function AppThemeProviders({ children }: { children: ReactNode }) {
   return (
     <>
       <InitColorSchemeScript attribute="class" />
-      <AppRouterCacheProvider>
+      <AppRouterCacheProvider options={{ enableCssLayer: true }}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
           {children}

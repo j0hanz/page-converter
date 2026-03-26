@@ -31,14 +31,12 @@ describe('TransformForm', () => {
     expect(formData.get('url')).toBe(VALID_URL);
   });
 
-  it('disables the URL input and changes button text while loading', () => {
+  it('disables the URL input and shows loading state on button', () => {
     renderForm({ loading: true });
 
     expect(screen.getByLabelText(/URL/i)).toBeDisabled();
-    expect(screen.getByRole('button', { name: /converting/i })).toBeDisabled();
-    expect(
-      screen.queryByRole('button', { name: /^convert$/i })
-    ).not.toBeInTheDocument();
+    const button = screen.getByRole('button');
+    expect(button).toBeDisabled();
   });
 });
 

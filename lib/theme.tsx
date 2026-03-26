@@ -124,7 +124,7 @@ export const sx = {
 
   // Result panel
   markdownPanel: {
-    p: responsive.panelPadding,
+    p: { '@': 1.5, '@sm': 2.5 },
     flex: 1,
     maxHeight: responsive.panelMaxHeight,
     overflow: 'auto',
@@ -151,7 +151,12 @@ export const sx = {
     textAlign: 'left',
     width: '100%',
   },
-  transitionGrid: { flex: 1, display: 'grid', alignItems: 'start' },
+  transitionGrid: {
+    flex: 1,
+    display: 'grid',
+    alignItems: 'start',
+    containerType: 'inline-size',
+  },
   transitionCell: { gridArea: '1 / 1' },
 
   // Table
@@ -214,13 +219,13 @@ export const theme = responsiveFontSizes(
       },
       MuiDialog: {
         styleOverrides: {
-          paper: {
-            '.dark &': {
+          paper: ({ theme }) => ({
+            ...theme.applyStyles('dark', {
               background: 'rgba(63, 63, 63, 0.71)',
               backdropFilter: `blur(${tokens.blur.dialog})`,
               WebkitBackdropFilter: `blur(${tokens.blur.dialog})`,
-            },
-          },
+            }),
+          }),
         },
       },
       MuiAppBar: {
@@ -250,15 +255,17 @@ export const theme = responsiveFontSizes(
       },
       MuiOutlinedInput: {
         styleOverrides: {
-          input: {
+          input: ({ theme }) => ({
             '&:-webkit-autofill': {
               ...AUTOFILL_TEXT_SX,
               borderRadius: 'inherit',
             },
-            '.dark &:-webkit-autofill': {
-              ...AUTOFILL_TEXT_SX,
-            },
-          },
+            ...theme.applyStyles('dark', {
+              '&:-webkit-autofill': {
+                ...AUTOFILL_TEXT_SX,
+              },
+            }),
+          }),
         },
       },
       MuiStack: {

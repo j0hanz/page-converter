@@ -457,7 +457,11 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
         previewTransitionDuration={previewTransitionDuration}
       />
 
-      <Stack gap={0.2} component="section">
+      <Stack
+        gap={0.2}
+        component="section"
+        sx={{ containerType: 'inline-size' }}
+      >
         <ResultActionBar
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}

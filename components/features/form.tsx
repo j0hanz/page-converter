@@ -49,13 +49,8 @@ export default function TransformForm({
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 4 }}>
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            disabled={loading}
-          >
-            {loading ? 'Converting...' : 'Convert'}
+          <Button type="submit" variant="contained" fullWidth loading={loading}>
+            Convert
           </Button>
         </Grid>
       </Grid>
