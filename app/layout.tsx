@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 
+import InitColorSchemeScript from '@mui/material/InitColorSchemeScript';
+
 import '@fontsource-variable/geist';
 import '@fontsource-variable/geist-mono';
 
@@ -73,6 +75,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
+        <InitColorSchemeScript attribute="class" />
         <AppThemeProviders>{children}</AppThemeProviders>
       </body>
     </html>
