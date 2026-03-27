@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react';
 
-import type { TransformFormHandle } from '@/components/features/form';
 import type {
   StreamProgressEvent,
   TransformError,
@@ -39,7 +38,7 @@ export function useTransform() {
   const [progress, setProgress] = useState<StreamProgressEvent | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const formRef = useRef<TransformFormHandle>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastUrlRef = useRef<string | null>(null);
 
@@ -86,7 +85,7 @@ export function useTransform() {
   ): void {
     finalizeActiveRequest(requestController, () => {
       setResult(nextResult);
-      formRef.current?.clear();
+      formRef.current?.reset();
     });
   }
 

@@ -13,10 +13,6 @@ export class ValidationError extends Error {
   }
 }
 
-export function parseUrlString(value: string): URL | null {
-  return URL.parse(value);
-}
-
 function readTransformRequestRecord(body: unknown): Record<string, unknown> {
   if (body === null || typeof body !== 'object' || Array.isArray(body)) {
     throw new ValidationError('Request body must be a JSON object.');
@@ -44,7 +40,7 @@ export function validateTransformRequest(body: unknown): TransformRequest {
     throw new ValidationError(URL_REQUIRED_MESSAGE);
   }
 
-  const parsed = parseUrlString(trimmed);
+  const parsed = URL.parse(trimmed);
   if (!parsed) {
     throw new ValidationError('Field "url" must be a valid URL.');
   }

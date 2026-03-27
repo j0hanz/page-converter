@@ -159,12 +159,6 @@ export function isNdjsonContentType(contentType: string | null): boolean {
   return (contentType ?? '').includes(NDJSON_CONTENT_TYPE);
 }
 
-export function isTerminalStreamProgressEvent(
-  event: StreamProgressEvent
-): boolean {
-  return event.progress >= event.total;
-}
-
 export function isStreamProgressEvent(
   event: StreamEvent
 ): event is StreamProgressEvent {

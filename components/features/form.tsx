@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useImperativeHandle, useRef } from 'react';
+import { useId } from 'react';
 
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -9,12 +9,8 @@ import TextField from '@mui/material/TextField';
 
 import { useFormStatus } from 'react-dom';
 
-export interface TransformFormHandle {
-  clear: () => void;
-}
-
 interface TransformFormProps {
-  ref?: React.Ref<TransformFormHandle>;
+  ref?: React.Ref<HTMLFormElement>;
   action: (formData: FormData) => void;
 }
 
@@ -30,16 +26,9 @@ function SubmitButton() {
 
 export default function TransformForm({ ref, action }: TransformFormProps) {
   const urlInputId = useId();
-  const formRef = useRef<HTMLFormElement>(null);
-
-  useImperativeHandle(ref, () => ({
-    clear() {
-      formRef.current?.reset();
-    },
-  }));
 
   return (
-    <Box component="form" ref={formRef} action={action}>
+    <Box component="form" ref={ref} action={action}>
       <Grid container spacing={1} sx={{ mb: 1.5 }}>
         <Grid size={{ xs: 12, sm: 8 }}>
           <TextField

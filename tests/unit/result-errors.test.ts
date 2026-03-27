@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 import {
   createStreamProgressEvent,
   createTransformError,
-  isTerminalStreamProgressEvent,
   isTransformError,
   isTransformErrorResponse,
   normalizeStreamProgressEvent,
@@ -173,17 +172,6 @@ describe('error mapper', () => {
       total: STREAM_PROGRESS_TOTAL,
       message: 'Stale step',
     });
-  });
-
-  it('detects terminal streamed progress events', () => {
-    expect(
-      isTerminalStreamProgressEvent(
-        createStreamProgressEvent(STREAM_PROGRESS_TOTAL, STREAM_PROGRESS_TOTAL)
-      )
-    ).toBe(true);
-    expect(isTerminalStreamProgressEvent(createStreamProgressEvent(7, 8))).toBe(
-      false
-    );
   });
 
   it('recognizes valid transform error objects', () => {

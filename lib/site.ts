@@ -1,5 +1,3 @@
-import { parseUrlString } from '@/lib/validate';
-
 const DEFAULT_SITE_URL = 'http://localhost:3000';
 const SITE_URL_ENV_KEYS = [
   'NEXT_PUBLIC_APP_URL',
@@ -41,7 +39,7 @@ function normalizeSiteUrl(value: string): URL | null {
   const withProtocol = /^https?:\/\//i.test(trimmedValue)
     ? trimmedValue
     : `https://${trimmedValue}`;
-  const url = parseUrlString(withProtocol);
+  const url = URL.parse(withProtocol);
 
   if (!url) {
     return null;
