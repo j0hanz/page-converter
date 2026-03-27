@@ -1,5 +1,3 @@
-'use client';
-
 import type { SxProps, Theme } from '@mui/material/styles';
 import SvgIcon, { type SvgIconProps } from '@mui/material/SvgIcon';
 

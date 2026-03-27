@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import Button from '@mui/material/Button';
 
-import { StatusShell } from '@/components/ui/error';
+import { StatusShell } from '@/components/ui/status-shell';
 
 export default function NotFound() {
   return (

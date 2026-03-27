@@ -1,5 +1,3 @@
-'use client';
-
 import type { ComponentProps, ElementType, ReactNode } from 'react';
 
 import Box from '@mui/material/Box';
