@@ -145,7 +145,7 @@ export const sx = {
     textOverflow: 'ellipsis',
     maxWidth: responsive.truncateWidth,
   },
-  toggleButton: { border: 0 },
+  toggleButton: { border: 0, minWidth: 64, px: 1, py: 0.5 },
   headerButton: {
     justifyContent: 'flex-start',
     textAlign: 'left',
