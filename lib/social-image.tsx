@@ -1,6 +1,11 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { cache, type CSSProperties, type ReactNode } from 'react';
 
 import { ImageResponse } from 'next/og';
+
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
+import 'server-only';
 
 import { SOCIAL_IMAGE_SIZE } from '@/lib/site';
 
@@ -38,6 +43,7 @@ interface SocialImageResponseOptions {
 }
 
 const FONT_STACK = "'Geist Variable', sans-serif";
+const OG_FONT_PATH = join(process.cwd(), 'assets', 'Geist-Regular.ttf');
 
 const ROOT_STYLE: CSSProperties = {
   display: 'flex',
@@ -204,7 +210,16 @@ function SocialFeaturePill({
   );
 }
 
-export function createSocialImageResponse({
+const readOgFontData = cache(async (): Promise<ArrayBuffer> => {
+  const fontBuffer = await readFile(OG_FONT_PATH);
+
+  return fontBuffer.buffer.slice(
+    fontBuffer.byteOffset,
+    fontBuffer.byteOffset + fontBuffer.byteLength
+  );
+});
+
+export async function createSocialImageResponse({
   body,
   eyebrowLabel,
   eyebrowVariant = 'filled',
@@ -213,6 +228,8 @@ export function createSocialImageResponse({
   palette,
   title,
 }: SocialImageResponseOptions) {
+  const geistFont = await readOgFontData();
+
   return new ImageResponse(
     <SocialImageFrame palette={palette}>
       <SocialImageContent maxWidth={maxWidth}>
@@ -231,7 +248,17 @@ export function createSocialImageResponse({
         ))}
       </SocialFeatureList>
     </SocialImageFrame>,
-    SOCIAL_IMAGE_SIZE
+    {
+      ...SOCIAL_IMAGE_SIZE,
+      fonts: [
+        {
+          name: 'Geist Variable',
+          data: geistFont,
+          style: 'normal',
+          weight: 400,
+        },
+      ],
+    }
   );
 }
 

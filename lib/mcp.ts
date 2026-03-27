@@ -9,6 +9,7 @@ import type {
   Progress,
 } from '@modelcontextprotocol/sdk/types.js';
 import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+import 'server-only';
 
 import type {
   TransformError,

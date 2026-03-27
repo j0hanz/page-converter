@@ -20,7 +20,7 @@ const OG_FEATURES = [
   { label: 'Markdown export', backgroundColor: '#ede9fe' },
 ] as const;
 
-export default function OpenGraphImage() {
+export default async function OpenGraphImage() {
   return createSocialImageResponse({
     eyebrowLabel: 'Web page to Markdown',
     body: `${SITE_TAGLINE} with live progress, preview, copy, and download.`,

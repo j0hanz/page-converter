@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import Button from '@mui/material/Button';
 
 import { StatusShell } from '@/components/ui/error';
@@ -9,7 +11,7 @@ export default function NotFound() {
       message="The page you are looking for does not exist."
       minHeight="50vh"
       action={
-        <Button href="/" variant="contained">
+        <Button component={Link} href="/" variant="contained">
           Go home
         </Button>
       }

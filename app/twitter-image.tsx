@@ -32,7 +32,7 @@ const TWITTER_FEATURES = [
   },
 ] as const;
 
-export default function TwitterImage() {
+export default async function TwitterImage() {
   return createSocialImageResponse({
     eyebrowLabel: 'Clean web page extraction',
     eyebrowVariant: 'outlined',
