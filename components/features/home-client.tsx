@@ -15,6 +15,8 @@ import PreviewPlaceholder from '@/components/ui/preview-placeholder';
 import { deriveViewState, useTransform } from '@/hooks/use-transform';
 import { sx } from '@/lib/theme';
 
+const LOADING_PANEL_SX = { ...sx.markdownPanel, ...sx.transitionCell } as const;
+
 export default function HomeClient() {
   const {
     dismissError,
@@ -41,7 +43,7 @@ export default function HomeClient() {
         </Fade>
 
         <Fade in={viewState === 'loading'} mountOnEnter unmountOnExit>
-          <Paper sx={{ ...sx.markdownPanel, ...sx.transitionCell }}>
+          <Paper sx={LOADING_PANEL_SX}>
             {progress?.message && (
               <Typography
                 variant="caption"

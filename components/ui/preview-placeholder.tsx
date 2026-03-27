@@ -17,7 +17,7 @@ export default function PreviewPlaceholder() {
         justifyContent: 'center',
       }}
     >
-      <Stack sx={{ flex: 1, opacity: 0.5 }} alignItems="center">
+      <Stack sx={{ opacity: 0.5 }} alignItems="center">
         <Typography variant="body2" color="text.secondary">
           Enter a URL above to convert
         </Typography>

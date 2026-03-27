@@ -255,17 +255,12 @@ export const theme = responsiveFontSizes(
       },
       MuiOutlinedInput: {
         styleOverrides: {
-          input: ({ theme }) => ({
+          input: {
             '&:-webkit-autofill': {
               ...AUTOFILL_TEXT_SX,
               borderRadius: 'inherit',
             },
-            ...theme.applyStyles('dark', {
-              '&:-webkit-autofill': {
-                ...AUTOFILL_TEXT_SX,
-              },
-            }),
-          }),
+          },
         },
       },
       MuiStack: {
