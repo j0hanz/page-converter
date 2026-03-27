@@ -66,110 +66,10 @@ export type StreamResultEvent = { type: 'result' } & TransformResponse;
 
 export type StreamEvent = StreamProgressEvent | StreamResultEvent;
 
-export const NDJSON_CONTENT_TYPE = 'application/x-ndjson';
-export const STREAM_PROGRESS_TOTAL = 8;
-type TransformErrorOptions = Omit<TransformError, 'code' | 'message'>;
-
 export type JsonRecord = Record<string, unknown>;
 
-export function createTransformError(
-  code: TransformErrorCode,
-  message: string,
-  options: Partial<TransformErrorOptions> = {}
-): TransformError {
-  const error: TransformError = {
-    code,
-    message,
-    retryable: options.retryable ?? false,
-  };
-
-  if (options.statusCode !== undefined) {
-    error.statusCode = options.statusCode;
-  }
-
-  if (options.details !== undefined) {
-    error.details = options.details;
-  }
-
-  return error;
-}
-
-export function createInternalError(
-  message: string,
-  retryable = false
-): TransformError {
-  return createTransformError('INTERNAL_ERROR', message, { retryable });
-}
-
-function createNetworkError(): TransformError {
-  return createInternalError('Network error. Please try again.', true);
-}
-
-export function createTimeoutError(): TransformError {
-  return createTransformError(
-    'ABORTED',
-    'Request timed out. Please try again.',
-    {
-      retryable: true,
-    }
-  );
-}
-
-export function createUnexpectedResponseError(): TransformError {
-  return createInternalError('Unexpected response format.', false);
-}
-
-function resolveProgressTotal(
-  total: number | undefined,
-  fallback = STREAM_PROGRESS_TOTAL
-): number {
-  return total !== undefined && total > 0 ? total : fallback;
-}
-
-export function createStreamProgressEvent(
-  progress: number,
-  total?: number,
-  message?: string
-): StreamProgressEvent {
-  return {
-    type: 'progress',
-    progress,
-    total: resolveProgressTotal(total),
-    message: message ?? '',
-  };
-}
-
-export function normalizeStreamProgressEvent(
-  event: StreamProgressEvent,
-  previous?: StreamProgressEvent | null
-): StreamProgressEvent {
-  const total = resolveProgressTotal(event.total, previous?.total);
-  const progress = Math.max(event.progress, previous?.progress ?? 0);
-
-  return createStreamProgressEvent(progress, total, event.message);
-}
-
-export function createStreamResultEvent(
-  response: TransformResponse
-): StreamResultEvent {
-  return { type: 'result', ...response };
-}
-
-export function isNdjsonContentType(contentType: string | null): boolean {
-  return (contentType ?? '').includes(NDJSON_CONTENT_TYPE);
-}
-
-export function isStreamProgressEvent(
-  event: StreamEvent
-): event is StreamProgressEvent {
-  return event.type === 'progress';
-}
-
-export function isStreamResultEvent(
-  event: StreamEvent
-): event is StreamResultEvent {
-  return event.type === 'result';
-}
+export * from './errors';
+export * from './stream';
 
 export function hasTransformResult(
   response: TransformResponse
@@ -183,7 +83,7 @@ export function hasTransformError(
   return !response.ok && response.error != null;
 }
 
-function isRecord(value: unknown): value is JsonRecord {
+export function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null;
 }
 
@@ -304,12 +204,4 @@ export function isTransformErrorResponse(
   }
 
   return isTransformError(value.error);
-}
-
-export function mapClientTransformError(error: unknown): TransformError {
-  if (isTimeoutError(error)) return createTimeoutError();
-  if (isAbortError(error))
-    return createTransformError('ABORTED', 'Request was cancelled.');
-  if (isTransformError(error)) return error;
-  return createNetworkError();
 }

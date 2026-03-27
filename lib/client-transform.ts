@@ -5,7 +5,9 @@ import type {
   TransformResult,
 } from '@/lib/api';
 import {
+  createInternalError,
   createTimeoutError,
+  createTransformError,
   createUnexpectedResponseError,
   hasTransformError,
   hasTransformResult,
@@ -15,10 +17,17 @@ import {
   isStreamProgressEvent,
   isStreamResultEvent,
   isTimeoutError,
+  isTransformError,
   isTransformErrorResponse,
 } from '@/lib/api';
 
-export { mapClientTransformError } from '@/lib/api';
+export function mapClientTransformError(error: unknown): TransformError {
+  if (isTimeoutError(error)) return createTimeoutError();
+  if (isAbortError(error))
+    return createTransformError('ABORTED', 'Request was cancelled.');
+  if (isTransformError(error)) return error;
+  return createInternalError('Network error. Please try again.', true);
+}
 
 interface ClientTransformHandlers {
   onError: (error: TransformError) => void;

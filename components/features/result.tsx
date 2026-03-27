@@ -140,20 +140,19 @@ function downloadMarkdownFile(title: string | undefined, markdown: string) {
   const blob = new Blob([markdown], { type: 'text/markdown' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  let attached = false;
 
-  try {
-    link.href = url;
-    link.download = `${sanitizeDownloadFileName(title)}.md`;
-    document.body.appendChild(link);
-    attached = true;
-    link.click();
-  } finally {
-    if (attached) {
-      link.remove();
-    }
+  link.href = url;
+  link.download = `${sanitizeDownloadFileName(title)}.md`;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+
+  // Defer cleanup so the browser can initiate the download before
+  // the blob URL is revoked and the anchor is removed from the DOM.
+  setTimeout(() => {
+    link.remove();
     URL.revokeObjectURL(url);
-  }
+  }, 0);
 }
 
 function formatBytes(bytes: number): string {
