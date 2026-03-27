@@ -34,6 +34,8 @@ describe('TransformForm', () => {
   it('disables the URL input and shows loading state on button', () => {
     renderForm({ isPending: true });
 
+    expect(screen.getByLabelText(/URL/i)).toBeDisabled();
+
     const button = screen.getByRole('button');
     expect(button).toBeDisabled();
   });

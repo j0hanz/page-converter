@@ -46,6 +46,7 @@ export default function TransformForm({
             autoComplete="url"
             required
             fullWidth
+            disabled={isPending}
             placeholder="https://..."
             size="small"
           />
