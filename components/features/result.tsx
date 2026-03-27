@@ -264,6 +264,8 @@ function ResultDetailDialog({
             component="img"
             src={metadata.image}
             alt="Page preview"
+            loading="lazy"
+            decoding="async"
             sx={{ maxWidth: '100%', borderRadius: 1 }}
           />
         )}
