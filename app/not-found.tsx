@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
+
 import LinkButton from '@/components/ui/link-button';
 import { StatusShell } from '@/components/ui/status-shell';
+
+export const metadata: Metadata = {
+  title: 'Page not found',
+};
 
 export default function NotFound() {
   return (

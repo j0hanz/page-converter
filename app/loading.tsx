@@ -8,6 +8,8 @@ import { sx, tokens } from '@/lib/theme';
 export default function Loading() {
   return (
     <Box
+      role="status"
+      aria-label="Loading page"
       sx={{
         ...sx.centerFlex,
         minHeight: '50vh',
