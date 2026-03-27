@@ -2,7 +2,7 @@ import Box from '@mui/material/Box';
 import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 
-import { responsive, tokens } from '@/lib/theme';
+import { responsive } from '@/lib/theme';
 
 interface SkeletonSection {
   headingSize: string;
@@ -73,30 +73,6 @@ export function MarkdownSkeleton() {
         sx={{ flexGrow: 1, minHeight: 80, mt: responsive.paragraphMb }}
       />
       <SectionSkeleton {...SECTIONS[2]} />
-    </Stack>
-  );
-}
-
-export function ResultHeaderSkeleton() {
-  return (
-    <Stack
-      role="status"
-      aria-label="Result header loading"
-      direction="row"
-      gap={1.5}
-      alignItems="center"
-      sx={{ width: '100%' }}
-    >
-      <Skeleton
-        animation="wave"
-        variant="rounded"
-        width={tokens.sizes.avatar}
-        height={tokens.sizes.avatar}
-      />
-      <Stack spacing={0.5} sx={{ flex: 1, minWidth: 0 }}>
-        <Skeleton animation="wave" variant="text" width="36%" />
-        <Skeleton animation="wave" variant="text" width="58%" />
-      </Stack>
     </Stack>
   );
 }

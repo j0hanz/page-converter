@@ -114,7 +114,7 @@ function isSafeImageUrl(url: string | undefined): url is string {
   }
 }
 
-export function sanitizeDownloadFileName(title: string | undefined): string {
+function sanitizeDownloadFileName(title: string | undefined): string {
   let normalizedTitle = '';
 
   for (const character of title ?? '') {
