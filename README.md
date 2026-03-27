@@ -71,7 +71,7 @@ Successful responses are streamed as NDJSON:
 
 ```json
 {"type":"progress","progress":2,"total":8,"message":"Fetching page"}
-{"type":"result","ok":true,"result":{"url":"https://example.com","markdown":"# Example","metadata":{},"fromCache":false,"fetchedAt":"2026-03-11T00:00:00.000Z","contentSize":9,"truncated":false}}
+{"type":"result","ok":true,"result":{"url":"https://example.com","markdown":"# Example","metadata":{},"fetchedAt":"2026-03-11T00:00:00.000Z","contentSize":9,"truncated":false}}
 ```
 
 Validation failures return JSON with HTTP `400`, for example:

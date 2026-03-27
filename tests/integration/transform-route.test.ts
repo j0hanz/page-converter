@@ -24,7 +24,6 @@ vi.mock('@/lib/mcp', () => {
         resolvedUrl: 'https://example.com',
         markdown: '# Mock Content',
         metadata: { title: 'Mock Page' },
-        fromCache: false,
         fetchedAt: new Date().toISOString(),
         contentSize: 100,
         truncated: false,

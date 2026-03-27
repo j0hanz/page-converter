@@ -24,7 +24,6 @@ const SUCCESS_RESPONSE: TransformResponse = {
     url: VALID_URL,
     metadata: {},
     markdown: '# Example',
-    fromCache: false,
     fetchedAt: '2026-03-11T00:00:00.000Z',
     contentSize: 9,
     truncated: false,

@@ -16,7 +16,6 @@ const baseResult: TransformResult = {
     author: 'IANA',
   },
   markdown: '# Example\n\nThis is an example.',
-  fromCache: false,
   fetchedAt: '2026-03-10T12:00:00.000Z',
   contentSize: 42,
   truncated: false,
@@ -144,28 +143,6 @@ describe('TransformResultPanel', () => {
 
     await waitFor(() => {
       expect(screen.getByText('E')).toBeInTheDocument();
-    });
-  });
-
-  it('shows cache badge when fromCache is true', async () => {
-    const { container } = renderPanel({
-      result: { ...baseResult, fromCache: true },
-    });
-
-    await waitFor(() => {
-      const badge = container.querySelector('.MuiBadge-dot');
-      expect(badge).toBeInTheDocument();
-    });
-  });
-
-  it('hides cache badge when fromCache is false', async () => {
-    const { container } = renderPanel({
-      result: { ...baseResult, fromCache: false },
-    });
-
-    await waitFor(() => {
-      const badge = container.querySelector('.MuiBadge-dot');
-      expect(badge).toHaveClass('MuiBadge-invisible');
     });
   });
 

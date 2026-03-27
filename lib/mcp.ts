@@ -458,7 +458,6 @@ function mapToTransformResult(data: JsonRecord): TransformResult {
     title: readString(data.title),
     metadata: extractMetadata(data),
     markdown: readString(data.markdown) ?? '',
-    fromCache: readBoolean(data.fromCache) ?? false,
     fetchedAt: readString(data.fetchedAt) ?? new Date().toISOString(),
     contentSize: readNumber(data.contentSize) ?? 0,
     truncated: readBoolean(data.truncated) ?? false,

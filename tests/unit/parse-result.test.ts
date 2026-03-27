@@ -55,7 +55,6 @@ const sampleStructuredContent = {
     publishedAt: '2026-03-10T11:00:00.000Z',
   },
   markdown: '# Example\n\nThis is an example.',
-  fromCache: true,
   fetchedAt: '2026-03-10T12:00:00.000Z',
   contentSize: 42,
   truncated: false,
@@ -78,7 +77,6 @@ describe('parseMcpResult', () => {
     expect(result.metadata.author).toBe('IANA');
     expect(result.metadata.publishedAt).toBe('2026-03-10T11:00:00.000Z');
     expect(result.markdown).toBe('# Example\n\nThis is an example.');
-    expect(result.fromCache).toBe(true);
     expect(result.fetchedAt).toBe('2026-03-10T12:00:00.000Z');
     expect(result.contentSize).toBe(42);
     expect(result.truncated).toBe(false);

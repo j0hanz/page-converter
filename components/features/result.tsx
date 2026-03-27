@@ -307,28 +307,21 @@ function ResultDetailDialog({
 }
 
 function ResultHeaderButtonContent({ result }: TransformResultProps) {
-  const { metadata, title, url, fromCache } = result;
+  const { metadata, title, url } = result;
 
   return (
     <Stack direction="row" gap={1.5} alignItems="center">
-      <Badge
-        variant="dot"
-        color="success"
-        invisible={!fromCache}
-        overlap="circular"
+      <Avatar
+        src={isSafeImageUrl(metadata.favicon) ? metadata.favicon : undefined}
+        sx={{
+          width: tokens.sizes.avatar,
+          height: tokens.sizes.avatar,
+        }}
+        alt={title ?? url}
+        variant="square"
       >
-        <Avatar
-          src={isSafeImageUrl(metadata.favicon) ? metadata.favicon : undefined}
-          sx={{
-            width: tokens.sizes.avatar,
-            height: tokens.sizes.avatar,
-          }}
-          alt={title ?? url}
-          variant="square"
-        >
-          {title?.[0]}
-        </Avatar>
-      </Badge>
+        {title?.[0]}
+      </Avatar>
       <Stack sx={{ minWidth: 0 }}>
         {title && (
           <Typography variant="body2" sx={sx.truncatedText} noWrap>

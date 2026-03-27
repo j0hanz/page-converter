@@ -36,7 +36,6 @@ export interface TransformResult {
   title?: string;
   metadata: TransformMetadata;
   markdown: string;
-  fromCache: boolean;
   fetchedAt: string;
   contentSize: number;
   truncated: boolean;
@@ -229,7 +228,6 @@ function isTransformResult(value: unknown): value is TransformResult {
     isOptionalString(value.title) &&
     isTransformMetadata(value.metadata) &&
     typeof value.markdown === 'string' &&
-    typeof value.fromCache === 'boolean' &&
     typeof value.fetchedAt === 'string' &&
     isFiniteNumber(value.contentSize) &&
     typeof value.truncated === 'boolean'

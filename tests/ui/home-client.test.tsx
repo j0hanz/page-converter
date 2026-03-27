@@ -11,7 +11,6 @@ const VALID_URL = 'https://example.com';
 const SUCCESS_RESULT: TransformResult = {
   url: VALID_URL,
   markdown: '# Example',
-  fromCache: false,
   fetchedAt: '2026-03-10T00:00:00Z',
   contentSize: 9,
   truncated: false,
