@@ -43,7 +43,7 @@ type IconButtonColor = ComponentProps<typeof IconButton>['color'];
 interface PreviewTransitionState {
   isPending: boolean;
   previewTransitionDuration: number;
-  previewMarkdown: string | null;
+  previewMarkdown: string;
 }
 
 interface ResultActionButtonProps {
@@ -200,7 +200,7 @@ function ResultMarkdownPanel({
       <Box sx={{ display: isPreviewMode ? 'block' : 'none' }}>
         <MarkdownErrorBoundary resetKey={markdown}>
           <PreviewSurface
-            markdown={previewState.previewMarkdown ?? ''}
+            markdown={previewState.previewMarkdown}
             previewState={previewState}
           />
         </MarkdownErrorBoundary>
@@ -300,11 +300,7 @@ function ResultHeaderButtonContent({ result }: TransformResultProps) {
   );
 }
 
-function ResultHeaderWithDetails({
-  result,
-}: TransformResultProps & {
-  previewState?: PreviewTransitionState;
-}) {
+function ResultHeaderWithDetails({ result }: TransformResultProps) {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
   return (

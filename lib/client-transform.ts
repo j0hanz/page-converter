@@ -164,18 +164,18 @@ function handleStreamEvent(
     return;
   }
 
-  if (isStreamResultEvent(event)) {
-    if (hasTransformResult(event)) {
-      handlers.onResult(event.result);
-      return;
-    }
-
-    if (hasTransformError(event)) {
-      handlers.onError(event.error);
-      return;
-    }
-  } else {
+  if (!isStreamResultEvent(event)) {
     handlers.onError(createUnexpectedResponseError());
+    return;
+  }
+
+  if (hasTransformResult(event)) {
+    handlers.onResult(event.result);
+    return;
+  }
+
+  if (hasTransformError(event)) {
+    handlers.onError(event.error);
     return;
   }
 
@@ -224,12 +224,8 @@ async function handleTransformResponse(
     return;
   }
 
-  const streamError = await readNdjsonStream(
-    response,
-    signal,
-    (streamEvent) => {
-      handleStreamEvent(streamEvent, handlers);
-    }
+  const streamError = await readNdjsonStream(response, signal, (streamEvent) =>
+    handleStreamEvent(streamEvent, handlers)
   );
 
   if (streamError) {

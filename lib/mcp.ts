@@ -55,6 +55,13 @@ interface FetchUrlCallOptions {
   signal?: AbortSignal;
 }
 
+interface ToolRequestOptions {
+  maxTotalTimeout: number;
+  onprogress?: ProgressCallback;
+  resetTimeoutOnProgress?: boolean;
+  signal?: AbortSignal;
+}
+
 interface McpInstance {
   client: Client;
   transport: StdioClientTransport;
@@ -215,13 +222,10 @@ async function closeTransportQuietly(
   await transport.close().catch(() => {});
 }
 
-function createRequestOptions(options?: FetchUrlCallOptions): {
-  onprogress?: ProgressCallback;
-  signal?: AbortSignal;
-  resetTimeoutOnProgress?: boolean;
-  maxTotalTimeout: number;
-} {
-  const result: ReturnType<typeof createRequestOptions> = {
+function createRequestOptions(
+  options?: FetchUrlCallOptions
+): ToolRequestOptions {
+  const result: ToolRequestOptions = {
     maxTotalTimeout: MCP_MAX_TOTAL_TIMEOUT,
   };
   if (options?.onProgress) {
@@ -265,15 +269,19 @@ function shouldResetInstance(error: unknown): boolean {
   }
 
   if (error instanceof McpError) {
-    // Only reset for transport/connection level errors.
-    // InvalidParams, MethodNotFound, RequestTimeout etc. do not mean the transport is dead.
-    return (
-      error.code === (ErrorCode.ConnectionClosed as number) ||
-      error.code === (ErrorCode.InternalError as number)
-    );
+    return isResettableMcpError(error.code);
   }
 
   return true;
+}
+
+function isResettableMcpError(code: number): boolean {
+  // Only reset for transport/connection level errors.
+  // InvalidParams, MethodNotFound, RequestTimeout etc. do not mean the transport is dead.
+  return (
+    code === (ErrorCode.ConnectionClosed as number) ||
+    code === (ErrorCode.InternalError as number)
+  );
 }
 
 function readFetchUrlPackageSearchBase(
