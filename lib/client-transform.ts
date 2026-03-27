@@ -224,8 +224,12 @@ async function handleTransformResponse(
     return;
   }
 
-  const streamError = await readNdjsonStream(response, signal, (streamEvent) =>
-    handleStreamEvent(streamEvent, handlers)
+  const streamError = await readNdjsonStream(
+    response,
+    signal,
+    (streamEvent) => {
+      handleStreamEvent(streamEvent, handlers);
+    }
   );
 
   if (streamError) {

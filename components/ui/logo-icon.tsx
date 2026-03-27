@@ -10,8 +10,8 @@ const colorSx: SxProps<Theme> = {
 
 function mergeSx(extra?: SxProps<Theme>): SxProps<Theme> {
   if (!extra) return colorSx;
-  const extraArray: ReadonlyArray<SxProps<Theme>> = Array.isArray(extra)
-    ? (extra as ReadonlyArray<SxProps<Theme>>)
+  const extraArray: readonly SxProps<Theme>[] = Array.isArray(extra)
+    ? (extra as readonly SxProps<Theme>[])
     : [extra];
   return [colorSx, ...extraArray] as SxProps<Theme>;
 }

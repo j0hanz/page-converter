@@ -51,7 +51,9 @@ export default function ThemeToggle() {
   return (
     <Tooltip title={actionLabel}>
       <IconButton
-        onClick={() => setMode(currentMode.next)}
+        onClick={() => {
+          setMode(currentMode.next);
+        }}
         aria-label={actionLabel}
         size="small"
         disableRipple={true}

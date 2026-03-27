@@ -41,15 +41,15 @@ export interface TransformResult {
   truncated: boolean;
 }
 
-export type TransformSuccessResponse = {
+export interface TransformSuccessResponse {
   ok: true;
   result: TransformResult;
-};
+}
 
-export type TransformErrorResponse = {
+export interface TransformErrorResponse {
   ok: false;
   error: TransformError;
-};
+}
 
 export type TransformResponse =
   | TransformSuccessResponse

@@ -8,11 +8,9 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
 const eslintConfig = defineConfig([
-  // Base JS recommended rules (updated for v10).
   js.configs.recommended,
-
-  // TypeScript recommended rules.
-  tseslint.configs.recommendedTypeChecked,
+  tseslint.configs.strictTypeChecked,
+  tseslint.configs.stylisticTypeChecked,
   {
     languageOptions: {
       parserOptions: {
@@ -21,31 +19,36 @@ const eslintConfig = defineConfig([
       },
     },
   },
-
-  // Disable type-checked rules for JS/MJS files.
   {
     files: ['**/*.js', '**/*.mjs'],
     ...tseslint.configs.disableTypeChecked,
   },
-
-  // Next.js core-web-vitals rules (direct plugin, no broken wrappers).
   {
     plugins: { '@next/next': nextPlugin },
     rules: nextPlugin.configs['core-web-vitals'].rules,
   },
-
-  // Relax type-checked rules for common React patterns.
   {
-    files: ['**/*.tsx'],
+    files: ['**/*.tsx', '**/*.ts'],
     rules: {
       '@typescript-eslint/no-misused-promises': [
         'error',
         { checksVoidReturn: { attributes: false } },
       ],
+      '@typescript-eslint/restrict-template-expressions': [
+        'error',
+        { allowNumber: true, allowBoolean: true },
+      ],
+      '@typescript-eslint/no-confusing-void-expression': [
+        'error',
+        { ignoreArrowShorthand: true, ignoreVoidOperator: true },
+      ],
+      '@typescript-eslint/no-empty-function': 'off',
+      '@typescript-eslint/no-unnecessary-condition': 'off',
+      '@typescript-eslint/no-invalid-void-type': 'off',
+      '@typescript-eslint/prefer-nullish-coalescing': 'off',
+      '@typescript-eslint/consistent-type-definitions': 'off',
     },
   },
-
-  // Unused imports detection.
   {
     plugins: { 'unused-imports': unusedImports },
     rules: {
@@ -63,14 +66,8 @@ const eslintConfig = defineConfig([
       ],
     },
   },
-
-  // De Morgan's law simplification.
   deMorgan.configs.recommended,
-
-  // Dependency best-practices.
   depend.configs['flat/recommended'],
-
-  // Prettier must be last to disable conflicting format rules.
   prettier,
 
   globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts']),

@@ -88,11 +88,11 @@ const VIEW_MODE_OPTIONS = [
     label: 'Code',
     value: 'code',
   },
-] as const satisfies ReadonlyArray<{
+] as const satisfies readonly {
   icon: ReactNode;
   label: string;
   value: ViewMode;
-}>;
+}[];
 
 const COPY_STATUS_DETAILS: Record<
   CopyStatus,
@@ -359,7 +359,9 @@ function ResultHeaderWithDetails({
           <Box sx={sx.transitionCell}>
             <Tooltip title="View page details">
               <ButtonBase
-                onClick={() => setDetailDialogOpen(true)}
+                onClick={() => {
+                  setDetailDialogOpen(true);
+                }}
                 disableRipple={true}
                 sx={sx.headerButton}
                 aria-label="View page details"
@@ -372,7 +374,9 @@ function ResultHeaderWithDetails({
       />
       <ResultDetailDialog
         open={detailDialogOpen}
-        onClose={() => setDetailDialogOpen(false)}
+        onClose={() => {
+          setDetailDialogOpen(false);
+        }}
         result={result}
       />
     </>
