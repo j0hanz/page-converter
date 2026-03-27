@@ -343,7 +343,15 @@ function appendStderrChunk(state: McpRuntimeState, chunk: string): string {
 }
 
 function createTransportError(error: unknown, state: McpRuntimeState): Error {
-  const message = error instanceof Error ? error.message : String(error);
+  if (error instanceof McpError && !isResettableMcpError(error.code)) {
+    return error;
+  }
+
+  let message = error instanceof Error ? error.message : String(error);
+  if (error instanceof McpError) {
+    message = message.replace(new RegExp(`^MCP error ${error.code}: `), '');
+  }
+
   const stderr = state.lastStderr?.trim();
 
   if (!stderr) {
