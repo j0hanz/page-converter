@@ -65,11 +65,7 @@ export default function HomeClient() {
 
         <ViewStateSection state={viewState} visibleState="error">
           {error && (
-            <CenterMessage
-              message={error.message}
-              secondaryText={`Code: ${error.code}`}
-              color="error.main"
-            />
+            <CenterMessage message={error.message} color="error.main" />
           )}
         </ViewStateSection>
 

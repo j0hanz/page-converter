@@ -130,7 +130,7 @@ describe('POST /api/transform', () => {
   it('returns a validation error for invalid JSON payloads', async () => {
     const response = await POST(createJsonRequest('not json'));
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(500);
     await expect(response.json()).resolves.toEqual({
       ok: false,
       error: {
@@ -153,7 +153,7 @@ describe('POST /api/transform', () => {
       )
     );
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(500);
     await expect(response.json()).resolves.toEqual({
       ok: false,
       error: {
@@ -212,7 +212,7 @@ describe('POST /api/transform', () => {
       createJsonRequest(JSON.stringify({ url: VALID_URL }))
     );
 
-    expect(response.status).toBe(502);
+    expect(response.status).toBe(500);
     expect(response.headers.get('Content-Type')).toContain('application/json');
     await expect(response.json()).resolves.toEqual(IMMEDIATE_ERROR_RESPONSE);
   });

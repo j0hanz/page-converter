@@ -10,7 +10,6 @@ import {
   type StreamProgressEvent,
   type StreamResultEvent,
   type TransformError,
-  type TransformErrorCode,
   type TransformErrorResponse,
   type TransformResponse,
 } from '@/lib/api';
@@ -25,15 +24,6 @@ import {
   validateTransformRequest,
   ValidationError,
 } from '@/lib/validate';
-
-const HTTP_STATUS_BY_ERROR_CODE: Record<TransformErrorCode, number> = {
-  VALIDATION_ERROR: 400,
-  FETCH_ERROR: 502,
-  HTTP_ERROR: 502,
-  ABORTED: 504,
-  QUEUE_FULL: 503,
-  INTERNAL_ERROR: 500,
-};
 
 const NDJSON_HEADERS = {
   'Content-Type': NDJSON_CONTENT_TYPE,
@@ -98,7 +88,7 @@ function createValidationErrorResponse(message: string): Response {
 function createErrorResponse(error: TransformError): Response {
   return Response.json(
     { ok: false, error },
-    { status: HTTP_STATUS_BY_ERROR_CODE[error.code] }
+    { status: error.statusCode ?? 500 }
   );
 }
 
