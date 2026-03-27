@@ -1,7 +1,8 @@
 import 'server-only';
 
-import { cache, type CSSProperties, type ReactNode } from 'react';
+import { type CSSProperties, type ReactNode } from 'react';
 
+import { cacheLife } from 'next/cache';
 import { ImageResponse } from 'next/og';
 
 import { readFile } from 'node:fs/promises';
@@ -210,14 +211,18 @@ function SocialFeaturePill({
   );
 }
 
-const readOgFontData = cache(async (): Promise<ArrayBuffer> => {
+async function readOgFontData(): Promise<ArrayBuffer> {
+  'use cache';
+
+  cacheLife('max');
+
   const fontBuffer = await readFile(OG_FONT_PATH);
 
   return fontBuffer.buffer.slice(
     fontBuffer.byteOffset,
     fontBuffer.byteOffset + fontBuffer.byteLength
   );
-});
+}
 
 export async function createSocialImageResponse({
   body,

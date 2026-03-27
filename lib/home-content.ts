@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { cache } from 'react';
+import { cacheLife } from 'next/cache';
 
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -33,4 +33,13 @@ async function readHomePageMarkdownImpl(): Promise<{
   return { aboutMarkdown, howItWorksMarkdown };
 }
 
-export const readHomePageMarkdown = cache(readHomePageMarkdownImpl);
+export async function readHomePageMarkdown(): Promise<{
+  aboutMarkdown: string;
+  howItWorksMarkdown: string;
+}> {
+  'use cache';
+
+  cacheLife('max');
+
+  return readHomePageMarkdownImpl();
+}

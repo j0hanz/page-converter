@@ -139,7 +139,9 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  cacheComponents: true,
   reactCompiler: true,
+  typedRoutes: true,
   outputFileTracingIncludes: {
     '/api/transform': collectPackageTraceGlobs(readFetchUrlPackagePath()),
   },
