@@ -83,13 +83,18 @@ export default async function Home() {
       >
         <AppBar>
           <Toolbar sx={{ justifyContent: 'space-between' }}>
-            <Stack direction="row" gap={1.5} alignItems="center">
+            <Stack
+              direction="row"
+              gap={1.5}
+              alignItems="center"
+              sx={{ minWidth: 0 }}
+            >
               <LogoIcon
                 sx={{
                   fontSize: responsive.logoSize,
                 }}
               />
-              <Typography variant="h4" component="h1">
+              <Typography variant="h4" component="h1" noWrap>
                 {SITE_NAME}
               </Typography>
             </Stack>

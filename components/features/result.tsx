@@ -207,7 +207,7 @@ function ResultMarkdownPanel({
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <Stack direction="row" gap={2}>
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>
         {label}
       </Typography>
       <Typography variant="body2" sx={{ wordBreak: 'break-word', minWidth: 0 }}>
@@ -324,7 +324,7 @@ function ResultHeaderWithDetails({
                       {title?.[0]}
                     </Avatar>
                   </Badge>
-                  <Stack>
+                  <Stack sx={{ minWidth: 0 }}>
                     {title && (
                       <Typography variant="body2" sx={sx.truncatedText} noWrap>
                         {title}
@@ -373,7 +373,12 @@ function ResultActionBar({
 
   return (
     <>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ flexWrap: 'wrap', gap: 1 }}
+      >
         <ToggleButtonGroup
           value={viewMode}
           exclusive
