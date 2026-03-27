@@ -1,6 +1,9 @@
+import { Suspense } from 'react';
+
 import type { Metadata } from 'next';
 
 import GitHubIcon from '@mui/icons-material/GitHub';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
@@ -35,9 +38,31 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function Home() {
+async function AboutDialogContent() {
   const { aboutMarkdown, howItWorksMarkdown } = await readHomePageMarkdown();
 
+  return (
+    <AboutDialog
+      markdown={aboutMarkdown}
+      howItWorksMarkdown={howItWorksMarkdown}
+    />
+  );
+}
+
+function AboutDialogFallback() {
+  return (
+    <IconButton
+      disabled
+      size="small"
+      aria-label="About Fetch URL"
+      disableRipple
+    >
+      <InfoOutlinedIcon sx={HEADER_ICON_SX} />
+    </IconButton>
+  );
+}
+
+export default function Home() {
   return (
     <Box
       sx={{
@@ -78,10 +103,9 @@ export default async function Home() {
               spacing={{ xs: 1, sm: 2 }}
               alignItems="center"
             >
-              <AboutDialog
-                markdown={aboutMarkdown}
-                howItWorksMarkdown={howItWorksMarkdown}
-              />
+              <Suspense fallback={<AboutDialogFallback />}>
+                <AboutDialogContent />
+              </Suspense>
               <Tooltip title="View on GitHub">
                 <IconButton
                   component="a"

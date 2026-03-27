@@ -1,9 +1,9 @@
 import Box from '@mui/material/Box';
-import CircularProgress from '@mui/material/CircularProgress';
+import Container from '@mui/material/Container';
+import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
 
-import { sx, tokens } from '@/lib/theme';
+import { responsive } from '@/lib/theme';
 
 export default function Loading() {
   return (
@@ -11,16 +11,45 @@ export default function Loading() {
       role="status"
       aria-label="Loading page"
       sx={{
-        ...sx.centerFlex,
-        minHeight: '50vh',
+        minHeight: '100dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        pt: responsive.pagePt,
       }}
     >
-      <Stack alignItems="center" spacing={1.5}>
-        <CircularProgress size={tokens.sizes.loader} />
-        <Typography variant="body2" color="text.secondary">
-          Loading…
-        </Typography>
-      </Stack>
+      <Container
+        maxWidth="lg"
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: responsive.containerGap,
+        }}
+      >
+        {/* AppBar placeholder */}
+        <Skeleton variant="rectangular" height={56} sx={{ borderRadius: 1 }} />
+
+        {/* Form input + button row */}
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Skeleton
+            variant="rectangular"
+            height={56}
+            sx={{ flex: 1, borderRadius: 1 }}
+          />
+          <Skeleton
+            variant="rectangular"
+            width={100}
+            height={56}
+            sx={{ borderRadius: 1 }}
+          />
+        </Stack>
+
+        {/* Preview panel */}
+        <Skeleton
+          variant="rectangular"
+          sx={{ flex: 1, minHeight: 200, borderRadius: 1 }}
+        />
+      </Container>
     </Box>
   );
 }
