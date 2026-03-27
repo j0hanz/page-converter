@@ -1,5 +1,7 @@
 # Fetch URL
 
+🔗 **[Try it out](https://fetch-url-client.vercel.app)**
+
 Fetch URL is a Next.js web client for [`@j0hanz/fetch-url-mcp`](https://github.com/j0hanz/fetch-url-mcp). Paste in a public web page, and the app returns a cleaner Markdown version you can preview in the browser, copy to the clipboard, or download as a `.md` file.
 
 ## Why This Project Exists
