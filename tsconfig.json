@@ -3,6 +3,7 @@
     "target": "ES2022",
     "lib": ["dom", "dom.iterable", "esnext"],
     "skipLibCheck": true,
+    "types": ["node"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
@@ -27,6 +28,7 @@
         "name": "next"
       }
     ],
+    "moduleDetection": "force",
     "paths": {
       "@/*": ["./*"]
     },
@@ -40,5 +42,5 @@
     "**/*.mts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "tests", "next.config.ts", "vitest.config.ts"]
 }

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { POST } from '@/app/api/transform/route';
 
-import type { StreamEvent } from '@/lib/api';
+import type { StreamEvent, TransformResponse } from '@/lib/api';
 import { callFetchUrl, parseMcpResult } from '@/lib/mcp';
 
 // Mock the MCP transport layer to avoid starting actual node processes
@@ -22,14 +22,15 @@ vi.mock('@/lib/mcp', () => {
       ok: true,
       result: {
         url: 'https://example.com',
+        title: 'Mock Page',
         resolvedUrl: 'https://example.com',
         markdown: '# Mock Content',
-        metadata: { title: 'Mock Page' },
+        metadata: {},
         fetchedAt: new Date().toISOString(),
         contentSize: 100,
         truncated: false,
       },
-    }),
+    } satisfies TransformResponse),
   };
 });
 
