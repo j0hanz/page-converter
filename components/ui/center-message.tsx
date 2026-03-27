@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 
 import Paper from '@mui/material/Paper';
-import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
 import { responsive, sx } from '@/lib/theme';
@@ -29,20 +28,19 @@ export default function CenterMessage({
         display: 'grid',
         alignContent: 'center',
         justifyContent: 'center',
+        gap: 2,
       }}
     >
-      <Stack spacing={2} alignItems="center" sx={{ opacity: 0.8 }}>
-        <Typography variant="body1" color={color} textAlign="center">
-          {message}
+      <Typography variant="body1" color={color}>
+        {message}
+      </Typography>
+      {secondaryText && (
+        <Typography variant="body2" color="text.secondary">
+          {secondaryText}
         </Typography>
-        {secondaryText && (
-          <Typography variant="body2" color="text.secondary" textAlign="center">
-            {secondaryText}
-          </Typography>
-        )}
-        {action}
-        {children}
-      </Stack>
+      )}
+      {action}
+      {children}
     </Paper>
   );
 }
