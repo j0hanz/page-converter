@@ -23,32 +23,32 @@ interface ErrorAlertConfig {
 
 const ERROR_ALERT_MAP: Record<TransformErrorCode, ErrorAlertConfig> = {
   VALIDATION_ERROR: {
-    icon: <WarningAmberIcon fontSize="inherit" />,
+    icon: <WarningAmberIcon />,
     severity: 'warning',
     title: 'Invalid Input',
   },
   FETCH_ERROR: {
-    icon: <WifiOffIcon fontSize="inherit" />,
+    icon: <WifiOffIcon />,
     severity: 'error',
     title: 'Connection Error',
   },
   HTTP_ERROR: {
-    icon: <ErrorOutlineIcon fontSize="inherit" />,
+    icon: <ErrorOutlineIcon />,
     severity: 'error',
     title: 'HTTP Error',
   },
   ABORTED: {
-    icon: <CancelIcon fontSize="inherit" />,
+    icon: <CancelIcon />,
     severity: 'info',
     title: 'Cancelled',
   },
   QUEUE_FULL: {
-    icon: <HourglassTopIcon fontSize="inherit" />,
+    icon: <HourglassTopIcon />,
     severity: 'warning',
     title: 'Server Busy',
   },
   INTERNAL_ERROR: {
-    icon: <ErrorOutlineIcon fontSize="inherit" />,
+    icon: <ErrorOutlineIcon />,
     severity: 'error',
     title: 'Internal Error',
   },
@@ -56,17 +56,17 @@ const ERROR_ALERT_MAP: Record<TransformErrorCode, ErrorAlertConfig> = {
 
 const HTTP_STATUS_OVERRIDES: Record<number, ErrorAlertConfig> = {
   403: {
-    icon: <BlockIcon fontSize="inherit" />,
+    icon: <BlockIcon />,
     severity: 'error',
     title: 'Forbidden',
   },
   404: {
-    icon: <LinkOffIcon fontSize="inherit" />,
+    icon: <LinkOffIcon />,
     severity: 'error',
     title: 'Not Found',
   },
   429: {
-    icon: <HourglassTopIcon fontSize="inherit" />,
+    icon: <HourglassTopIcon />,
     severity: 'warning',
     title: 'Rate Limited',
   },
@@ -79,7 +79,7 @@ function resolveHttpErrorAlert(statusCode?: number): ErrorAlertConfig {
 
     if (statusCode >= 500) {
       return {
-        icon: <CloudOffIcon fontSize="inherit" />,
+        icon: <CloudOffIcon />,
         severity: 'error',
         title: 'Server Error',
       };
@@ -122,14 +122,17 @@ export default function TransformAlert({
         bgcolor: 'unset',
         backgroundImage: 'none',
         boxShadow: 'none',
+        maxWidth: { xs: '100%', sm: '80%', md: '70%' },
+        mx: 'auto',
       }}
     >
       <Box
         sx={{
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'baseline',
-          pb: 3,
+          alignItems: 'flex-start',
+          pb: 2,
+          fontWeight: 500,
         }}
       >
         <AlertTitle>{title}</AlertTitle>

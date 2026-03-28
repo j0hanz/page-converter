@@ -27,7 +27,6 @@ export default function CenterMessage({
         minHeight: responsive.panelMaxHeight,
         display: 'grid',
         alignContent: 'center',
-        justifyContent: 'center',
       }}
     >
       <TransformAlert code={code} message={message} statusCode={statusCode} />
