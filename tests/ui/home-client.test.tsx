@@ -94,6 +94,31 @@ describe('HomeClient', () => {
 
     expect(stream.signal?.aborted).toBe(true);
   });
+
+  it('suppresses ABORTED errors and returns to idle', async () => {
+    const stream = createControlledStreamResponse();
+    global.fetch = vi.fn().mockResolvedValue(stream.response);
+
+    render(<HomeClient />);
+    await submitUrlForm(VALID_URL);
+
+    stream.emit({
+      type: 'result',
+      ok: false,
+      error: {
+        code: 'ABORTED',
+        message: 'Request was cancelled',
+        retryable: true,
+      },
+    });
+    stream.close();
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Request was cancelled')
+      ).not.toBeInTheDocument();
+    });
+  });
 });
 
 function createControlledStreamResponse() {

@@ -93,6 +93,11 @@ export function useTransform() {
     requestController: AbortController,
     nextError: TransformError
   ): void {
+    if (nextError.code === 'ABORTED') {
+      finalizeActiveRequest(requestController, () => {});
+      return;
+    }
+
     finalizeActiveRequest(requestController, () => {
       setError(nextError);
     });

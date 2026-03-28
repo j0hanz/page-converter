@@ -66,10 +66,9 @@ export default function HomeClient() {
         <ViewStateSection state={viewState} visibleState="error">
           {error && (
             <CenterMessage
-              title={error.code || 'Error'}
+              code={error.code}
               message={error.message}
-              color="error.main"
-              action={error.statusCode ? <>{error.statusCode}</> : undefined}
+              statusCode={error.statusCode}
             />
           )}
         </ViewStateSection>

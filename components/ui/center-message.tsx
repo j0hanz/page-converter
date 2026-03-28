@@ -1,24 +1,23 @@
 import type { ReactNode } from 'react';
 
-import Alert from '@mui/material/Alert';
-import AlertTitle from '@mui/material/AlertTitle';
 import Paper from '@mui/material/Paper';
 
+import TransformAlert from '@/components/ui/alert';
+
+import type { TransformErrorCode } from '@/lib/api';
 import { responsive, sx } from '@/lib/theme';
 
 interface CenterMessageProps {
-  title?: ReactNode;
+  code?: TransformErrorCode;
   message: ReactNode;
-  color?: string;
-  action?: ReactNode;
+  statusCode?: number;
   children?: ReactNode;
 }
 
 export default function CenterMessage({
-  title,
+  code = 'INTERNAL_ERROR',
   message,
-  color: _color,
-  action,
+  statusCode,
   children,
 }: CenterMessageProps) {
   return (
@@ -31,12 +30,7 @@ export default function CenterMessage({
         justifyContent: 'center',
       }}
     >
-      <Alert variant="standard" severity="error" sx={{ p: 2 }} action={action}>
-        <AlertTitle sx={{ fontWeight: 400, fontSize: '1.1rem', pb: 2 }}>
-          {title}
-        </AlertTitle>
-        {message}
-      </Alert>
+      <TransformAlert code={code} message={message} statusCode={statusCode} />
       {children}
     </Paper>
   );
