@@ -31,8 +31,8 @@ export default function CenterMessage({
         justifyContent: 'center',
       }}
     >
-      <Alert variant='standard' severity="error">
-        <AlertTitle>{title}</AlertTitle>
+      <Alert variant="standard" severity="error" sx={{ p: 2 }}>
+        <AlertTitle sx={{ fontWeight: 400, pb: 2 }}>{title}</AlertTitle>
         {message}
       </Alert>
       {action}
