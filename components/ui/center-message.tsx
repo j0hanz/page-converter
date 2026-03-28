@@ -1,22 +1,23 @@
 import type { ReactNode } from 'react';
 
+import Alert from '@mui/material/Alert';
+import AlertTitle from '@mui/material/AlertTitle';
 import Paper from '@mui/material/Paper';
-import Typography from '@mui/material/Typography';
 
 import { responsive, sx } from '@/lib/theme';
 
 interface CenterMessageProps {
+  title?: ReactNode;
   message: ReactNode;
-  secondaryText?: ReactNode;
   color?: string;
   action?: ReactNode;
   children?: ReactNode;
 }
 
 export default function CenterMessage({
+  title,
   message,
-  secondaryText,
-  color = 'text.secondary',
+  color: _color,
   action,
   children,
 }: CenterMessageProps) {
@@ -28,17 +29,12 @@ export default function CenterMessage({
         display: 'grid',
         alignContent: 'center',
         justifyContent: 'center',
-        gap: 2,
       }}
     >
-      <Typography variant="body1" color={color}>
+      <Alert variant='standard' severity="error">
+        <AlertTitle>{title}</AlertTitle>
         {message}
-      </Typography>
-      {secondaryText && (
-        <Typography variant="body2" color="text.secondary">
-          {secondaryText}
-        </Typography>
-      )}
+      </Alert>
       {action}
       {children}
     </Paper>
