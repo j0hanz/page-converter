@@ -58,13 +58,24 @@ describe('request-logger', () => {
       );
 
       expect(log).toMatchObject({
-        url: 'https://example.com',
+        url: 'https://example.com/',
         userAgent: 'TestAgent/1.0',
         isBot: false,
         outcome: 'success',
       });
       expect(log.durationMs).toBeGreaterThanOrEqual(0);
       expect(log.errorCode).toBeUndefined();
+    });
+
+    it('removes query strings and fragments from logged URLs', () => {
+      const log = createTransformLog(
+        createRequest(),
+        'https://example.com/docs/page?token=secret#section',
+        Date.now() - 50,
+        SUCCESS_RESPONSE
+      );
+
+      expect(log.url).toBe('https://example.com/docs/page');
     });
 
     it('includes errorCode for error responses', () => {

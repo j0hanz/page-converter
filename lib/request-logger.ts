@@ -13,6 +13,17 @@ interface TransformRequestLog {
   errorCode?: string;
 }
 
+function sanitizeLoggedUrl(url: string): string {
+  const parsedUrl = URL.parse(url);
+  if (!parsedUrl) {
+    return 'invalid';
+  }
+
+  parsedUrl.search = '';
+  parsedUrl.hash = '';
+  return parsedUrl.toString();
+}
+
 export function createTransformLog(
   request: Request,
   url: string,
@@ -21,7 +32,7 @@ export function createTransformLog(
 ): TransformRequestLog {
   const ua = userAgent({ headers: request.headers });
   const log: TransformRequestLog = {
-    url,
+    url: sanitizeLoggedUrl(url),
     userAgent: ua.ua,
     isBot: ua.isBot,
     durationMs: Date.now() - startTime,

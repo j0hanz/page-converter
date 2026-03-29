@@ -17,8 +17,8 @@ Fetch URL is a Next.js web client for [`@j0hanz/fetch-url-mcp`](https://github.c
 ## Architecture
 
 - **Rendering Model**: App Router with server-first entrypoints in `app/layout.tsx` and `app/page.tsx`
-- **Home Page Flow**: `app/page.tsx` reads static markdown content from `public/` on the server and passes it into client components for interaction
-- **Client State Boundary**: `components/home-client.tsx` owns form submission, request cancellation, streamed progress state, error display, and final result rendering
+- **Home Page Flow**: `app/layout.tsx` reads static markdown content from `content/` for the About dialog, while `app/page.tsx` renders the homepage shell and hands interaction off to the client
+- **Client State Boundary**: `components/features/home-client.tsx` owns form submission, request cancellation, streamed progress state, error display, and final result rendering
 - **API Layer**: `app/api/transform/route.ts` runs on the Node.js runtime, validates JSON input, and returns either JSON errors or streamed NDJSON progress/result events
 - **Service Layer**: `lib/transform.ts` handles retry behavior and transport-level error mapping before returning normalized API responses
 - **MCP Transport Layer**: `lib/mcp.ts` manages MCP client lifecycle, stdio transport creation, tool discovery, reconnect/reset behavior, and fetch-url tool invocation
@@ -28,10 +28,10 @@ Fetch URL is a Next.js web client for [`@j0hanz/fetch-url-mcp`](https://github.c
 ## Testing Strategy
 
 - **Runner Config**: `vitest.config.ts` uses `@vitejs/plugin-react`, the `@` path alias, `tests/setup.ts`, and a default `node` environment
-- **Test Layout**: `tests/unit` covers service, transport, parsing, and site helpers; `tests/ui` covers rendered component behavior; `tests/integration` exists as a placeholder directory but currently has no checked-in specs
+- **Test Layout**: `tests/unit` covers service, transport, parsing, site helpers, logging, and proxy behavior; `tests/ui` covers rendered component behavior; `tests/integration` covers route-level streaming
 - **UI Test Pattern**: UI specs opt into `// @vitest-environment jsdom` per file and use Testing Library plus shared helpers from `tests/setup.ts`
 - **Mocking Strategy**: Unit tests mock MCP SDK clients/transports and network boundaries to verify retry logic, connection lifecycle, abort handling, and error mapping without starting external processes
-- **Current Footprint**: 12 test files total, split across 7 unit tests and 5 UI tests
+- **Current Footprint**: 15 test files total, split across 9 unit tests, 5 UI tests, and 1 integration test
 - **Behavior Under Test**: form submission, streamed progress transitions, result/error presentation, MCP transport lifecycle, request parsing, transform retries, and site metadata helpers
 
 ## Commands
@@ -51,12 +51,12 @@ Fetch URL is a Next.js web client for [`@j0hanz/fetch-url-mcp`](https://github.c
 
 ```text
 .
-├── .github/            # CI/workflows and repo automation
-├── .vscode/
 ├── app/
+├── assets/
 ├── components/
+├── content/
+├── hooks/
 ├── lib/
-├── memory_db/
 ├── public/
 ├── tests/              # test suites
 ├── .prettierignore     # formatter config

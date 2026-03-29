@@ -27,11 +27,12 @@ Browser
   -> preview, copy, or download in the UI
 ```
 
-The homepage is server-first. [`app/page.tsx`](app/page.tsx) reads static Markdown content from [`content/`](content/) and passes it into the interactive client UI. The request flow itself lives across a small set of focused modules:
+The homepage is server-first. [`app/layout.tsx`](app/layout.tsx) reads static Markdown content from [`content/`](content/) for the About dialog, while [`app/page.tsx`](app/page.tsx) renders the main page shell and interactive client UI. The request flow itself lives across a small set of focused modules:
 
 | Area                                                                         | Responsibility                                                                        |
 | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| [`app/page.tsx`](app/page.tsx)                                               | Renders the homepage shell and loads the About / How It Works content on the server   |
+| [`app/layout.tsx`](app/layout.tsx)                                           | Loads the About / How It Works content on the server and wires shared page chrome     |
+| [`app/page.tsx`](app/page.tsx)                                               | Renders homepage metadata and the interactive client surface                          |
 | [`components/features/home-client.tsx`](components/features/home-client.tsx) | Owns the client-side interaction states: idle, loading, error, and result             |
 | [`components/features/form.tsx`](components/features/form.tsx)               | Collects a single public URL and submits it through a form action                     |
 | [`app/api/transform/route.ts`](app/api/transform/route.ts)                   | Validates input, runs the transform, and returns streamed NDJSON events               |
@@ -158,6 +159,7 @@ The test suite covers:
 - transform result parsing and error mapping
 - MCP transport lifecycle and retry behavior
 - route-level streaming behavior
+- edge security header behavior
 - form submission, preview rendering, and result interactions
 
 ## Project Layout
