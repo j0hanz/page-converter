@@ -3,9 +3,11 @@
 import { lazy, Suspense, type SyntheticEvent, useState } from 'react';
 
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import type { DialogProps } from '@mui/material/Dialog';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
+import Typography from '@mui/material/Typography';
 
 import { BaseDialog } from '@/components/ui/dialog';
 import { MarkdownErrorBoundary } from '@/components/ui/error';
@@ -24,9 +26,12 @@ interface AboutTabDefinition {
 }
 
 interface AboutDialogPanelProps {
-  aboutMarkdown: string;
-  howItWorksMarkdown: string;
+  aboutMarkdown: string | null;
+  contentLoadFailed: boolean;
+  howItWorksMarkdown: string | null;
+  isContentLoading: boolean;
   onClose: NonNullable<DialogProps['onClose']>;
+  onRetry: () => void;
   open: boolean;
 }
 
@@ -81,16 +86,49 @@ function createAboutTabDefinitions(contentById: Record<AboutTabId, string>) {
   }));
 }
 
+function AboutDialogLoadingState() {
+  return <MarkdownSkeleton />;
+}
+
+function AboutDialogErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <Box
+      sx={{
+        minHeight: 240,
+        display: 'grid',
+        placeItems: 'center',
+        gap: 2,
+        textAlign: 'center',
+      }}
+    >
+      <Box>
+        <Typography variant="subtitle1">
+          Failed to load About content.
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Try again to load the help content for this dialog.
+        </Typography>
+      </Box>
+      <Button variant="contained" onClick={onRetry}>
+        Retry
+      </Button>
+    </Box>
+  );
+}
+
 export default function AboutDialogPanel({
   aboutMarkdown,
+  contentLoadFailed,
   howItWorksMarkdown,
+  isContentLoading,
   onClose,
+  onRetry,
   open,
 }: AboutDialogPanelProps) {
   const [tab, setTab] = useState<AboutTabId>('overview');
   const tabs = createAboutTabDefinitions({
-    overview: aboutMarkdown,
-    'how-it-works': howItWorksMarkdown,
+    overview: aboutMarkdown ?? '',
+    'how-it-works': howItWorksMarkdown ?? '',
   });
 
   function handleTabChange(_event: SyntheticEvent, nextTab: AboutTabId) {
@@ -125,15 +163,21 @@ export default function AboutDialogPanel({
         </Box>
       }
     >
-      {tabs.map((tabDefinition) => (
-        <TabPanel
-          key={tabDefinition.id}
-          tab={tabDefinition.id}
-          visible={tab === tabDefinition.id}
-        >
-          {tabDefinition.content}
-        </TabPanel>
-      ))}
+      {contentLoadFailed ? (
+        <AboutDialogErrorState onRetry={onRetry} />
+      ) : isContentLoading && !aboutMarkdown && !howItWorksMarkdown ? (
+        <AboutDialogLoadingState />
+      ) : (
+        tabs.map((tabDefinition) => (
+          <TabPanel
+            key={tabDefinition.id}
+            tab={tabDefinition.id}
+            visible={tab === tabDefinition.id}
+          >
+            {tabDefinition.content}
+          </TabPanel>
+        ))
+      )}
     </BaseDialog>
   );
 }

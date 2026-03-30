@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next';
-import { cacheLife } from 'next/cache';
 
 import GitHubIcon from '@mui/icons-material/GitHub';
 import AppBar from '@mui/material/AppBar';
@@ -16,9 +15,9 @@ import AboutDialog from '@/components/features/about-dialog';
 import Footer from '@/components/ui/footer';
 import LogoIcon from '@/components/ui/logo-icon';
 import ThemeToggle from '@/components/ui/theme-toggle';
+import { WebVitals } from '@/components/ui/web-vitals';
 
 import { geistMono, geistSans } from '@/lib/fonts';
-import { readHomePageMarkdown } from '@/lib/home-content';
 import {
   resolveSiteUrl,
   SITE_CATEGORY,
@@ -77,30 +76,30 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     siteName: SITE_NAME,
+    description: SITE_DESCRIPTION,
   },
   twitter: {
     card: 'summary_large_image',
+    description: SITE_DESCRIPTION,
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  'use cache';
-
-  cacheLife('max');
-
-  const { aboutMarkdown, howItWorksMarkdown } = await readHomePageMarkdown();
-
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        <link rel="dns-prefetch" href="https://github.com" />
+      </head>
       <body>
+        <WebVitals />
         <InitColorSchemeScript attribute="class" />
         <AppThemeProviders>
           <Box
@@ -165,10 +164,7 @@ export default async function RootLayout({
                     sx={{ gap: 'clamp(0.5rem, 0.25rem + 0.5vw, 1rem)' }}
                     alignItems="center"
                   >
-                    <AboutDialog
-                      aboutMarkdown={aboutMarkdown}
-                      howItWorksMarkdown={howItWorksMarkdown}
-                    />
+                    <AboutDialog />
                     <Tooltip title="View on GitHub">
                       <IconButton
                         component="a"

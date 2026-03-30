@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { cacheLife } from 'next/cache';
 
 import HomeClient from '@/components/features/home-client';
 
@@ -11,10 +10,12 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: SITE_NAME,
+    description: SITE_DESCRIPTION,
     url: '/',
   },
   twitter: {
     title: SITE_NAME,
+    description: SITE_DESCRIPTION,
   },
 };
 
@@ -28,15 +29,9 @@ const jsonLd = {
   operatingSystem: 'All',
 };
 
-async function CachedHome() {
-  'use cache';
+const jsonLdMarkup = JSON.stringify(jsonLd).replace(/</g, '\u003c');
 
-  cacheLife('max');
-
-  const jsonLdMarkup = await Promise.resolve(
-    JSON.stringify(jsonLd).replace(/</g, '\u003c')
-  );
-
+export default function Home() {
   return (
     <>
       <script
@@ -48,8 +43,4 @@ async function CachedHome() {
       <HomeClient />
     </>
   );
-}
-
-export default function Home() {
-  return <CachedHome />;
 }

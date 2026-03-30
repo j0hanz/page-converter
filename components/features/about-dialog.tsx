@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import dynamic from 'next/dynamic';
 
@@ -15,20 +15,113 @@ const loadAboutDialogPanel = () =>
   import('@/components/features/about-dialog-panel');
 const AboutDialogPanel = dynamic(loadAboutDialogPanel);
 
-interface AboutDialogProps {
+interface HomeContentPayload {
   aboutMarkdown: string;
   howItWorksMarkdown: string;
 }
 
-export default function AboutDialog({
-  aboutMarkdown,
-  howItWorksMarkdown,
-}: AboutDialogProps) {
+interface HomeContentResponse {
+  aboutMarkdown?: unknown;
+  howItWorksMarkdown?: unknown;
+  markdown?: unknown;
+}
+
+let homeContentPromise: Promise<HomeContentPayload> | undefined;
+
+function mapHomeContentPayload(data: HomeContentResponse): HomeContentPayload {
+  const aboutMarkdown =
+    typeof data.aboutMarkdown === 'string'
+      ? data.aboutMarkdown
+      : typeof data.markdown === 'string'
+        ? data.markdown
+        : null;
+  const howItWorksMarkdown =
+    typeof data.howItWorksMarkdown === 'string'
+      ? data.howItWorksMarkdown
+      : null;
+
+  if (!aboutMarkdown || !howItWorksMarkdown) {
+    throw new Error('Invalid home content response.');
+  }
+
+  return { aboutMarkdown, howItWorksMarkdown };
+}
+
+async function fetchHomeContent(): Promise<HomeContentPayload> {
+  const response = await fetch('/api/home-content', {
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to load About content.');
+  }
+
+  return mapHomeContentPayload((await response.json()) as HomeContentResponse);
+}
+
+function loadHomeContent(): Promise<HomeContentPayload> {
+  homeContentPromise ??= fetchHomeContent().catch((error: unknown) => {
+    homeContentPromise = undefined;
+    throw error;
+  });
+
+  return homeContentPromise;
+}
+
+function prefetchHomeContent(): void {
+  void loadHomeContent().catch(() => {});
+}
+
+export default function AboutDialog() {
   const [open, setOpen] = useState(false);
+  const [content, setContent] = useState<HomeContentPayload | null>(null);
+  const [isContentLoading, setIsContentLoading] = useState(false);
+  const [contentLoadFailed, setContentLoadFailed] = useState(false);
 
   const handleClose: NonNullable<DialogProps['onClose']> = () => {
     setOpen(false);
   };
+
+  useEffect(() => {
+    if (!open || content || isContentLoading) {
+      return;
+    }
+
+    let cancelled = false;
+
+    setIsContentLoading(true);
+    setContentLoadFailed(false);
+
+    void loadHomeContent()
+      .then((nextContent) => {
+        if (cancelled) {
+          return;
+        }
+
+        setContent(nextContent);
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+
+        setContentLoadFailed(true);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsContentLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [content, isContentLoading, open]);
+
+  function handlePrefetch() {
+    void loadAboutDialogPanel();
+    prefetchHomeContent();
+  }
 
   return (
     <>
@@ -38,10 +131,10 @@ export default function AboutDialog({
             setOpen(true);
           }}
           onFocus={() => {
-            void loadAboutDialogPanel();
+            handlePrefetch();
           }}
           onMouseEnter={() => {
-            void loadAboutDialogPanel();
+            handlePrefetch();
           }}
           aria-label="About Fetch URL"
           size="small"
@@ -53,10 +146,16 @@ export default function AboutDialog({
 
       {open ? (
         <AboutDialogPanel
-          aboutMarkdown={aboutMarkdown}
-          howItWorksMarkdown={howItWorksMarkdown}
+          aboutMarkdown={content?.aboutMarkdown ?? null}
+          howItWorksMarkdown={content?.howItWorksMarkdown ?? null}
+          contentLoadFailed={contentLoadFailed}
+          isContentLoading={isContentLoading}
           open={open}
           onClose={handleClose}
+          onRetry={() => {
+            setContent(null);
+            setContentLoadFailed(false);
+          }}
         />
       ) : null}
     </>
