@@ -154,7 +154,7 @@ export default async function RootLayout({
                         fontSize: fluid.logoSize,
                       }}
                     />
-                    <Typography variant="h4" component="h1" noWrap>
+                    <Typography variant="h5" component="h1" noWrap>
                       {SITE_NAME}
                     </Typography>
                   </Stack>
