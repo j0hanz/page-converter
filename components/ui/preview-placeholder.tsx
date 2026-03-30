@@ -2,14 +2,14 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
-import { responsive, sx } from '@/lib/theme';
+import { fluid, sx } from '@/lib/theme';
 
 export default function PreviewPlaceholder() {
   return (
     <Paper
       sx={{
         ...sx.markdownPanel,
-        minHeight: responsive.panelMaxHeight,
+        minHeight: fluid.panelMaxHeight,
         display: 'grid',
         alignContent: 'center',
         justifyContent: 'center',

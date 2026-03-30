@@ -19,7 +19,7 @@ import { BaseDialog } from '@/components/ui/dialog';
 import { MarkdownErrorBoundary } from '@/components/ui/error';
 import { MarkdownSkeleton } from '@/components/ui/loading';
 
-import { HEADER_ICON_SX } from '@/lib/theme';
+import { sx } from '@/lib/theme';
 
 const MarkdownPreview = lazy(() => import('@/components/ui/markdown-preview'));
 
@@ -119,7 +119,7 @@ export default function AboutDialog({
           size="small"
           disableRipple={true}
         >
-          <InfoOutlinedIcon sx={HEADER_ICON_SX} />
+          <InfoOutlinedIcon sx={sx.headerIcon} />
         </IconButton>
       </Tooltip>
 

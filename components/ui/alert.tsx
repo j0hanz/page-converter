@@ -122,7 +122,7 @@ export default function TransformAlert({
         bgcolor: 'unset',
         backgroundImage: 'none',
         boxShadow: 'none',
-        maxWidth: { xs: '100%', sm: '80%', md: '70%' },
+        maxWidth: 'min(100%, 70ch)',
         mx: 'auto',
       }}
     >

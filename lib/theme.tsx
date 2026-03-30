@@ -22,24 +22,19 @@ export const tokens = {
   scrollbar: { width: 'none' as const },
 } as const;
 
-// ── Responsive value maps ───────────────────────────────────────
-export const responsive = {
-  pagePt: { xs: 1, sm: 2, md: 3 },
-  containerGap: { xs: 1.5, sm: 2 },
-  panelPadding: { xs: 1.5, sm: 2.5 },
-  codeFontSize: { xs: '0.8125rem', sm: '0.875rem' },
-  truncateWidth: { xs: '30ch', sm: '50ch', md: '70ch' },
-  panelMaxHeight: { xs: '55dvh', sm: '60dvh', md: '65dvh' },
-  paragraphMb: { xs: 1, sm: 1.5 },
-  listItemMb: { xs: 0.5, sm: 1 },
-  logoSize: { xs: '1.5rem', sm: '2rem' },
+// ── Fluid design tokens ─────────────────────────────────────────
+export const fluid = {
+  pagePt: 'clamp(0.5rem, 0.25rem + 1.5vw, 1.5rem)',
+  containerGap: 'clamp(0.75rem, 0.5rem + 0.5vw, 1rem)',
+  codeFontSize: '0.85rem',
+  truncateWidth: 'clamp(30ch, 15ch + 25vw, 70ch)',
+  panelMaxHeight: 'clamp(55dvh, 50dvh + 5vw, 65dvh)',
+  paragraphMb: 'clamp(0.5rem, 0.375rem + 0.25vw, 0.75rem)',
+  listItemMb: 'clamp(0.25rem, 0.125rem + 0.25vw, 0.5rem)',
+  logoSize: 'clamp(1.5rem, 1.25rem + 0.5vw, 2rem)',
 } as const;
 
 // ── Shared sx presets ───────────────────────────────────────────
-export const HEADER_ICON_SX = {
-  fontSize: { xs: '1.25rem', sm: '1.5rem' },
-} as const;
-
 export const sx = {
   // Layout
   centerFlex: {
@@ -48,6 +43,7 @@ export const sx = {
     justifyContent: 'center',
   },
   flexColumn: { flex: 1, display: 'flex', flexDirection: 'column' },
+  headerIcon: { fontSize: 'clamp(1.25rem, 1rem + 0.5vw, 1.5rem)' },
 
   // Markdown elements
   markdownRoot: {
@@ -107,8 +103,8 @@ export const sx = {
     transition: 'all 0.2s ease',
     '&:hover': { textDecorationThickness: '0.12em' },
   },
-  paragraph: { mb: responsive.paragraphMb },
-  listItem: { mb: responsive.listItemMb },
+  paragraph: { mb: fluid.paragraphMb },
+  listItem: { mb: fluid.listItemMb },
   checkbox: {
     p: 0,
     mr: 0.5,
@@ -126,24 +122,24 @@ export const sx = {
   markdownPanel: {
     p: { '@': 1.5, '@sm': 2.5 },
     flex: 1,
-    maxHeight: responsive.panelMaxHeight,
+    maxHeight: fluid.panelMaxHeight,
     overflow: 'auto',
   },
   rawMarkdown: {
     fontFamily: tokens.fonts.mono,
-    fontSize: responsive.codeFontSize,
+    fontSize: fluid.codeFontSize,
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
   },
   truncatedText: {
     overflow: 'hidden',
-    maxWidth: responsive.truncateWidth,
+    maxWidth: fluid.truncateWidth,
   },
   resultUrl: {
     opacity: 0.8,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    maxWidth: responsive.truncateWidth,
+    maxWidth: fluid.truncateWidth,
   },
   toggleButton: { border: 0, minWidth: 64, px: 1, py: 0.5 },
   headerButton: {

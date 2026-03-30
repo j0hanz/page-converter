@@ -7,7 +7,7 @@ import IconButton from '@mui/material/IconButton';
 import { useColorScheme } from '@mui/material/styles';
 import Tooltip from '@mui/material/Tooltip';
 
-import { HEADER_ICON_SX } from '@/lib/theme';
+import { sx } from '@/lib/theme';
 
 type Mode = 'light' | 'dark' | 'system';
 
@@ -58,7 +58,7 @@ export default function ThemeToggle() {
         size="small"
         disableRipple={true}
       >
-        <Icon sx={HEADER_ICON_SX} />
+        <Icon sx={sx.headerIcon} />
       </IconButton>
     </Tooltip>
   );

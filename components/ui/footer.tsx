@@ -6,7 +6,7 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 
 import { SITE_CREATOR, SITE_REPOSITORY_URL } from '@/lib/site';
-import { HEADER_ICON_SX } from '@/lib/theme';
+import { sx } from '@/lib/theme';
 
 export default function Footer() {
   return (
@@ -49,7 +49,7 @@ export default function Footer() {
             aria-label="View Source on GitHub"
             sx={{ color: 'text.secondary' }}
           >
-            <GitHubIcon sx={HEADER_ICON_SX} />
+            <GitHubIcon sx={sx.headerIcon} />
           </IconButton>
         </Tooltip>
       </Box>

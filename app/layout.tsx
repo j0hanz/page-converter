@@ -30,7 +30,7 @@ import {
   SITE_NAME,
   SITE_REPOSITORY_URL,
 } from '@/lib/site';
-import { HEADER_ICON_SX, responsive, sx } from '@/lib/theme';
+import { fluid, sx } from '@/lib/theme';
 import { AppThemeProviders } from '@/lib/theme-provider';
 
 const metadataBase = resolveSiteUrl();
@@ -104,7 +104,7 @@ function AboutDialogFallback() {
       aria-label="About Fetch URL"
       disableRipple
     >
-      <InfoOutlinedIcon sx={HEADER_ICON_SX} />
+      <InfoOutlinedIcon sx={sx.headerIcon} />
     </IconButton>
   );
 }
@@ -151,7 +151,7 @@ export default function RootLayout({
               minHeight: '100dvh',
               display: 'flex',
               flexDirection: 'column',
-              pt: responsive.pagePt,
+              pt: fluid.pagePt,
             }}
           >
             <Container
@@ -160,7 +160,7 @@ export default function RootLayout({
                 flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: responsive.containerGap,
+                gap: fluid.containerGap,
               }}
             >
               <AppBar>
@@ -173,7 +173,7 @@ export default function RootLayout({
                   >
                     <LogoIcon
                       sx={{
-                        fontSize: responsive.logoSize,
+                        fontSize: fluid.logoSize,
                       }}
                     />
                     <Typography variant="h4" component="h1" noWrap>
@@ -182,7 +182,7 @@ export default function RootLayout({
                   </Stack>
                   <Stack
                     direction="row"
-                    spacing={{ xs: 1, sm: 2 }}
+                    sx={{ gap: 'clamp(0.5rem, 0.25rem + 0.5vw, 1rem)' }}
                     alignItems="center"
                   >
                     <Suspense fallback={<AboutDialogFallback />}>
@@ -198,7 +198,7 @@ export default function RootLayout({
                         rel="noopener noreferrer"
                         aria-label="View on GitHub"
                       >
-                        <GitHubIcon sx={HEADER_ICON_SX} />
+                        <GitHubIcon sx={sx.headerIcon} />
                       </IconButton>
                     </Tooltip>
                     <ThemeToggle />

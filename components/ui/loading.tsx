@@ -2,7 +2,7 @@ import Box from '@mui/material/Box';
 import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 
-import { responsive } from '@/lib/theme';
+import { fluid } from '@/lib/theme';
 
 interface SkeletonSection {
   headingSize: string;
@@ -31,11 +31,7 @@ const SECTIONS = [
   },
 ] as const satisfies readonly SkeletonSection[];
 
-const SKELETON_MIN_HEIGHT = {
-  xs: `calc(${responsive.panelMaxHeight.xs} - 24px)`,
-  sm: `calc(${responsive.panelMaxHeight.sm} - 40px)`,
-  md: `calc(${responsive.panelMaxHeight.md} - 40px)`,
-} as const;
+const SKELETON_MIN_HEIGHT = `calc(${fluid.panelMaxHeight} - clamp(24px, 16px + 2cqi, 40px))`;
 
 function SectionSkeleton({
   headingSize,
@@ -70,7 +66,7 @@ export function MarkdownSkeleton() {
       <Skeleton
         animation="wave"
         variant="rounded"
-        sx={{ flexGrow: 1, minHeight: 80, mt: responsive.paragraphMb }}
+        sx={{ flexGrow: 1, minHeight: 80, mt: fluid.paragraphMb }}
       />
       <SectionSkeleton {...SECTIONS[2]} />
     </Stack>
