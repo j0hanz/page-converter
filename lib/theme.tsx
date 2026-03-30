@@ -68,7 +68,7 @@ export const theme = responsiveFontSizes(
           primary: { main: '#09090b', contrastText: '#ffffff' },
           background: { default: '#fafafa', paper: '#ffffff' },
           text: { primary: '#09090b', secondary: '#52525b' },
-          divider: 'rgba(0, 0, 0, 0.10)',
+          divider: 'rgba(0, 0, 0, 0.15)',
         },
       },
       dark: {
@@ -76,7 +76,7 @@ export const theme = responsiveFontSizes(
           primary: { main: '#fafafa', contrastText: '#000000' },
           background: { default: '#09090b', paper: '#18181b' },
           text: { primary: '#fafafa', secondary: '#a1a1aa' },
-          divider: 'rgba(255, 255, 255, 0.10)',
+          divider: 'rgba(255, 255, 255, 0.15)',
         },
       },
     },
