@@ -4,7 +4,6 @@ import {
   type MouseEvent,
   startTransition,
   type SyntheticEvent,
-  useDeferredValue,
   useState,
 } from 'react';
 
@@ -14,7 +13,6 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 
 import {
   MobileResultPresentation,
-  type PreviewTransitionState,
   ResultActionBar,
   ResultHeaderWithDetails,
   ResultMarkdownPanel,
@@ -31,16 +29,9 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
   const [mobileDialogOpen, setMobileDialogOpen] = useState(false);
   const theme = useTheme();
-  const previewMarkdown = useDeferredValue(result.markdown);
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'), {
     noSsr: true,
   });
-
-  const previewState: PreviewTransitionState = {
-    isPending: previewMarkdown !== result.markdown,
-    previewMarkdown,
-    previewTransitionDuration: theme.transitions.duration.shortest,
-  };
 
   function handleViewModeChange(
     _event: MouseEvent<HTMLElement>,
@@ -78,7 +69,6 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
             setMobileDialogOpen(true);
           }}
           onTabChange={handleTabChange}
-          previewState={previewState}
           result={result}
           viewMode={viewMode}
         />
@@ -103,7 +93,6 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
         <ResultMarkdownPanel
           isPreviewMode={viewMode === 'preview'}
           markdown={result.markdown}
-          previewState={previewState}
         />
       </Stack>
     </Stack>

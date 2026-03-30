@@ -40,12 +40,6 @@ import { fluid, sx, tokens } from '@/lib/theme';
 export type ViewMode = 'preview' | 'code';
 type IconButtonColor = ComponentProps<typeof IconButton>['color'];
 
-export interface PreviewTransitionState {
-  isPending: boolean;
-  previewTransitionDuration: number;
-  previewMarkdown: string;
-}
-
 interface ResultActionButtonProps {
   ariaLabel: string;
   title: string;
@@ -284,23 +278,9 @@ function getCopyFeedbackMessage(copyStatus: CopyStatus): string | undefined {
   return COPY_STATUS_DETAILS[copyStatus].message;
 }
 
-export function PreviewSurface({
-  markdown,
-  previewState,
-}: {
-  markdown: string;
-  previewState: PreviewTransitionState;
-}) {
-  const { isPending, previewTransitionDuration } = previewState;
-
+export function PreviewSurface({ markdown }: { markdown: string }) {
   return (
-    <Box
-      aria-busy={isPending || undefined}
-      sx={{
-        opacity: isPending ? 0.72 : 1,
-        transition: `opacity ${previewTransitionDuration}ms linear`,
-      }}
-    >
+    <Box>
       <MarkdownPreview>{markdown}</MarkdownPreview>
     </Box>
   );
@@ -309,20 +289,15 @@ export function PreviewSurface({
 export function ResultMarkdownPanel({
   isPreviewMode,
   markdown,
-  previewState,
 }: {
   isPreviewMode: boolean;
   markdown: string;
-  previewState: PreviewTransitionState;
 }) {
   return (
     <Paper sx={sx.markdownPanel}>
       {isPreviewMode ? (
         <MarkdownErrorBoundary resetKey={markdown}>
-          <PreviewSurface
-            markdown={previewState.previewMarkdown}
-            previewState={previewState}
-          />
+          <PreviewSurface markdown={markdown} />
         </MarkdownErrorBoundary>
       ) : (
         <Typography component="pre" variant="body2" sx={RAW_MARKDOWN_SX}>
@@ -548,11 +523,9 @@ function MobileResultTabPanel({
 
 function MobileResultBar({
   markdown,
-  previewState,
   onOpen,
 }: {
   markdown: string;
-  previewState: PreviewTransitionState;
   onOpen: () => void;
 }) {
   return (
@@ -563,10 +536,7 @@ function MobileResultBar({
       sx={MOBILE_RESULT_BAR_SX}
     >
       <MarkdownErrorBoundary resetKey={markdown}>
-        <PreviewSurface
-          markdown={previewState.previewMarkdown}
-          previewState={previewState}
-        />
+        <PreviewSurface markdown={markdown} />
       </MarkdownErrorBoundary>
     </ButtonBase>
   );
@@ -620,14 +590,12 @@ function MobileResultDialog({
   result,
   viewMode,
   onTabChange,
-  previewState,
 }: {
   open: boolean;
   onClose: () => void;
   result: TransformResult;
   viewMode: ViewMode;
   onTabChange: (event: SyntheticEvent, nextTab: ViewMode) => void;
-  previewState: PreviewTransitionState;
 }) {
   return (
     <BaseDialog
@@ -660,10 +628,7 @@ function MobileResultDialog({
     >
       <MobileResultTabPanel tab="preview" visible={viewMode === 'preview'}>
         <MarkdownErrorBoundary resetKey={result.markdown}>
-          <PreviewSurface
-            markdown={previewState.previewMarkdown}
-            previewState={previewState}
-          />
+          <PreviewSurface markdown={result.markdown} />
         </MarkdownErrorBoundary>
       </MobileResultTabPanel>
       <MobileResultTabPanel tab="code" visible={viewMode === 'code'}>
@@ -681,7 +646,6 @@ export function MobileResultPresentation({
   onClose,
   onOpen,
   onTabChange,
-  previewState,
   result,
   viewMode,
 }: {
@@ -689,18 +653,13 @@ export function MobileResultPresentation({
   onClose: () => void;
   onOpen: () => void;
   onTabChange: (event: SyntheticEvent, nextTab: ViewMode) => void;
-  previewState: PreviewTransitionState;
   result: TransformResult;
   viewMode: ViewMode;
 }) {
   return (
     <>
       {!mobileDialogOpen ? (
-        <MobileResultBar
-          markdown={result.markdown}
-          previewState={previewState}
-          onOpen={onOpen}
-        />
+        <MobileResultBar markdown={result.markdown} onOpen={onOpen} />
       ) : null}
       {mobileDialogOpen ? (
         <MobileResultDialog
@@ -709,7 +668,6 @@ export function MobileResultPresentation({
           result={result}
           viewMode={viewMode}
           onTabChange={onTabChange}
-          previewState={previewState}
         />
       ) : null}
     </>

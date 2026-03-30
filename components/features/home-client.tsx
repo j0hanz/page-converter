@@ -2,12 +2,13 @@
 
 import type { ReactNode } from 'react';
 
+import dynamic from 'next/dynamic';
+
 import Box from '@mui/material/Box';
 import Fade from '@mui/material/Fade';
 import Paper from '@mui/material/Paper';
 
 import TransformForm from '@/components/features/form';
-import TransformResultPanel from '@/components/features/result';
 import { CenterMessage } from '@/components/ui/error';
 import { MarkdownSkeleton } from '@/components/ui/loading';
 import PreviewPlaceholder from '@/components/ui/preview-placeholder';
@@ -16,6 +17,10 @@ import { deriveViewState, useTransform } from '@/hooks/use-transform';
 import type { ViewState } from '@/hooks/use-transform';
 
 import { sx } from '@/lib/theme';
+
+const TransformResultPanel = dynamic(
+  () => import('@/components/features/result')
+);
 
 const LOADING_PANEL_SX = { ...sx.markdownPanel, ...sx.transitionCell } as const;
 
