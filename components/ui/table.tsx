@@ -11,7 +11,11 @@ import Typography from '@mui/material/Typography';
 
 import type { Components } from 'react-markdown';
 
-import { sx as themeSx } from '@/lib/theme';
+const TABLE_CONTAINER_SX = { my: 2, overflowX: 'auto' } as const;
+const TABLE_ROW_STRIPED_SX = {
+  '&:nth-of-type(odd)': { bgcolor: 'action.selected' },
+  '&:last-child td, &:last-child th': { border: 0 },
+} as const;
 
 interface TableCellRendererProps {
   children?: ReactNode;
@@ -44,7 +48,7 @@ export const markdownTableComponents: Partial<Components> = {
     <TableContainer
       component={Paper}
       variant="outlined"
-      sx={themeSx.tableContainer}
+      sx={TABLE_CONTAINER_SX}
     >
       <Table size="small" aria-label="data table">
         {children}
@@ -56,7 +60,7 @@ export const markdownTableComponents: Partial<Components> = {
   ),
   tbody: ({ children }) => <TableBody>{children}</TableBody>,
   tr: ({ children }) => (
-    <TableRow hover sx={themeSx.tableRowStriped}>
+    <TableRow hover sx={TABLE_ROW_STRIPED_SX}>
       {children}
     </TableRow>
   ),

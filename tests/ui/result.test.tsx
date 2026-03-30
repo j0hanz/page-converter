@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import TransformResultPanel from '@/components/features/result';
 
@@ -23,6 +23,10 @@ const baseResult: TransformResult = {
 };
 
 describe('TransformResultPanel', () => {
+  beforeEach(() => {
+    mockMatchMedia(1280);
+  });
+
   it('renders markdown preview by default', () => {
     renderPanel();
 
@@ -148,6 +152,21 @@ describe('TransformResultPanel', () => {
       expect(screen.getByText('Updated')).toBeInTheDocument();
     });
   });
+
+  it('uses the mobile result dialog flow on small screens', async () => {
+    const user = userEvent.setup();
+    mockMatchMedia(480);
+
+    renderPanel();
+
+    await user.click(screen.getByRole('button', { name: /view result/i }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /code/i }));
+
+    const pre = document.querySelector('pre');
+    expect(pre?.textContent).toContain('# Example');
+  });
 });
 
 function renderPanel({
@@ -156,4 +175,35 @@ function renderPanel({
   result?: TransformResult;
 } = {}) {
   return render(<TransformResultPanel result={result} />);
+}
+
+function mockMatchMedia(width: number) {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: evaluateMediaQuery(query, width),
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
+
+function evaluateMediaQuery(query: string, width: number) {
+  const minWidth = /\(min-width:\s*([\d.]+)px\)/.exec(query);
+  const maxWidth = /\(max-width:\s*([\d.]+)px\)/.exec(query);
+
+  if (minWidth && width < Number(minWidth[1])) {
+    return false;
+  }
+
+  if (maxWidth && width > Number(maxWidth[1])) {
+    return false;
+  }
+
+  return true;
 }

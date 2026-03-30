@@ -119,6 +119,40 @@ describe('HomeClient', () => {
       ).not.toBeInTheDocument();
     });
   });
+
+  it('clears a previous error when a new submission succeeds', async () => {
+    const firstStream = createControlledStreamResponse();
+    const secondStream = createControlledStreamResponse();
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(firstStream.response)
+      .mockResolvedValueOnce(secondStream.response);
+
+    render(<HomeClient />);
+    await submitUrlForm(VALID_URL);
+
+    firstStream.emit({
+      type: 'result',
+      ok: false,
+      error: {
+        code: 'FETCH_ERROR',
+        message: 'Upstream unavailable',
+        retryable: true,
+      },
+    });
+    firstStream.close();
+
+    expect(await screen.findByText('Upstream unavailable')).toBeInTheDocument();
+
+    await submitUrlForm(VALID_URL);
+    secondStream.emit({ type: 'result', ok: true, result: SUCCESS_RESULT });
+    secondStream.close();
+
+    await waitFor(() => {
+      expect(screen.getByText('Example')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Upstream unavailable')).not.toBeInTheDocument();
+  });
 });
 
 function createControlledStreamResponse() {

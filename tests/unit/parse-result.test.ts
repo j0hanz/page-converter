@@ -144,4 +144,25 @@ describe('parseMcpResult', () => {
     const error = expectErrorResult(parseMcpResult(raw));
     expect(error.code).toBe('INTERNAL_ERROR');
   });
+
+  it('maps unknown HTTP-prefixed codes to HTTP_ERROR with parsed details', () => {
+    const raw: CallToolResult = {
+      content: textContent(
+        JSON.stringify({
+          code: 'HTTP_429',
+          message: 'Too many requests',
+          retryable: true,
+          details: { retryAfter: 60 },
+        })
+      ),
+      isError: true,
+    };
+
+    const error = expectErrorResult(parseMcpResult(raw));
+
+    expect(error.code).toBe('HTTP_ERROR');
+    expect(error.statusCode).toBe(429);
+    expect(error.retryable).toBe(true);
+    expect(error.details?.retryAfter).toBe(60);
+  });
 });

@@ -21,6 +21,8 @@ interface TransformRequestHandlers {
   onResult: (result: TransformResult) => void;
 }
 
+const noop = () => {};
+
 export function deriveViewState(
   isPending: boolean,
   error: TransformError | null,
@@ -48,7 +50,7 @@ export function useTransform() {
     };
   }, []);
 
-  function resetRequestState(): void {
+  function clearVisibleState(): void {
     setError(null);
     setResult(null);
   }
@@ -57,9 +59,9 @@ export function useTransform() {
     return abortControllerRef.current === requestController;
   }
 
-  function finalizeActiveRequest(
+  function completeActiveRequest(
     requestController: AbortController,
-    onComplete: () => void
+    onComplete: () => void = noop
   ): void {
     if (!isActiveRequest(requestController)) {
       return;
@@ -75,7 +77,7 @@ export function useTransform() {
     const requestController = new AbortController();
     abortControllerRef.current = requestController;
     setIsPending(true);
-    resetRequestState();
+    clearVisibleState();
     return requestController;
   }
 
@@ -83,7 +85,7 @@ export function useTransform() {
     requestController: AbortController,
     nextResult: TransformResult
   ): void {
-    finalizeActiveRequest(requestController, () => {
+    completeActiveRequest(requestController, () => {
       setResult(nextResult);
       formRef.current?.reset();
     });
@@ -94,11 +96,11 @@ export function useTransform() {
     nextError: TransformError
   ): void {
     if (nextError.code === 'ABORTED') {
-      finalizeActiveRequest(requestController, () => {});
+      completeActiveRequest(requestController);
       return;
     }
 
-    finalizeActiveRequest(requestController, () => {
+    completeActiveRequest(requestController, () => {
       setError(nextError);
     });
   }
@@ -107,10 +109,7 @@ export function useTransform() {
     requestController: AbortController
   ): TransformRequestHandlers {
     return {
-      onProgress() {
-        // Progress events are consumed by the NDJSON stream reader;
-        // no client-side state update needed.
-      },
+      onProgress: noop,
       onResult(result) {
         handleRequestResult(requestController, result);
       },

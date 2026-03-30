@@ -14,13 +14,87 @@ import remarkGfm from 'remark-gfm';
 
 import { markdownTableComponents } from '@/components/ui/table';
 
-import { sx } from '@/lib/theme';
+import { fluid, tokens } from '@/lib/theme';
 
 const remarkPlugins = [remarkGfm];
 
 const SAFE_LINK_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
 const IMAGE_PROTOCOLS = new Set(['http:', 'https:']);
 const LIST_SX = { pl: 3, my: 2 };
+const MARKDOWN_ROOT_SX = {
+  '& > :first-of-type': { mt: 0 },
+  '& > :last-child': { mb: 0 },
+} as const;
+const BLOCKQUOTE_SX = {
+  borderLeft: 3,
+  borderColor: 'divider',
+  bgcolor: 'action.selected',
+  borderRadius: tokens.radius.code,
+  px: 2,
+  py: 1,
+  my: 2,
+  mx: 0,
+  fontStyle: 'italic',
+  color: 'text.secondary',
+  '& > p': { mb: 0 },
+} as const;
+const CODE_BLOCK_SX = {
+  p: 2,
+  overflow: 'auto',
+  fontFamily: tokens.fonts.mono,
+  fontSize: '0.875rem',
+  bgcolor: 'action.hover',
+  borderRadius: tokens.radius.code,
+  whiteSpace: 'pre-wrap',
+  wordBreak: 'break-word',
+} as const;
+const INLINE_CODE_SX = {
+  px: 0.5,
+  py: 0.25,
+  bgcolor: 'action.hover',
+  borderRadius: tokens.radius.code,
+  fontFamily: tokens.fonts.mono,
+  fontSize: '0.85em',
+  border: 1,
+  borderColor: 'divider',
+} as const;
+const IMAGE_SX = {
+  maxWidth: '100%',
+  height: 'auto',
+  maxHeight: '60vh',
+} as const;
+const CODE_BLOCK_WRAPPER_SX = { position: 'relative' } as const;
+const LANGUAGE_CHIP_SX = {
+  position: 'absolute',
+  top: 4,
+  right: 4,
+  fontFamily: tokens.fonts.mono,
+  height: tokens.sizes.chipHeight,
+  opacity: 0.6,
+  zIndex: 1,
+  fontSize: '0.7rem',
+  backgroundColor: 'unset',
+} as const;
+const LINK_SX = {
+  textUnderlineOffset: '0.18em',
+  textDecorationThickness: '0.08em',
+  transition: 'all 0.2s ease',
+  '&:hover': { textDecorationThickness: '0.12em' },
+} as const;
+const PARAGRAPH_SX = { mb: fluid.paragraphMb } as const;
+const LIST_ITEM_SX = { mb: fluid.listItemMb } as const;
+const CHECKBOX_SX = {
+  p: 0,
+  mr: 0.5,
+  verticalAlign: 'middle',
+  pointerEvents: 'none',
+} as const;
+const HEADING_BORDER_SX = {
+  my: 1.5,
+  pb: 0.5,
+  borderBottom: 1,
+  borderColor: 'divider',
+} as const;
 
 function isSafeUrl(value: unknown, protocols: Set<string>): value is string {
   if (typeof value !== 'string') return false;
@@ -63,7 +137,7 @@ const headingComponents = Object.fromEntries(
           gutterBottom
           color={color}
           fontWeight={fontWeight}
-          sx={bordered ? { mt, ...sx.headingBorder } : { mt }}
+          sx={bordered ? { mt, ...HEADING_BORDER_SX } : { mt }}
         >
           {children}
         </Typography>
@@ -85,7 +159,7 @@ function CodeRenderer({
 
   if (!isBlock) {
     return (
-      <Box component="code" sx={sx.inlineCode}>
+      <Box component="code" sx={INLINE_CODE_SX}>
         {children}
       </Box>
     );
@@ -93,9 +167,9 @@ function CodeRenderer({
 
   const language = className?.replace('language-', '');
   return (
-    <Box sx={sx.codeBlockWrapper}>
-      {language && <Chip label={language} size="small" sx={sx.langChip} />}
-      <Paper variant="outlined" component="pre" sx={sx.codeBlock}>
+    <Box sx={CODE_BLOCK_WRAPPER_SX}>
+      {language && <Chip label={language} size="small" sx={LANGUAGE_CHIP_SX} />}
+      <Paper variant="outlined" component="pre" sx={CODE_BLOCK_SX}>
         <code>{children}</code>
       </Paper>
     </Box>
@@ -122,7 +196,7 @@ function LinkRenderer({
       target="_blank"
       rel="noopener noreferrer"
       underline="hover"
-      sx={sx.link}
+      sx={LINK_SX}
     >
       {children}
     </Link>
@@ -138,7 +212,7 @@ function ImageRenderer({ src, alt }: { src?: string | Blob; alt?: string }) {
       alt={alt ?? ''}
       loading="lazy"
       decoding="async"
-      sx={sx.image}
+      sx={IMAGE_SX}
     />
   );
 }
@@ -147,13 +221,13 @@ const components: Components = {
   ...markdownTableComponents,
   ...headingComponents,
   p: ({ children }) => (
-    <Typography variant="body1" sx={sx.paragraph}>
+    <Typography variant="body1" sx={PARAGRAPH_SX}>
       {children}
     </Typography>
   ),
   a: LinkRenderer,
   blockquote: ({ children }) => (
-    <Box component="blockquote" sx={sx.blockquote}>
+    <Box component="blockquote" sx={BLOCKQUOTE_SX}>
       {children}
     </Box>
   ),
@@ -170,7 +244,7 @@ const components: Components = {
       size="small"
       disableRipple
       tabIndex={-1}
-      sx={sx.checkbox}
+      sx={CHECKBOX_SX}
     />
   ),
   hr: () => <Divider sx={{ my: 2 }} />,
@@ -186,7 +260,7 @@ const components: Components = {
     </Box>
   ),
   li: ({ children }) => (
-    <Typography component="li" variant="body1" sx={sx.listItem}>
+    <Typography component="li" variant="body1" sx={LIST_ITEM_SX}>
       {children}
     </Typography>
   ),
@@ -194,7 +268,7 @@ const components: Components = {
 
 export default function MarkdownPreview({ children }: { children: string }) {
   return (
-    <Box component="article" sx={sx.markdownRoot}>
+    <Box component="article" sx={MARKDOWN_ROOT_SX}>
       <Markdown remarkPlugins={remarkPlugins} components={components}>
         {children}
       </Markdown>

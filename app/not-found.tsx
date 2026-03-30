@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 
-import LinkButton from '@/components/ui/link-button';
-import { StatusShell } from '@/components/ui/status-shell';
+import Button from '@mui/material/Button';
+
+import { StatusShell } from '@/components/ui/error';
 
 export const metadata: Metadata = {
   title: 'Page not found',
@@ -14,9 +15,9 @@ export default function NotFound() {
       message="The page you are looking for does not exist."
       minHeight="50vh"
       action={
-        <LinkButton href="/" variant="contained">
+        <Button href="/" variant="contained">
           Go home
-        </LinkButton>
+        </Button>
       }
     />
   );

@@ -26,28 +26,23 @@ import {
 const DEFAULT_PACKAGE_VERSION = '0.0.0';
 const MAX_STDERR_BUFFER_LENGTH = 4000;
 const MCP_MAX_TOTAL_TIMEOUT = 120_000;
-const HTTP_ERROR_CODE_PREFIX = 'HTTP_';
 const RECONNECT_BASE_DELAY_MS = 500;
 const RECONNECT_MAX_DELAY_MS = 5000;
+const FETCH_URL_PACKAGE_NAME = '@j0hanz/fetch-url-mcp';
+const FETCH_URL_ENTRYPOINT = path.join('dist', 'index.js');
+const FETCH_URL_TOOL_NAME = 'fetch-url';
+const HTTP_ERROR_CODE_PREFIX = 'HTTP_';
+
+const KNOWN_MCP_ERRORS = {
+  VALIDATION_ERROR: { code: 'VALIDATION_ERROR' },
+  FETCH_ERROR: { code: 'FETCH_ERROR' },
+  ABORTED: { code: 'ABORTED' },
+  queue_full: { code: 'QUEUE_FULL' },
+} as const;
 
 interface FetchUrlArgs {
   url: string;
 }
-
-function readPackageVersion(): string {
-  const pkgPath = findPackageJSON('..', import.meta.url);
-  if (!pkgPath) {
-    return DEFAULT_PACKAGE_VERSION;
-  }
-
-  const packageJson = parseJsonRecord(readFileSync(pkgPath, 'utf-8'));
-  return readString(packageJson?.version) ?? DEFAULT_PACKAGE_VERSION;
-}
-
-const CLIENT_INFO = { name: 'fetch-url', version: readPackageVersion() };
-const FETCH_URL_PACKAGE_NAME = '@j0hanz/fetch-url-mcp';
-const FETCH_URL_ENTRYPOINT = path.join('dist', 'index.js');
-const FETCH_URL_TOOL_NAME = 'fetch-url';
 
 export type ProgressCallback = (progress: Progress) => void;
 
@@ -84,7 +79,80 @@ interface McpRuntimeState {
   failureCount?: number;
 }
 
+type ParsedMcpResult =
+  | { ok: true; result: TransformResult }
+  | { ok: false; error: TransformError };
+
+type KnownMcpErrorCode = keyof typeof KNOWN_MCP_ERRORS;
+type KnownMcpErrorDefinition = (typeof KNOWN_MCP_ERRORS)[KnownMcpErrorCode];
+
+type PayloadReadState =
+  | { kind: 'structured' | 'text'; payload: JsonRecord }
+  | { kind: 'invalid_text' | 'missing' };
+
 const globalForMcp = globalThis as typeof globalThis & McpGlobalState;
+
+function parseJsonRecord(value: string): JsonRecord | null {
+  try {
+    return asRecord(JSON.parse(value));
+  } catch {
+    return null;
+  }
+}
+
+function asRecord(value: unknown): JsonRecord | null {
+  return typeof value === 'object' && value !== null
+    ? (value as JsonRecord)
+    : null;
+}
+
+function omitUndefinedFields<T extends object>(value: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, item]) => item !== undefined)
+  ) as Partial<T>;
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function readFirstString(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    const stringValue = readString(value);
+    if (stringValue !== undefined) {
+      return stringValue;
+    }
+  }
+
+  return undefined;
+}
+
+function readBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
+}
+
+function readNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function readInteger(value: unknown): number | undefined {
+  const number = readNumber(value);
+  return number !== undefined && Number.isInteger(number) ? number : undefined;
+}
+
+function readPackageVersion(): string {
+  const pkgPath = findPackageJSON('..', import.meta.url);
+  if (!pkgPath) {
+    return DEFAULT_PACKAGE_VERSION;
+  }
+
+  const packageJson = parseJsonRecord(readFileSync(pkgPath, 'utf-8'));
+  return readString(packageJson?.version) ?? DEFAULT_PACKAGE_VERSION;
+}
+
+const CLIENT_INFO = { name: 'fetch-url', version: readPackageVersion() };
 
 function getMcpRuntimeState(): McpRuntimeState {
   globalForMcp.__mcpRuntimeState ??= {};
@@ -159,7 +227,6 @@ async function getConnectedClient(): Promise<Client> {
   }
 
   state.connecting = connectClient(state);
-
   return state.connecting;
 }
 
@@ -174,23 +241,19 @@ function delay(ms: number): Promise<void> {
 }
 
 async function verifyToolAvailability(client: Client): Promise<void> {
-  let hasTool = false;
-  let cursor: string | undefined = undefined;
+  let cursor: string | undefined;
 
   do {
     const response = await client.listTools(cursor ? { cursor } : undefined);
     if (response.tools.some((tool) => tool.name === FETCH_URL_TOOL_NAME)) {
-      hasTool = true;
-      break;
+      return;
     }
     cursor = response.nextCursor;
   } while (cursor);
 
-  if (!hasTool) {
-    throw new Error(
-      `MCP server does not expose the required "${FETCH_URL_TOOL_NAME}" tool.`
-    );
-  }
+  throw new Error(
+    `MCP server does not expose the required "${FETCH_URL_TOOL_NAME}" tool.`
+  );
 }
 
 async function connectClient(state: McpRuntimeState): Promise<Client> {
@@ -229,13 +292,16 @@ function createRequestOptions(
   const result: ToolRequestOptions = {
     maxTotalTimeout: MCP_MAX_TOTAL_TIMEOUT,
   };
+
   if (options?.onProgress) {
     result.onprogress = options.onProgress;
     result.resetTimeoutOnProgress = true;
   }
+
   if (options?.signal) {
     result.signal = options.signal;
   }
+
   return result;
 }
 
@@ -260,6 +326,7 @@ export async function callFetchUrl(
     if (shouldResetInstance(error)) {
       await resetRuntimeState(getMcpRuntimeState(), { expectedClient: client });
     }
+
     throw createTransportError(error, getMcpRuntimeState());
   }
 }
@@ -277,8 +344,6 @@ function shouldResetInstance(error: unknown): boolean {
 }
 
 function isResettableMcpError(code: number): boolean {
-  // Only reset for transport/connection level errors.
-  // InvalidParams, MethodNotFound, RequestTimeout etc. do not mean the transport is dead.
   return (
     code === (ErrorCode.ConnectionClosed as number) ||
     code === (ErrorCode.InternalError as number)
@@ -319,13 +384,6 @@ export function getFetchUrlTransportConfig(
   };
 }
 
-const KNOWN_MCP_ERRORS = {
-  VALIDATION_ERROR: { code: 'VALIDATION_ERROR' },
-  FETCH_ERROR: { code: 'FETCH_ERROR' },
-  ABORTED: { code: 'ABORTED' },
-  queue_full: { code: 'QUEUE_FULL' },
-} as const;
-
 function attachTransportDiagnostics(
   transport: StdioClientTransport,
   state: McpRuntimeState
@@ -353,7 +411,6 @@ function createTransportError(error: unknown, state: McpRuntimeState): Error {
   }
 
   const stderr = state.lastStderr?.trim();
-
   if (!stderr) {
     return error instanceof Error ? error : new Error(message);
   }
@@ -377,9 +434,6 @@ function copyErrorStack<T extends Error>(target: T, source: unknown): T {
   return target;
 }
 
-type KnownMcpErrorCode = keyof typeof KNOWN_MCP_ERRORS;
-type KnownMcpErrorDefinition = (typeof KNOWN_MCP_ERRORS)[KnownMcpErrorCode];
-
 function isKnownMcpErrorCode(code: string): code is KnownMcpErrorCode {
   return code in KNOWN_MCP_ERRORS;
 }
@@ -388,9 +442,6 @@ function readKnownMcpError(code: string): KnownMcpErrorDefinition | undefined {
   return isKnownMcpErrorCode(code) ? KNOWN_MCP_ERRORS[code] : undefined;
 }
 
-/**
- * Maps an MCP error code string to a TransformError.
- */
 function mapMcpError(errorPayload: JsonRecord): TransformError {
   const code = readString(errorPayload.code) ?? '';
   const message =
@@ -487,10 +538,6 @@ function mapToTransformResult(data: JsonRecord): TransformResult {
   };
 }
 
-type ParsedMcpResult =
-  | { ok: true; result: TransformResult }
-  | { ok: false; error: TransformError };
-
 export function parseMcpResult(raw: CallToolResult): ParsedMcpResult {
   const payloadState = readPayloadRecord(raw);
   if ('payload' in payloadState) {
@@ -501,10 +548,6 @@ export function parseMcpResult(raw: CallToolResult): ParsedMcpResult {
 
   return createPayloadParseFailure(raw.isError === true, payloadState.kind);
 }
-
-type PayloadReadState =
-  | { kind: 'structured' | 'text'; payload: JsonRecord }
-  | { kind: 'invalid_text' | 'missing' };
 
 function readPayloadRecord(raw: CallToolResult): PayloadReadState {
   const structuredPayload = asRecord(raw.structuredContent);
@@ -599,54 +642,4 @@ function readRetryAfter(value: unknown): number | string | null | undefined {
     value === null
     ? value
     : undefined;
-}
-
-function parseJsonRecord(value: string): JsonRecord | null {
-  try {
-    return asRecord(JSON.parse(value));
-  } catch {
-    return null;
-  }
-}
-
-function asRecord(value: unknown): JsonRecord | null {
-  return typeof value === 'object' && value !== null
-    ? (value as JsonRecord)
-    : null;
-}
-
-function omitUndefinedFields<T extends object>(value: T): Partial<T> {
-  return Object.fromEntries(
-    Object.entries(value).filter(([, item]) => item !== undefined)
-  ) as Partial<T>;
-}
-
-function readFirstString(...values: unknown[]): string | undefined {
-  for (const value of values) {
-    const stringValue = readString(value);
-    if (stringValue !== undefined) {
-      return stringValue;
-    }
-  }
-
-  return undefined;
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}
-
-function readBoolean(value: unknown): boolean | undefined {
-  return typeof value === 'boolean' ? value : undefined;
-}
-
-function readNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value)
-    ? value
-    : undefined;
-}
-
-function readInteger(value: unknown): number | undefined {
-  const number = readNumber(value);
-  return number !== undefined && Number.isInteger(number) ? number : undefined;
 }

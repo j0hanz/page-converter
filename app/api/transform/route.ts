@@ -1,14 +1,7 @@
 import { after } from 'next/server';
 
-import type { Progress } from '@modelcontextprotocol/sdk/types.js';
-
 import {
-  createStreamProgressEvent,
-  createStreamResultEvent,
   createTransformError,
-  NDJSON_CONTENT_TYPE,
-  type StreamProgressEvent,
-  type StreamResultEvent,
   type TransformError,
   type TransformErrorResponse,
   type TransformResponse,
@@ -18,6 +11,13 @@ import {
   createValidationLog,
   logTransformOutcome,
 } from '@/lib/request-logger';
+import {
+  type BufferedProgressEmitter,
+  createBufferedProgressEmitter,
+  createNdjsonResponse,
+  type FirstTransformOutcome,
+  NDJSON_CONTENT_TYPE,
+} from '@/lib/stream';
 import { transformUrl } from '@/lib/transform';
 import {
   type TransformRequest,
@@ -32,26 +32,6 @@ const NDJSON_HEADERS = {
 
 const MAX_REQUEST_BODY_SIZE = 4096;
 const INVALID_JSON_BODY_MESSAGE = 'Invalid JSON body.';
-
-interface NdjsonStreamWriter {
-  close: () => void;
-  writeProgress: (event: StreamProgressEvent) => void;
-  writeResult: (response: TransformResponse) => void;
-}
-
-interface BufferedProgressEmitter {
-  attachWriter: (writer: NdjsonStreamWriter) => void;
-  emitProgress: (progress: Progress) => void;
-  hasProgress: () => boolean;
-  waitForFirstProgressOrResponse: (
-    responsePromise: Promise<TransformResponse>
-  ) => Promise<FirstTransformOutcome>;
-}
-
-type FirstTransformOutcome =
-  | { type: 'progress' }
-  | { type: 'response'; response: TransformResponse };
-type NdjsonWritableEvent = StreamProgressEvent | StreamResultEvent;
 
 function readValidationErrorMessage(error: unknown): string {
   return error instanceof ValidationError ? error.message : 'Invalid request.';
@@ -92,153 +72,6 @@ function createErrorResponse(error: TransformError): Response {
   );
 }
 
-function encodeNdjsonEvent(
-  encoder: TextEncoder,
-  event: NdjsonWritableEvent
-): Uint8Array {
-  return encoder.encode(JSON.stringify(event) + '\n');
-}
-
-function createNdjsonStreamWriter(
-  request: Request,
-  controller: ReadableStreamDefaultController<Uint8Array>,
-  encoder: TextEncoder
-): NdjsonStreamWriter {
-  let closed = false;
-
-  const close = (): void => {
-    if (closed) {
-      return;
-    }
-
-    closed = true;
-    request.signal.removeEventListener('abort', close);
-    try {
-      controller.close();
-    } catch {
-      // Ignore errors if stream is already closed by client abort
-    }
-  };
-
-  request.signal.addEventListener('abort', close, { once: true });
-
-  function write(event: NdjsonWritableEvent): void {
-    if (closed) {
-      return;
-    }
-
-    try {
-      controller.enqueue(encodeNdjsonEvent(encoder, event));
-    } catch {
-      // Ignore errors if client aborted the stream
-    }
-  }
-
-  return {
-    close,
-    writeProgress(event) {
-      write(event);
-    },
-    writeResult(response) {
-      write(createStreamResultEvent(response));
-    },
-  };
-}
-
-function createNdjsonResponseStream(
-  request: Request,
-  responsePromise: Promise<TransformResponse>,
-  onStart: (writer: NdjsonStreamWriter) => void
-): ReadableStream<Uint8Array> {
-  const encoder = new TextEncoder();
-
-  return new ReadableStream<Uint8Array>({
-    async start(controller: ReadableStreamDefaultController<Uint8Array>) {
-      const streamWriter = createNdjsonStreamWriter(
-        request,
-        controller,
-        encoder
-      );
-      onStart(streamWriter);
-
-      try {
-        if (request.signal.aborted) {
-          return;
-        }
-
-        const response = await responsePromise;
-
-        if (!request.signal.aborted) {
-          streamWriter.writeResult(response);
-        }
-      } finally {
-        streamWriter.close();
-      }
-    },
-    cancel() {
-      // Called by the runtime when the client disconnects.
-      // streamWriter.close() is idempotent via the closed flag.
-    },
-  });
-}
-
-function createBufferedProgressEmitter(): BufferedProgressEmitter {
-  const bufferedEvents: StreamProgressEvent[] = [];
-  const { promise: firstProgressPromise, resolve: resolveFirstProgress } =
-    Promise.withResolvers<void>();
-  let sawProgress = false;
-  let writer: NdjsonStreamWriter | null = null;
-
-  function markProgressSeen(): void {
-    if (!sawProgress) {
-      sawProgress = true;
-      resolveFirstProgress();
-    }
-  }
-
-  return {
-    attachWriter(nextWriter) {
-      writer = nextWriter;
-
-      for (const event of bufferedEvents) {
-        nextWriter.writeProgress(event);
-      }
-
-      bufferedEvents.length = 0;
-    },
-    emitProgress(progress) {
-      markProgressSeen();
-      const event = createProgressEvent(progress);
-
-      if (writer) {
-        writer.writeProgress(event);
-        return;
-      }
-
-      bufferedEvents.push(event);
-    },
-    hasProgress() {
-      return sawProgress;
-    },
-    waitForFirstProgressOrResponse(responsePromise) {
-      return Promise.race([
-        responsePromise.then(
-          (response) => ({ type: 'response', response }) as const
-        ),
-        firstProgressPromise.then(() => ({ type: 'progress' }) as const),
-      ]);
-    },
-  };
-}
-
-function createProgressEvent(progress: Progress): StreamProgressEvent {
-  return createStreamProgressEvent(
-    progress.progress,
-    progress.total,
-    progress.message
-  );
-}
-
 function shouldReturnImmediateErrorResponse(
   initialOutcome: FirstTransformOutcome,
   progressEmitter: BufferedProgressEmitter
@@ -258,13 +91,12 @@ function createStreamingTransformResponse(
   responsePromise: Promise<TransformResponse>,
   progressEmitter: BufferedProgressEmitter
 ): Response {
-  const stream = createNdjsonResponseStream(
+  return createNdjsonResponse(
     request,
     responsePromise,
-    progressEmitter.attachWriter
+    progressEmitter.attachWriter,
+    NDJSON_HEADERS
   );
-
-  return new Response(stream, { headers: NDJSON_HEADERS });
 }
 
 export async function POST(request: Request): Promise<Response> {

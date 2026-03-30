@@ -37,87 +37,8 @@ export const fluid = {
 
 // ── Shared sx presets ───────────────────────────────────────────
 export const sx = {
-  // Layout
-  centerFlex: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   flexColumn: { flex: 1, display: 'flex', flexDirection: 'column' },
   headerIcon: { fontSize: 'clamp(1.25rem, 1rem + 0.5vw, 1.5rem)' },
-
-  // Markdown elements
-  markdownRoot: {
-    '& > :first-of-type': { mt: 0 },
-    '& > :last-child': { mb: 0 },
-  },
-  blockquote: {
-    borderLeft: 3,
-    borderColor: 'divider',
-    bgcolor: 'action.selected',
-    borderRadius: tokens.radius.code,
-    px: 2,
-    py: 1,
-    my: 2,
-    mx: 0,
-    fontStyle: 'italic',
-    color: 'text.secondary',
-    '& > p': { mb: 0 },
-  },
-  codeBlock: {
-    p: 2,
-    overflow: 'auto',
-
-    fontFamily: tokens.fonts.mono,
-    fontSize: '0.875rem',
-    bgcolor: 'action.hover',
-    borderRadius: tokens.radius.code,
-    whiteSpace: 'pre-wrap',
-    wordBreak: 'break-word',
-  },
-  inlineCode: {
-    px: 0.5,
-    py: 0.25,
-    bgcolor: 'action.hover',
-    borderRadius: tokens.radius.code,
-    fontFamily: tokens.fonts.mono,
-    fontSize: '0.85em',
-    border: 1,
-    borderColor: 'divider',
-  },
-  image: { maxWidth: '100%', height: 'auto', maxHeight: '60vh' },
-  codeBlockWrapper: { position: 'relative' },
-  langChip: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    fontFamily: tokens.fonts.mono,
-    height: tokens.sizes.chipHeight,
-    opacity: 0.6,
-    zIndex: 1,
-    fontSize: '0.7rem',
-    backgroundColor: 'unset',
-  },
-  link: {
-    textUnderlineOffset: '0.18em',
-    textDecorationThickness: '0.08em',
-    transition: 'all 0.2s ease',
-    '&:hover': { textDecorationThickness: '0.12em' },
-  },
-  paragraph: { mb: fluid.paragraphMb },
-  listItem: { mb: fluid.listItemMb },
-  checkbox: {
-    p: 0,
-    mr: 0.5,
-    verticalAlign: 'middle',
-    pointerEvents: 'none',
-  },
-  headingBorder: {
-    my: 1.5,
-    pb: 0.5,
-    borderBottom: 1,
-    borderColor: 'divider',
-  },
 
   // Result panel
   markdownPanel: {
@@ -126,28 +47,6 @@ export const sx = {
     maxHeight: fluid.panelMaxHeight,
     overflow: 'auto',
   },
-  rawMarkdown: {
-    fontFamily: tokens.fonts.mono,
-    fontSize: fluid.codeFontSize,
-    whiteSpace: 'pre-wrap',
-    wordBreak: 'break-word',
-  },
-  truncatedText: {
-    overflow: 'hidden',
-    maxWidth: fluid.truncateWidth,
-  },
-  resultUrl: {
-    opacity: 0.8,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    maxWidth: fluid.truncateWidth,
-  },
-  toggleButton: { border: 0, minWidth: 64, px: 1, py: 0.5 },
-  headerButton: {
-    justifyContent: 'flex-start',
-    textAlign: 'left',
-    width: '100%',
-  },
   transitionGrid: {
     flex: 1,
     display: 'grid',
@@ -155,44 +54,6 @@ export const sx = {
     containerType: 'inline-size',
   },
   transitionCell: { gridArea: '1 / 1', minWidth: 0 },
-
-  // Table
-  tableContainer: { my: 2, overflowX: 'auto' },
-  tableRowStriped: {
-    '&:nth-of-type(odd)': { bgcolor: 'action.selected' },
-    '&:last-child td, &:last-child th': { border: 0 },
-  },
-
-  // Mobile result (xs only)
-  mobileResultBar: {
-    position: 'relative',
-    display: 'block',
-    textAlign: 'left',
-    width: '100%',
-    maxHeight: fluid.mobileBarMaxHeight,
-    overflow: 'hidden',
-    borderRadius: tokens.radius.panel,
-    cursor: 'pointer',
-    p: 2,
-    '&::after': {
-      content: '""',
-      position: 'absolute',
-      inset: 'auto 0 0 0',
-      height: '40%',
-      background:
-        'linear-gradient(to bottom, transparent, var(--mui-palette-background-default))',
-      pointerEvents: 'none',
-    },
-  },
-  mobileResultFab: {
-    position: 'absolute',
-    bottom: 75,
-    right: 15,
-    zIndex: 1,
-    gap: 1,
-    display: 'flex',
-    flexDirection: 'column',
-  },
 } as const;
 
 // ── Internal style constants ────────────────────────────────────

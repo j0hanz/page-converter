@@ -8,7 +8,7 @@ import Paper from '@mui/material/Paper';
 
 import TransformForm from '@/components/features/form';
 import TransformResultPanel from '@/components/features/result';
-import CenterMessage from '@/components/ui/center-message';
+import { CenterMessage } from '@/components/ui/error';
 import { MarkdownSkeleton } from '@/components/ui/loading';
 import PreviewPlaceholder from '@/components/ui/preview-placeholder';
 
