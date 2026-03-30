@@ -15,7 +15,15 @@ const loadAboutDialogPanel = () =>
   import('@/components/features/about-dialog-panel');
 const AboutDialogPanel = dynamic(loadAboutDialogPanel);
 
-export default function AboutDialog() {
+interface AboutDialogProps {
+  aboutMarkdown: string;
+  howItWorksMarkdown: string;
+}
+
+export default function AboutDialog({
+  aboutMarkdown,
+  howItWorksMarkdown,
+}: AboutDialogProps) {
   const [open, setOpen] = useState(false);
 
   const handleClose: NonNullable<DialogProps['onClose']> = () => {
@@ -43,7 +51,14 @@ export default function AboutDialog() {
         </IconButton>
       </Tooltip>
 
-      {open ? <AboutDialogPanel open={open} onClose={handleClose} /> : null}
+      {open ? (
+        <AboutDialogPanel
+          aboutMarkdown={aboutMarkdown}
+          howItWorksMarkdown={howItWorksMarkdown}
+          open={open}
+          onClose={handleClose}
+        />
+      ) : null}
     </>
   );
 }

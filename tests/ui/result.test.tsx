@@ -30,8 +30,10 @@ describe('TransformResultPanel', () => {
   it('renders markdown preview by default', () => {
     renderPanel();
 
-    expect(screen.getByText('Example')).toBeInTheDocument();
-    expect(screen.getByText('This is an example.')).toBeInTheDocument();
+    return waitFor(() => {
+      expect(screen.getByText('Example')).toBeInTheDocument();
+      expect(screen.getByText('This is an example.')).toBeInTheDocument();
+    });
   });
 
   it('renders raw markdown in code view', async () => {
@@ -133,7 +135,9 @@ describe('TransformResultPanel', () => {
   it('updates the preview content when new result content arrives', async () => {
     const { rerender } = renderPanel();
 
-    expect(screen.getByText('Example')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Example')).toBeInTheDocument();
+    });
 
     rerender(
       <TransformResultPanel

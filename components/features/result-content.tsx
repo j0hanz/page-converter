@@ -2,8 +2,10 @@
 
 import {
   type ComponentProps,
+  lazy,
   type MouseEvent,
   type ReactNode,
+  Suspense,
   type SyntheticEvent,
   useState,
 } from 'react';
@@ -30,7 +32,7 @@ import Typography from '@mui/material/Typography';
 
 import { BaseDialog } from '@/components/ui/dialog';
 import { MarkdownErrorBoundary } from '@/components/ui/error';
-import MarkdownPreview from '@/components/ui/markdown-preview';
+import { MarkdownSkeleton } from '@/components/ui/loading';
 
 import { type CopyStatus, useFeedback } from '@/hooks/use-feedback';
 
@@ -39,6 +41,8 @@ import { fluid, sx, tokens } from '@/lib/theme';
 
 export type ViewMode = 'preview' | 'code';
 type IconButtonColor = ComponentProps<typeof IconButton>['color'];
+
+const MarkdownPreview = lazy(() => import('@/components/ui/markdown-preview'));
 
 interface ResultActionButtonProps {
   ariaLabel: string;
@@ -280,9 +284,11 @@ function getCopyFeedbackMessage(copyStatus: CopyStatus): string | undefined {
 
 export function PreviewSurface({ markdown }: { markdown: string }) {
   return (
-    <Box>
-      <MarkdownPreview>{markdown}</MarkdownPreview>
-    </Box>
+    <Suspense fallback={<MarkdownSkeleton />}>
+      <Box>
+        <MarkdownPreview>{markdown}</MarkdownPreview>
+      </Box>
+    </Suspense>
   );
 }
 

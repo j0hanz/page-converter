@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { cacheLife } from 'next/cache';
 
 import HomeClient from '@/components/features/home-client';
 
@@ -27,16 +28,28 @@ const jsonLd = {
   operatingSystem: 'All',
 };
 
-export default function Home() {
+async function CachedHome() {
+  'use cache';
+
+  cacheLife('max');
+
+  const jsonLdMarkup = await Promise.resolve(
+    JSON.stringify(jsonLd).replace(/</g, '\u003c')
+  );
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, '\u003c'),
+          __html: jsonLdMarkup,
         }}
       />
       <HomeClient />
     </>
   );
+}
+
+export default function Home() {
+  return <CachedHome />;
 }

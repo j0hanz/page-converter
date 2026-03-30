@@ -1,37 +1,17 @@
 'use client';
 
-import {
-  lazy,
-  type MouseEvent,
-  type ReactNode,
-  Suspense,
-  type SyntheticEvent,
-  useEffect,
-  useState,
-} from 'react';
+import { lazy, Suspense, type SyntheticEvent, useState } from 'react';
 
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import type { DialogProps } from '@mui/material/Dialog';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 
 import { BaseDialog } from '@/components/ui/dialog';
-import { CenterMessage, MarkdownErrorBoundary } from '@/components/ui/error';
+import { MarkdownErrorBoundary } from '@/components/ui/error';
 import { MarkdownSkeleton } from '@/components/ui/loading';
 
 const MarkdownPreview = lazy(() => import('@/components/ui/markdown-preview'));
-const ABOUT_CONTENT_ENDPOINT = '/api/home-content';
-
-interface AboutDialogContent {
-  markdown: string;
-  howItWorksMarkdown: string;
-}
-
-type AboutDialogLoadState =
-  | { status: 'loading' }
-  | { status: 'error' }
-  | { status: 'ready'; content: AboutDialogContent };
 
 type AboutTabId = 'overview' | 'how-it-works';
 
@@ -44,14 +24,10 @@ interface AboutTabDefinition {
 }
 
 interface AboutDialogPanelProps {
+  aboutMarkdown: string;
+  howItWorksMarkdown: string;
   onClose: NonNullable<DialogProps['onClose']>;
   open: boolean;
-}
-
-interface TabPanelProps {
-  children: ReactNode;
-  tab: AboutTabId;
-  visible: boolean;
 }
 
 const ABOUT_TABS = [
@@ -69,13 +45,21 @@ const ABOUT_TABS = [
   },
 ] as const satisfies readonly Omit<AboutTabDefinition, 'content'>[];
 
-function TabPanel({ children, tab, visible }: TabPanelProps) {
+function TabPanel({
+  children,
+  tab,
+  visible,
+}: {
+  children: string;
+  tab: AboutTabId;
+  visible: boolean;
+}) {
   const { panelId, tabId } =
     ABOUT_TABS.find((currentTab) => currentTab.id === tab) ?? ABOUT_TABS[0];
 
   return (
     <div role="tabpanel" hidden={!visible} id={panelId} aria-labelledby={tabId}>
-      {visible ? children : null}
+      {visible ? <MarkdownTabPanel>{children}</MarkdownTabPanel> : null}
     </div>
   );
 }
@@ -97,107 +81,21 @@ function createAboutTabDefinitions(contentById: Record<AboutTabId, string>) {
   }));
 }
 
-function isAboutDialogContent(value: unknown): value is AboutDialogContent {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'markdown' in value &&
-    'howItWorksMarkdown' in value &&
-    typeof value.markdown === 'string' &&
-    typeof value.howItWorksMarkdown === 'string'
-  );
-}
-
-async function readAboutDialogContent(
-  signal: AbortSignal
-): Promise<AboutDialogContent> {
-  const response = await fetch(ABOUT_CONTENT_ENDPOINT, { signal });
-  if (!response.ok) {
-    throw new Error('Failed to load About content.');
-  }
-
-  const data: unknown = await response.json();
-  if (!isAboutDialogContent(data)) {
-    throw new Error('Failed to load About content.');
-  }
-
-  return data;
-}
-
 export default function AboutDialogPanel({
+  aboutMarkdown,
+  howItWorksMarkdown,
   onClose,
   open,
 }: AboutDialogPanelProps) {
   const [tab, setTab] = useState<AboutTabId>('overview');
-  const [loadAttempt, setLoadAttempt] = useState(0);
-  const [loadState, setLoadState] = useState<AboutDialogLoadState>({
-    status: 'loading',
+  const tabs = createAboutTabDefinitions({
+    overview: aboutMarkdown,
+    'how-it-works': howItWorksMarkdown,
   });
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    setLoadState({ status: 'loading' });
-
-    void readAboutDialogContent(controller.signal)
-      .then((content) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        setLoadState({ status: 'ready', content });
-      })
-      .catch(() => {
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        setLoadState({ status: 'error' });
-      });
-
-    return () => {
-      controller.abort();
-    };
-  }, [loadAttempt]);
-
-  function handleRetry(event: MouseEvent<HTMLButtonElement>) {
-    event.preventDefault();
-    setLoadAttempt((currentAttempt) => currentAttempt + 1);
-  }
 
   function handleTabChange(_event: SyntheticEvent, nextTab: AboutTabId) {
     setTab(nextTab);
   }
-
-  const tabs =
-    loadState.status === 'ready'
-      ? createAboutTabDefinitions({
-          overview: loadState.content.markdown,
-          'how-it-works': loadState.content.howItWorksMarkdown,
-        })
-      : [];
-
-  const header =
-    loadState.status === 'ready' ? (
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs
-          value={tab}
-          onChange={handleTabChange}
-          variant="fullWidth"
-          aria-label="About dialog tabs"
-        >
-          {tabs.map((tabDefinition) => (
-            <Tab
-              key={tabDefinition.id}
-              value={tabDefinition.id}
-              label={tabDefinition.label}
-              id={tabDefinition.tabId}
-              aria-controls={tabDefinition.panelId}
-            />
-          ))}
-        </Tabs>
-      </Box>
-    ) : undefined;
 
   return (
     <BaseDialog
@@ -206,29 +104,36 @@ export default function AboutDialogPanel({
       titleId="about-dialog-title"
       title="About"
       hiddenTitle
-      header={header}
+      header={
+        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Tabs
+            value={tab}
+            onChange={handleTabChange}
+            variant="fullWidth"
+            aria-label="About dialog tabs"
+          >
+            {tabs.map((tabDefinition) => (
+              <Tab
+                key={tabDefinition.id}
+                value={tabDefinition.id}
+                label={tabDefinition.label}
+                id={tabDefinition.tabId}
+                aria-controls={tabDefinition.panelId}
+              />
+            ))}
+          </Tabs>
+        </Box>
+      }
     >
-      {loadState.status === 'loading' ? <MarkdownSkeleton /> : null}
-
-      {loadState.status === 'error' ? (
-        <CenterMessage message="Failed to load About content.">
-          <Button onClick={handleRetry} sx={{ mt: 2 }}>
-            Try again
-          </Button>
-        </CenterMessage>
-      ) : null}
-
-      {loadState.status === 'ready'
-        ? tabs.map((tabDefinition) => (
-            <TabPanel
-              key={tabDefinition.id}
-              tab={tabDefinition.id}
-              visible={tab === tabDefinition.id}
-            >
-              <MarkdownTabPanel>{tabDefinition.content}</MarkdownTabPanel>
-            </TabPanel>
-          ))
-        : null}
+      {tabs.map((tabDefinition) => (
+        <TabPanel
+          key={tabDefinition.id}
+          tab={tabDefinition.id}
+          visible={tab === tabDefinition.id}
+        >
+          {tabDefinition.content}
+        </TabPanel>
+      ))}
     </BaseDialog>
   );
 }

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { cacheLife } from 'next/cache';
 
 import GitHubIcon from '@mui/icons-material/GitHub';
 import AppBar from '@mui/material/AppBar';
@@ -17,6 +18,7 @@ import LogoIcon from '@/components/ui/logo-icon';
 import ThemeToggle from '@/components/ui/theme-toggle';
 
 import { geistMono, geistSans } from '@/lib/fonts';
+import { readHomePageMarkdown } from '@/lib/home-content';
 import {
   resolveSiteUrl,
   SITE_CATEGORY,
@@ -81,11 +83,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  'use cache';
+
+  cacheLife('max');
+
+  const { aboutMarkdown, howItWorksMarkdown } = await readHomePageMarkdown();
+
   return (
     <html
       lang="en"
@@ -157,7 +165,10 @@ export default function RootLayout({
                     sx={{ gap: 'clamp(0.5rem, 0.25rem + 0.5vw, 1rem)' }}
                     alignItems="center"
                   >
-                    <AboutDialog />
+                    <AboutDialog
+                      aboutMarkdown={aboutMarkdown}
+                      howItWorksMarkdown={howItWorksMarkdown}
+                    />
                     <Tooltip title="View on GitHub">
                       <IconButton
                         component="a"
