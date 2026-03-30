@@ -121,31 +121,31 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body>
-        <Box
-          component="a"
-          href="#main-content"
-          sx={{
-            position: 'absolute',
-            left: '-9999px',
-            top: 'auto',
-            '&:focus': {
-              position: 'fixed',
-              top: 8,
-              left: 8,
-              zIndex: 'tooltip',
-              bgcolor: 'background.paper',
-              color: 'text.primary',
-              px: 2,
-              py: 1,
-              borderRadius: 1,
-              boxShadow: 3,
-            },
-          }}
-        >
-          Skip to content
-        </Box>
         <InitColorSchemeScript attribute="class" />
         <AppThemeProviders>
+          <Box
+            component="a"
+            href="#main-content"
+            sx={{
+              position: 'absolute',
+              left: '-9999px',
+              top: 'auto',
+              '&:focus': {
+                position: 'fixed',
+                top: 8,
+                left: 8,
+                zIndex: 'tooltip',
+                bgcolor: 'background.paper',
+                color: 'text.primary',
+                px: 2,
+                py: 1,
+                borderRadius: 1,
+                boxShadow: 3,
+              },
+            }}
+          >
+            Skip to content
+          </Box>
           <Box
             sx={{
               minHeight: '100dvh',

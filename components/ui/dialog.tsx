@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 
 import Button from '@mui/material/Button';
 import Dialog, { type DialogProps } from '@mui/material/Dialog';
@@ -11,44 +11,51 @@ import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { visuallyHidden } from '@mui/utils';
 
-interface BaseDialogProps {
-  open: boolean;
-  onClose: () => void;
-  titleId: string;
-  title: ReactNode;
-  hiddenTitle?: boolean;
-  header?: ReactNode;
+interface BaseDialogProps extends Omit<
+  DialogProps,
+  'children' | 'fullScreen' | 'onClose' | 'title'
+> {
   children: ReactNode;
-  maxWidth?: DialogProps['maxWidth'];
   actions?: ReactNode;
   fullScreen?: boolean;
+  header?: ReactNode;
+  hiddenTitle?: boolean;
+  onClose: NonNullable<DialogProps['onClose']>;
+  title: ReactNode;
+  titleId: string;
 }
 
 export function BaseDialog({
-  open,
-  onClose,
-  titleId,
-  title,
-  hiddenTitle,
-  header,
-  children,
-  maxWidth,
   actions,
+  children,
   fullScreen,
+  header,
+  hiddenTitle,
+  maxWidth,
+  onClose,
+  open,
+  title,
+  titleId,
+  ...dialogProps
 }: BaseDialogProps) {
   const theme = useTheme();
-  const smallScreen = useMediaQuery(theme.breakpoints.down('xs'));
+  const smallScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const isFullScreen = fullScreen ?? smallScreen;
+
+  function handleDefaultClose(event: MouseEvent<HTMLButtonElement>) {
+    onClose(event, 'escapeKeyDown');
+  }
 
   return (
     <Dialog
-      open={open}
-      onClose={onClose}
       aria-labelledby={titleId}
       fullWidth
-      fullScreen={isFullScreen}
       maxWidth={maxWidth}
+      onClose={onClose}
+      open={open}
       scroll="paper"
+      fullScreen={isFullScreen}
+      {...dialogProps}
     >
       <DialogTitle id={titleId} sx={hiddenTitle ? visuallyHidden : undefined}>
         {title}
@@ -57,7 +64,7 @@ export function BaseDialog({
       <DialogContent dividers>{children}</DialogContent>
       <DialogActions>
         {actions ?? (
-          <Button fullWidth size="large" onClick={onClose}>
+          <Button fullWidth onClick={handleDefaultClose}>
             Close
           </Button>
         )}
