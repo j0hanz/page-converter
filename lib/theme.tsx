@@ -43,7 +43,8 @@ export const sx = {
     width: '1px',
     height: 'clamp(1rem, 1rem + 0.5vw, 1.25rem)',
     display: 'block',
-    bgcolor: 'divider',
+    bgcolor: 'currentColor',
+    opacity: 0.2,
   },
   minWidthZero: { minWidth: 0 },
 
