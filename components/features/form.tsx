@@ -18,7 +18,7 @@ function SubmitButton({ isPending }: { isPending: boolean }) {
     <Button
       type="submit"
       variant="contained"
-      color="inherit"
+      color="primary"
       fullWidth
       loading={isPending}
       disabled={isPending}

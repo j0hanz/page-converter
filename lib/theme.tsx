@@ -145,6 +145,13 @@ export const theme = responsiveFontSizes(
           useFlexGap: true,
         },
       },
+      MuiFormLabel: {
+        styleOverrides: {
+          asterisk: {
+            color: 'var(--mui-palette-error-main)',
+          },
+        },
+      },
       MuiTypography: {
         styleOverrides: {
           root: {
