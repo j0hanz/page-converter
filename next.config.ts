@@ -154,6 +154,13 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactCompiler: true,
   typedRoutes: true,
+  experimental: {
+    globalNotFound: true,
+    webVitalsAttribution: ['CLS', 'FCP', 'FID', 'INP', 'LCP', 'TTFB'],
+    staleTimes: {
+      dynamic: 30,
+    },
+  },
   headers() {
     return Promise.resolve([
       {
