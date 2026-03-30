@@ -230,38 +230,40 @@ export default function AboutDialog() {
         </IconButton>
       </Tooltip>
 
-      <BaseDialog
-        open={open}
-        onClose={handleClose}
-        titleId="about-dialog-title"
-        title="About"
-        hiddenTitle
-        header={header}
-      >
-        {loadState.status === 'loading' || loadState.status === 'idle' ? (
-          <MarkdownSkeleton />
-        ) : null}
+      {open ? (
+        <BaseDialog
+          open
+          onClose={handleClose}
+          titleId="about-dialog-title"
+          title="About"
+          hiddenTitle
+          header={header}
+        >
+          {loadState.status === 'loading' || loadState.status === 'idle' ? (
+            <MarkdownSkeleton />
+          ) : null}
 
-        {loadState.status === 'error' ? (
-          <CenterMessage message="Failed to load About content.">
-            <Button onClick={handleRetry} sx={{ mt: 2 }}>
-              Try again
-            </Button>
-          </CenterMessage>
-        ) : null}
+          {loadState.status === 'error' ? (
+            <CenterMessage message="Failed to load About content.">
+              <Button onClick={handleRetry} sx={{ mt: 2 }}>
+                Try again
+              </Button>
+            </CenterMessage>
+          ) : null}
 
-        {loadState.status === 'ready'
-          ? tabs.map((tabDefinition) => (
-              <TabPanel
-                key={tabDefinition.id}
-                tab={tabDefinition.id}
-                visible={tab === tabDefinition.id}
-              >
-                <MarkdownTabPanel>{tabDefinition.content}</MarkdownTabPanel>
-              </TabPanel>
-            ))
-          : null}
-      </BaseDialog>
+          {loadState.status === 'ready'
+            ? tabs.map((tabDefinition) => (
+                <TabPanel
+                  key={tabDefinition.id}
+                  tab={tabDefinition.id}
+                  visible={tab === tabDefinition.id}
+                >
+                  <MarkdownTabPanel>{tabDefinition.content}</MarkdownTabPanel>
+                </TabPanel>
+              ))
+            : null}
+        </BaseDialog>
+      ) : null}
     </>
   );
 }

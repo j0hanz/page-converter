@@ -2,6 +2,7 @@
 
 import {
   type MouseEvent,
+  startTransition,
   type SyntheticEvent,
   useDeferredValue,
   useState,
@@ -31,7 +32,9 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
   const [mobileDialogOpen, setMobileDialogOpen] = useState(false);
   const theme = useTheme();
   const previewMarkdown = useDeferredValue(result.markdown);
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'), {
+    noSsr: true,
+  });
 
   const previewState: PreviewTransitionState = {
     isPending: previewMarkdown !== result.markdown,
@@ -43,15 +46,23 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
     _event: MouseEvent<HTMLElement>,
     nextViewMode: ViewMode | null
   ): void {
-    if (nextViewMode === null) {
+    if (nextViewMode === null || nextViewMode === viewMode) {
       return;
     }
 
-    setViewMode(nextViewMode);
+    startTransition(() => {
+      setViewMode(nextViewMode);
+    });
   }
 
   function handleTabChange(_event: SyntheticEvent, nextTab: ViewMode) {
-    setViewMode(nextTab);
+    if (nextTab === viewMode) {
+      return;
+    }
+
+    startTransition(() => {
+      setViewMode(nextTab);
+    });
   }
 
   if (isMobile) {

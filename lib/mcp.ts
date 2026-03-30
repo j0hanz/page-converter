@@ -74,6 +74,7 @@ interface TransportConfig {
 
 interface McpRuntimeState {
   connecting?: Promise<Client>;
+  hasVerifiedToolAvailability?: boolean;
   instance?: McpInstance;
   lastStderr?: string;
   failureCount?: number;
@@ -95,6 +96,8 @@ type TextContentBlock = Extract<
 >;
 
 const globalForMcp = globalThis as typeof globalThis & McpGlobalState;
+const fetchUrlPackageRootCache = new Map<string, string>();
+const fetchUrlTransportConfigCache = new Map<string, TransportConfig>();
 
 function parseJsonRecord(value: string): JsonRecord | null {
   try {
@@ -193,6 +196,7 @@ async function resetRuntimeState(
   state.connecting = undefined;
   state.instance = undefined;
   if (clearDiagnostics) {
+    state.hasVerifiedToolAvailability = undefined;
     state.lastStderr = undefined;
   }
 
@@ -267,7 +271,10 @@ async function connectClient(state: McpRuntimeState): Promise<Client> {
 
   try {
     await client.connect(transport);
-    await verifyToolAvailability(client);
+    if (!state.hasVerifiedToolAvailability) {
+      await verifyToolAvailability(client);
+      state.hasVerifiedToolAvailability = true;
+    }
     state.instance = { client, transport };
     state.failureCount = 0;
     return client;
@@ -355,9 +362,21 @@ function readFetchUrlPackageSearchBase(
     : import.meta.url;
 }
 
+function getFetchUrlCacheKey(currentWorkingDirectory?: string): string {
+  return currentWorkingDirectory
+    ? path.resolve(currentWorkingDirectory)
+    : '<default>';
+}
+
 export function resolveFetchUrlPackageRoot(
   currentWorkingDirectory?: string
 ): string {
+  const cacheKey = getFetchUrlCacheKey(currentWorkingDirectory);
+  const cachedPackageRoot = fetchUrlPackageRootCache.get(cacheKey);
+  if (cachedPackageRoot) {
+    return cachedPackageRoot;
+  }
+
   const packageJsonPath = findPackageJSON(
     FETCH_URL_PACKAGE_NAME,
     readFetchUrlPackageSearchBase(currentWorkingDirectory)
@@ -367,18 +386,28 @@ export function resolveFetchUrlPackageRoot(
     throw new Error(`Unable to locate ${FETCH_URL_PACKAGE_NAME}.`);
   }
 
-  return path.dirname(packageJsonPath);
+  const packageRoot = path.dirname(packageJsonPath);
+  fetchUrlPackageRootCache.set(cacheKey, packageRoot);
+  return packageRoot;
 }
 
 export function getFetchUrlTransportConfig(
   currentWorkingDirectory?: string
 ): TransportConfig {
+  const cacheKey = getFetchUrlCacheKey(currentWorkingDirectory);
+  const cachedTransportConfig = fetchUrlTransportConfigCache.get(cacheKey);
+  if (cachedTransportConfig) {
+    return cachedTransportConfig;
+  }
+
   const packageRoot = resolveFetchUrlPackageRoot(currentWorkingDirectory);
 
-  return {
+  const transportConfig = {
     command: process.execPath,
     args: [path.join(packageRoot, FETCH_URL_ENTRYPOINT)],
   };
+  fetchUrlTransportConfigCache.set(cacheKey, transportConfig);
+  return transportConfig;
 }
 
 function attachTransportDiagnostics(

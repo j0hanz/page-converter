@@ -317,19 +317,18 @@ export function ResultMarkdownPanel({
 }) {
   return (
     <Paper sx={sx.markdownPanel}>
-      <Box sx={{ display: isPreviewMode ? 'block' : 'none' }}>
+      {isPreviewMode ? (
         <MarkdownErrorBoundary resetKey={markdown}>
           <PreviewSurface
             markdown={previewState.previewMarkdown}
             previewState={previewState}
           />
         </MarkdownErrorBoundary>
-      </Box>
-      <Box sx={{ display: !isPreviewMode ? 'block' : 'none' }}>
+      ) : (
         <Typography component="pre" variant="body2" sx={RAW_MARKDOWN_SX}>
           {markdown}
         </Typography>
-      </Box>
+      )}
     </Paper>
   );
 }
@@ -443,13 +442,15 @@ export function ResultHeaderWithDetails({
           </ButtonBase>
         </Tooltip>
       </Box>
-      <ResultDetailDialog
-        open={detailDialogOpen}
-        onClose={() => {
-          setDetailDialogOpen(false);
-        }}
-        result={result}
-      />
+      {detailDialogOpen ? (
+        <ResultDetailDialog
+          open
+          onClose={() => {
+            setDetailDialogOpen(false);
+          }}
+          result={result}
+        />
+      ) : null}
     </>
   );
 }
@@ -694,19 +695,23 @@ export function MobileResultPresentation({
 }) {
   return (
     <>
-      <MobileResultBar
-        markdown={result.markdown}
-        previewState={previewState}
-        onOpen={onOpen}
-      />
-      <MobileResultDialog
-        open={mobileDialogOpen}
-        onClose={onClose}
-        result={result}
-        viewMode={viewMode}
-        onTabChange={onTabChange}
-        previewState={previewState}
-      />
+      {!mobileDialogOpen ? (
+        <MobileResultBar
+          markdown={result.markdown}
+          previewState={previewState}
+          onOpen={onOpen}
+        />
+      ) : null}
+      {mobileDialogOpen ? (
+        <MobileResultDialog
+          open
+          onClose={onClose}
+          result={result}
+          viewMode={viewMode}
+          onTabChange={onTabChange}
+          previewState={previewState}
+        />
+      ) : null}
     </>
   );
 }

@@ -162,6 +162,8 @@ describe('callFetchUrl runtime lifecycle', () => {
     expect(clients[0]?.close).toHaveBeenCalled();
     expect(clients).toHaveLength(2);
     expect(clients[1]?.connect).toHaveBeenCalledTimes(1);
+    expect(clients[0]?.listTools).toHaveBeenCalledTimes(1);
+    expect(clients[1]?.listTools).not.toHaveBeenCalled();
   });
 
   it('ignores stale lifecycle callbacks from a replaced client', async () => {

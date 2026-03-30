@@ -39,7 +39,9 @@ export function BaseDialog({
   ...dialogProps
 }: BaseDialogProps) {
   const theme = useTheme();
-  const smallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const smallScreen = useMediaQuery(theme.breakpoints.down('sm'), {
+    noSsr: true,
+  });
   const isFullScreen = fullScreen ?? smallScreen;
 
   function handleDefaultClose(event: MouseEvent<HTMLButtonElement>) {
