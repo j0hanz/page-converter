@@ -1,8 +1,9 @@
+import Link from 'next/link';
+
 import Button from '@mui/material/Button';
 import InitColorSchemeScript from '@mui/material/InitColorSchemeScript';
 
-import AppLink from '@/components/ui/app-link';
-import { StatusShell } from '@/components/ui/error';
+import { StatusShell } from '@/components/ui/status-shell';
 
 import { geistMono, geistSans } from '@/lib/fonts';
 import { AppThemeProviders } from '@/lib/theme-provider';
@@ -22,9 +23,11 @@ export default function GlobalNotFound() {
             message="The page you are looking for does not exist."
             minHeight="100dvh"
             action={
-              <Button component={AppLink} href="/" variant="contained">
-                Go home
-              </Button>
+              <Link href="/">
+                <Button component="span" variant="contained">
+                  Go home
+                </Button>
+              </Link>
             }
           />
         </AppThemeProviders>

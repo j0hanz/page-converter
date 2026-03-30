@@ -30,7 +30,9 @@ describe('AboutDialog', () => {
     expect(
       await screen.findByRole('dialog', { name: /about/i })
     ).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
 
     const [url, options] = fetchMock.mock.calls[0] ?? [];
 
