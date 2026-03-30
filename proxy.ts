@@ -8,11 +8,12 @@ const SECURITY_HEADERS = {
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
   'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
 };
+const SECURITY_HEADER_ENTRIES = Object.entries(SECURITY_HEADERS);
 
 export function proxy(_request: NextRequest) {
   const response = NextResponse.next();
 
-  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+  for (const [key, value] of SECURITY_HEADER_ENTRIES) {
     response.headers.set(key, value);
   }
 

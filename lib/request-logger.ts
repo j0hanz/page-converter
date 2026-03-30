@@ -13,15 +13,38 @@ interface TransformRequestLog {
   errorCode?: string;
 }
 
+const INVALID_LOGGED_URL = 'invalid';
+
 function sanitizeLoggedUrl(url: string): string {
   const parsedUrl = URL.parse(url);
   if (!parsedUrl) {
-    return 'invalid';
+    return INVALID_LOGGED_URL;
   }
 
   parsedUrl.search = '';
   parsedUrl.hash = '';
   return parsedUrl.toString();
+}
+
+function readRequestMetadata(
+  request: Request
+): Pick<TransformRequestLog, 'isBot' | 'userAgent'> {
+  const ua = userAgent({ headers: request.headers });
+
+  return {
+    userAgent: ua.ua,
+    isBot: ua.isBot,
+  };
+}
+
+function createBaseLog(
+  request: Request,
+  startTime: number
+): Pick<TransformRequestLog, 'durationMs' | 'isBot' | 'userAgent'> {
+  return {
+    ...readRequestMetadata(request),
+    durationMs: Date.now() - startTime,
+  };
 }
 
 export function createTransformLog(
@@ -30,12 +53,9 @@ export function createTransformLog(
   startTime: number,
   response: TransformResponse
 ): TransformRequestLog {
-  const ua = userAgent({ headers: request.headers });
   const log: TransformRequestLog = {
+    ...createBaseLog(request, startTime),
     url: sanitizeLoggedUrl(url),
-    userAgent: ua.ua,
-    isBot: ua.isBot,
-    durationMs: Date.now() - startTime,
     outcome: response.ok ? 'success' : 'error',
   };
 
@@ -50,13 +70,9 @@ export function createValidationLog(
   request: Request,
   startTime: number
 ): TransformRequestLog {
-  const ua = userAgent({ headers: request.headers });
-
   return {
-    url: 'invalid',
-    userAgent: ua.ua,
-    isBot: ua.isBot,
-    durationMs: Date.now() - startTime,
+    ...createBaseLog(request, startTime),
+    url: INVALID_LOGGED_URL,
     outcome: 'error',
     errorCode: 'VALIDATION_ERROR',
   };

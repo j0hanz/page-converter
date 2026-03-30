@@ -29,6 +29,7 @@ export const SOCIAL_IMAGE_SIZE = {
   height: 630,
 } as const;
 export const SOCIAL_IMAGE_CONTENT_TYPE = 'image/png';
+const SITE_URL_PROTOCOL_PATTERN = /^https?:\/\//i;
 
 function createDefaultSiteUrl(): URL {
   return new URL(DEFAULT_SITE_URL);
@@ -36,7 +37,7 @@ function createDefaultSiteUrl(): URL {
 
 function normalizeSiteUrl(value: string): URL | null {
   const trimmedValue = value.trim();
-  const withProtocol = /^https?:\/\//i.test(trimmedValue)
+  const withProtocol = SITE_URL_PROTOCOL_PATTERN.test(trimmedValue)
     ? trimmedValue
     : `https://${trimmedValue}`;
   const url = URL.parse(withProtocol);
@@ -69,9 +70,7 @@ export function resolveSiteUrl(
   environment: SiteEnvironment = process.env
 ): URL {
   const configuredUrl = readConfiguredSiteUrl(environment);
-  if (!configuredUrl) {
-    return createDefaultSiteUrl();
-  }
-
-  return normalizeSiteUrl(configuredUrl) ?? createDefaultSiteUrl();
+  return configuredUrl
+    ? (normalizeSiteUrl(configuredUrl) ?? createDefaultSiteUrl())
+    : createDefaultSiteUrl();
 }

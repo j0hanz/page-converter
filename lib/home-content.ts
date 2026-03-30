@@ -10,6 +10,10 @@ const HOME_MARKDOWN_FILES = {
   about: 'about.md',
   howItWorks: 'how-it-works.md',
 } as const;
+type HomePageMarkdown = {
+  aboutMarkdown: string;
+  howItWorksMarkdown: string;
+};
 
 async function readMarkdownFile(fileName: string): Promise<string> {
   try {
@@ -21,10 +25,7 @@ async function readMarkdownFile(fileName: string): Promise<string> {
   }
 }
 
-async function readHomePageMarkdownImpl(): Promise<{
-  aboutMarkdown: string;
-  howItWorksMarkdown: string;
-}> {
+async function readHomePageMarkdownImpl(): Promise<HomePageMarkdown> {
   const [aboutMarkdown, howItWorksMarkdown] = await Promise.all([
     readMarkdownFile(HOME_MARKDOWN_FILES.about),
     readMarkdownFile(HOME_MARKDOWN_FILES.howItWorks),
@@ -33,10 +34,7 @@ async function readHomePageMarkdownImpl(): Promise<{
   return { aboutMarkdown, howItWorksMarkdown };
 }
 
-export async function readHomePageMarkdown(): Promise<{
-  aboutMarkdown: string;
-  howItWorksMarkdown: string;
-}> {
+export async function readHomePageMarkdown(): Promise<HomePageMarkdown> {
   'use cache';
 
   cacheLife('max');

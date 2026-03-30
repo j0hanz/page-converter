@@ -89,6 +89,10 @@ type KnownMcpErrorDefinition = (typeof KNOWN_MCP_ERRORS)[KnownMcpErrorCode];
 type PayloadReadState =
   | { kind: 'structured' | 'text'; payload: JsonRecord }
   | { kind: 'invalid_text' | 'missing' };
+type TextContentBlock = Extract<
+  CallToolResult['content'][number],
+  { type: 'text' }
+>;
 
 const globalForMcp = globalThis as typeof globalThis & McpGlobalState;
 
@@ -222,11 +226,7 @@ async function getConnectedClient(): Promise<Client> {
     return state.instance.client;
   }
 
-  if (state.connecting) {
-    return state.connecting;
-  }
-
-  state.connecting = connectClient(state);
+  state.connecting ??= connectClient(state);
   return state.connecting;
 }
 
@@ -289,26 +289,23 @@ async function closeTransportQuietly(
 function createRequestOptions(
   options?: FetchUrlCallOptions
 ): ToolRequestOptions {
-  const result: ToolRequestOptions = {
+  return {
     maxTotalTimeout: MCP_MAX_TOTAL_TIMEOUT,
+    ...(options?.onProgress
+      ? {
+          onprogress: options.onProgress,
+          resetTimeoutOnProgress: true,
+        }
+      : {}),
+    ...(options?.signal ? { signal: options.signal } : {}),
   };
-
-  if (options?.onProgress) {
-    result.onprogress = options.onProgress;
-    result.resetTimeoutOnProgress = true;
-  }
-
-  if (options?.signal) {
-    result.signal = options.signal;
-  }
-
-  return result;
 }
 
 export async function callFetchUrl(
   args: FetchUrlArgs,
   options?: FetchUrlCallOptions
 ): Promise<CallToolResult> {
+  const state = getMcpRuntimeState();
   const client = await getConnectedClient();
 
   try {
@@ -324,10 +321,10 @@ export async function callFetchUrl(
     return result as CallToolResult;
   } catch (error) {
     if (shouldResetInstance(error)) {
-      await resetRuntimeState(getMcpRuntimeState(), { expectedClient: client });
+      await resetRuntimeState(state, { expectedClient: client });
     }
 
-    throw createTransportError(error, getMcpRuntimeState());
+    throw createTransportError(error, state);
   }
 }
 
@@ -540,13 +537,13 @@ function mapToTransformResult(data: JsonRecord): TransformResult {
 
 export function parseMcpResult(raw: CallToolResult): ParsedMcpResult {
   const payloadState = readPayloadRecord(raw);
-  if ('payload' in payloadState) {
-    return raw.isError
-      ? createErrorResult(payloadState.payload)
-      : createSuccessResult(payloadState.payload);
+  if (!('payload' in payloadState)) {
+    return createPayloadParseFailure(raw.isError === true, payloadState.kind);
   }
 
-  return createPayloadParseFailure(raw.isError === true, payloadState.kind);
+  return raw.isError
+    ? createErrorResult(payloadState.payload)
+    : createSuccessResult(payloadState.payload);
 }
 
 function readPayloadRecord(raw: CallToolResult): PayloadReadState {
@@ -597,22 +594,26 @@ function createPayloadParseFailure(
   }
 }
 
+function isTextContentBlock(
+  content: CallToolResult['content'][number]
+): content is TextContentBlock {
+  return content.type === 'text';
+}
+
 function readTextPayloadRecord(raw: CallToolResult): PayloadReadState {
-  let sawText = false;
+  const textContent = raw.content.filter(isTextContentBlock);
+  if (textContent.length === 0) {
+    return { kind: 'missing' };
+  }
 
-  for (const content of raw.content) {
-    if (content.type !== 'text') {
-      continue;
-    }
-
-    sawText = true;
-    const payload = parseJsonRecord(content.text);
+  for (const { text } of textContent) {
+    const payload = parseJsonRecord(text);
     if (payload) {
       return { kind: 'text', payload };
     }
   }
 
-  return sawText ? { kind: 'invalid_text' } : { kind: 'missing' };
+  return { kind: 'invalid_text' };
 }
 
 function unwrapRecord(record: JsonRecord, key: string): JsonRecord {

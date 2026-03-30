@@ -99,6 +99,22 @@ function createStreamingTransformResponse(
   );
 }
 
+function scheduleTransformLog(
+  request: Request,
+  url: string,
+  startTime: number,
+  responseOrPromise: TransformResponse | Promise<TransformResponse>
+): void {
+  after(async () => {
+    const response = await responseOrPromise;
+    logTransformOutcome(createTransformLog(request, url, startTime, response));
+  });
+}
+
+function scheduleValidationLog(request: Request, startTime: number): void {
+  after(() => logTransformOutcome(createValidationLog(request, startTime)));
+}
+
 export async function POST(request: Request): Promise<Response> {
   const startTime = Date.now();
 
@@ -115,25 +131,16 @@ export async function POST(request: Request): Promise<Response> {
     const initialOutcome =
       await progressEmitter.waitForFirstProgressOrResponse(responsePromise);
     if (shouldReturnImmediateErrorResponse(initialOutcome, progressEmitter)) {
-      after(() =>
-        logTransformOutcome(
-          createTransformLog(
-            request,
-            validated.url,
-            startTime,
-            initialOutcome.response
-          )
-        )
+      scheduleTransformLog(
+        request,
+        validated.url,
+        startTime,
+        initialOutcome.response
       );
       return createErrorResponse(initialOutcome.response.error);
     }
 
-    after(async () => {
-      const response = await responsePromise;
-      logTransformOutcome(
-        createTransformLog(request, validated.url, startTime, response)
-      );
-    });
+    scheduleTransformLog(request, validated.url, startTime, responsePromise);
 
     return createStreamingTransformResponse(
       request,
@@ -141,7 +148,7 @@ export async function POST(request: Request): Promise<Response> {
       progressEmitter
     );
   } catch (error) {
-    after(() => logTransformOutcome(createValidationLog(request, startTime)));
+    scheduleValidationLog(request, startTime);
     return createValidationErrorResponse(readValidationErrorMessage(error));
   }
 }

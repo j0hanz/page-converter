@@ -4,6 +4,7 @@ export interface TransformRequest {
 
 const URL_REQUIRED_MESSAGE =
   'Field "url" is required and must be a non-empty string.';
+const TRANSFORM_REQUEST_FIELD_NAMES = new Set<keyof TransformRequest>(['url']);
 const SUPPORTED_PROTOCOLS = new Set<URL['protocol']>(['http:', 'https:']);
 
 export class ValidationError extends Error {
@@ -21,16 +22,16 @@ function readTransformRequestRecord(body: unknown): Record<string, unknown> {
   return body as Record<string, unknown>;
 }
 
-export function validateTransformRequest(body: unknown): TransformRequest {
-  const record = readTransformRequestRecord(body);
-  const unexpectedField = Object.keys(record).find((key) => key !== 'url');
+function readUnexpectedField(
+  record: Record<string, unknown>
+): string | undefined {
+  return Object.keys(record).find(
+    (key) => !TRANSFORM_REQUEST_FIELD_NAMES.has(key as keyof TransformRequest)
+  );
+}
 
-  if (unexpectedField !== undefined) {
-    throw new ValidationError(`Unknown field: "${unexpectedField}".`);
-  }
-
-  const { url } = record;
-
+function readTransformRequestUrl(record: Record<string, unknown>): string {
+  const url = record.url;
   if (typeof url !== 'string') {
     throw new ValidationError(URL_REQUIRED_MESSAGE);
   }
@@ -40,7 +41,20 @@ export function validateTransformRequest(body: unknown): TransformRequest {
     throw new ValidationError(URL_REQUIRED_MESSAGE);
   }
 
-  const parsed = URL.parse(trimmed);
+  return trimmed;
+}
+
+export function validateTransformRequest(body: unknown): TransformRequest {
+  const record = readTransformRequestRecord(body);
+  const unexpectedField = readUnexpectedField(record);
+
+  if (unexpectedField !== undefined) {
+    throw new ValidationError(`Unknown field: "${unexpectedField}".`);
+  }
+
+  const trimmedUrl = readTransformRequestUrl(record);
+
+  const parsed = URL.parse(trimmedUrl);
   if (!parsed) {
     throw new ValidationError('Field "url" must be a valid URL.');
   }
@@ -49,5 +63,5 @@ export function validateTransformRequest(body: unknown): TransformRequest {
     throw new ValidationError('Field "url" must use http: or https: scheme.');
   }
 
-  return { url: trimmed };
+  return { url: trimmedUrl };
 }

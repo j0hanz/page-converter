@@ -120,6 +120,17 @@ function createNdjsonStreamWriter(
   };
 }
 
+function flushBufferedProgressEvents(
+  writer: NdjsonStreamWriter,
+  events: StreamProgressEvent[]
+): void {
+  for (const event of events) {
+    writer.writeProgress(event);
+  }
+
+  events.length = 0;
+}
+
 function createNdjsonResponseStream(
   request: Request,
   responsePromise: Promise<TransformResponse>,
@@ -172,12 +183,7 @@ export function createBufferedProgressEmitter(): BufferedProgressEmitter {
   return {
     attachWriter(nextWriter) {
       writer = nextWriter;
-
-      for (const event of bufferedEvents) {
-        nextWriter.writeProgress(event);
-      }
-
-      bufferedEvents.length = 0;
+      flushBufferedProgressEvents(nextWriter, bufferedEvents);
     },
     emitProgress(progress) {
       markProgressSeen();

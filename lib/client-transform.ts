@@ -15,7 +15,6 @@ import {
   isNdjsonContentType,
   isStreamEvent,
   isStreamProgressEvent,
-  isStreamResultEvent,
   isTimeoutError,
   isTransformError,
   isTransformErrorResponse,
@@ -173,11 +172,6 @@ function handleStreamEvent(
     return;
   }
 
-  if (!isStreamResultEvent(event)) {
-    handlers.onError(createUnexpectedResponseError());
-    return;
-  }
-
   if (hasTransformResult(event)) {
     handlers.onResult(event.result);
     return;
@@ -222,24 +216,27 @@ async function handleTransformResponse(
   signal: AbortSignal,
   handlers: ClientTransformHandlers
 ): Promise<void> {
-  if (!isNdjsonResponse(response)) {
-    const jsonResponse = await readJsonResponse(response);
-    if (!jsonResponse.ok) {
-      handlers.onError(createUnexpectedResponseError());
-      return;
+  if (isNdjsonResponse(response)) {
+    const streamError = await readNdjsonStream(
+      response,
+      signal,
+      (streamEvent) => handleStreamEvent(streamEvent, handlers)
+    );
+
+    if (streamError) {
+      handlers.onError(streamError);
     }
 
-    handleJsonErrorResponse(jsonResponse.data, handlers.onError);
     return;
   }
 
-  const streamError = await readNdjsonStream(response, signal, (streamEvent) =>
-    handleStreamEvent(streamEvent, handlers)
-  );
-
-  if (streamError) {
-    handlers.onError(streamError);
+  const jsonResponse = await readJsonResponse(response);
+  if (!jsonResponse.ok) {
+    handlers.onError(createUnexpectedResponseError());
+    return;
   }
+
+  handleJsonErrorResponse(jsonResponse.data, handlers.onError);
 }
 
 export async function submitTransformRequest(

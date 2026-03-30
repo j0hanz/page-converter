@@ -19,6 +19,10 @@ const RETRYABLE_TRANSPORT_ERROR_CODES = new Set<number>([
   ErrorCode.ConnectionClosed,
 ]);
 const MAX_TRANSFORM_ATTEMPTS = 2;
+const ABORT_REASON_BY_ERROR_NAME = {
+  aborted: 'aborted',
+  timeout: 'timeout',
+} as const;
 
 async function executeTransform(
   request: TransformRequest,
@@ -73,21 +77,31 @@ function shouldRetryResponse(
   return isRetryableErrorResponse(response) && attempt < MAX_TRANSFORM_ATTEMPTS;
 }
 
+function createAbortedTransformError(
+  message: string,
+  reason: (typeof ABORT_REASON_BY_ERROR_NAME)[keyof typeof ABORT_REASON_BY_ERROR_NAME]
+): TransformError {
+  return createTransformError('ABORTED', message, {
+    retryable: true,
+    details: { reason },
+  });
+}
+
 function mapTransportError(error: unknown): TransformError {
   const message = error instanceof Error ? error.message : 'Unknown error';
 
   if (isTimeoutError(error)) {
-    return createTransformError('ABORTED', message, {
-      retryable: true,
-      details: { reason: 'timeout' },
-    });
+    return createAbortedTransformError(
+      message,
+      ABORT_REASON_BY_ERROR_NAME.timeout
+    );
   }
 
   if (isAbortError(error)) {
-    return createTransformError('ABORTED', message, {
-      retryable: true,
-      details: { reason: 'aborted' },
-    });
+    return createAbortedTransformError(
+      message,
+      ABORT_REASON_BY_ERROR_NAME.aborted
+    );
   }
 
   if (error instanceof McpError) {
