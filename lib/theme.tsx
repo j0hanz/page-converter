@@ -25,7 +25,7 @@ export const tokens = {
 export const fluid = {
   pagePt: 'clamp(0.5rem, 0.25rem + 0.25vw, 1rem)',
   headerGap: 'clamp(0.5rem, 0.25rem + 0.5vw, 0.75rem)',
-  containerGap: 'clamp(0.75rem, 0.5rem + 0.5vw, 1rem)',
+  containerGap: 'clamp(0.5rem, 0.25rem + 0.5vw, 0.75rem)',
   codeFontSize: '0.85rem',
   truncateWidth: 'clamp(30ch, 15ch + 25vw, 70ch)',
   panelMaxHeight: 'clamp(50dvh, 50dvh + 5vw, 70dvh)',

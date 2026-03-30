@@ -145,7 +145,7 @@ export default async function RootLayout({
                 <Toolbar sx={{ justifyContent: 'space-between' }}>
                   <Stack
                     direction="row"
-                    gap={1.5}
+                    gap={1}
                     alignItems="center"
                     sx={sx.minWidthZero}
                   >
