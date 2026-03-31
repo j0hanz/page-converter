@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { Suspense } from 'react';
+
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -45,12 +47,14 @@ describe('AboutDialog', () => {
 
   it('renders the markdown tab content once the panel has content', async () => {
     render(
-      <AboutDialogPanel
-        aboutMarkdown="# Overview"
-        howItWorksMarkdown="# How It Works"
-        open
-        onClose={() => {}}
-      />
+      <Suspense fallback={<div>Loading panel...</div>}>
+        <AboutDialogPanel
+          aboutMarkdown="# Overview"
+          howItWorksMarkdown="# How It Works"
+          open
+          onClose={() => {}}
+        />
+      </Suspense>
     );
 
     await waitFor(() => {

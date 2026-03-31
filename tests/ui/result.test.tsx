@@ -150,7 +150,9 @@ describe('TransformResultPanel', () => {
 
     renderPanel();
 
-    await user.click(screen.getByRole('button', { name: /view result/i }));
+    await user.click(
+      await screen.findByRole('button', { name: /view result/i })
+    );
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: /code/i }));

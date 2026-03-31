@@ -1,6 +1,9 @@
+import { Suspense } from 'react';
+
 import type { Metadata, Viewport } from 'next';
 
 import GitHubIcon from '@mui/icons-material/GitHub';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
@@ -11,14 +14,13 @@ import Toolbar from '@mui/material/Toolbar';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 
-import AboutDialog from '@/components/features/about-dialog';
+import AboutDialogContent from '@/components/features/about-dialog-content';
 import Footer from '@/components/ui/footer';
 import LogoIcon from '@/components/ui/logo-icon';
 import ThemeToggle from '@/components/ui/theme-toggle';
 import { WebVitals } from '@/components/ui/web-vitals';
 
 import { geistMono, geistSans } from '@/lib/fonts';
-import { readHomePageMarkdown } from '@/lib/home-content';
 import {
   resolveSiteUrl,
   SITE_CATEGORY,
@@ -103,13 +105,25 @@ const SKIP_LINK_SX = {
   },
 } as const;
 
-export default async function RootLayout({
+function AboutDialogFallback() {
+  return (
+    <IconButton
+      size="small"
+      disableRipple
+      disabled
+      aria-hidden="true"
+      sx={{ color: 'text.disabled' }}
+    >
+      <InfoOutlinedIcon sx={sx.headerIcon} />
+    </IconButton>
+  );
+}
+
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { aboutMarkdown, howItWorksMarkdown } = await readHomePageMarkdown();
-
   return (
     <html
       lang="en"
@@ -163,10 +177,9 @@ export default async function RootLayout({
                     sx={{ gap: fluid.headerGap }}
                     alignItems="center"
                   >
-                    <AboutDialog
-                      aboutMarkdown={aboutMarkdown}
-                      howItWorksMarkdown={howItWorksMarkdown}
-                    />
+                    <Suspense fallback={<AboutDialogFallback />}>
+                      <AboutDialogContent />
+                    </Suspense>
                     <Box sx={sx.headerDivider} />
                     <Tooltip title="View on GitHub">
                       <IconButton

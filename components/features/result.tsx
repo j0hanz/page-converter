@@ -7,23 +7,28 @@ import {
   useState,
 } from 'react';
 
-import Stack from '@mui/material/Stack';
+import dynamic from 'next/dynamic';
+
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 
-import {
-  MobileResultPresentation,
-  ResultActionBar,
-  ResultHeaderWithDetails,
-  ResultMarkdownPanel,
-  type ViewMode,
-} from '@/components/features/result-content';
+import type { ViewMode } from '@/components/features/result-shared';
+import { MarkdownSkeleton } from '@/components/ui/loading';
 
 import type { TransformResult } from '@/lib/api';
 
 interface TransformResultProps {
   result: TransformResult;
 }
+
+const ResultDesktop = dynamic(
+  () => import('@/components/features/result-desktop'),
+  { loading: () => <MarkdownSkeleton /> }
+);
+const ResultMobile = dynamic(
+  () => import('@/components/features/result-mobile'),
+  { loading: () => <MarkdownSkeleton /> }
+);
 
 function useResultPresentationState() {
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
@@ -84,39 +89,22 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
 
   if (isMobile) {
     return (
-      <Stack spacing={2}>
-        <ResultHeaderWithDetails result={result} />
-        <MobileResultPresentation
-          mobileDialogOpen={mobileDialogOpen}
-          onClose={closeMobileDialog}
-          onOpen={openMobileDialog}
-          onTabChange={handleTabChange}
-          result={result}
-          viewMode={viewMode}
-        />
-      </Stack>
+      <ResultMobile
+        mobileDialogOpen={mobileDialogOpen}
+        onClose={closeMobileDialog}
+        onOpen={openMobileDialog}
+        onTabChange={handleTabChange}
+        result={result}
+        viewMode={viewMode}
+      />
     );
   }
 
   return (
-    <Stack spacing={2}>
-      <ResultHeaderWithDetails result={result} />
-
-      <Stack
-        gap={0.2}
-        component="section"
-        sx={{ containerType: 'inline-size' }}
-      >
-        <ResultActionBar
-          viewMode={viewMode}
-          onViewModeChange={handleViewModeChange}
-          result={result}
-        />
-        <ResultMarkdownPanel
-          isPreviewMode={viewMode === 'preview'}
-          markdown={result.markdown}
-        />
-      </Stack>
-    </Stack>
+    <ResultDesktop
+      result={result}
+      viewMode={viewMode}
+      onViewModeChange={handleViewModeChange}
+    />
   );
 }
