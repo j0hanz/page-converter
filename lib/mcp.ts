@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { readFileSync } from 'node:fs';
-import { findPackageJSON } from 'node:module';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 
 import {
@@ -99,6 +99,8 @@ type TextContentBlock = Extract<
   { type: 'text' }
 >;
 
+const _require = createRequire(import.meta.url);
+
 const globalForMcp = globalThis as typeof globalThis & McpGlobalState;
 const fetchUrlPackageRootCache = new Map<string, string>();
 const fetchUrlTransportConfigCache = new Map<string, TransportConfig>();
@@ -154,13 +156,13 @@ function readInteger(value: unknown): number | undefined {
 }
 
 function readPackageVersion(): string {
-  const pkgPath = findPackageJSON('..', import.meta.url);
-  if (!pkgPath) {
+  try {
+    const pkgPath = _require.resolve('../package.json');
+    const packageJson = parseJsonRecord(readFileSync(pkgPath, 'utf-8'));
+    return readString(packageJson?.version) ?? DEFAULT_PACKAGE_VERSION;
+  } catch {
     return DEFAULT_PACKAGE_VERSION;
   }
-
-  const packageJson = parseJsonRecord(readFileSync(pkgPath, 'utf-8'));
-  return readString(packageJson?.version) ?? DEFAULT_PACKAGE_VERSION;
 }
 
 const CLIENT_INFO = { name: 'fetch-url', version: readPackageVersion() };
@@ -354,14 +356,6 @@ function shouldResetInstance(error: unknown): boolean {
   return true;
 }
 
-function readFetchUrlPackageSearchBase(
-  currentWorkingDirectory?: string
-): string {
-  return currentWorkingDirectory
-    ? path.resolve(currentWorkingDirectory, 'package.json')
-    : import.meta.url;
-}
-
 function getFetchUrlCacheKey(currentWorkingDirectory?: string): string {
   return currentWorkingDirectory
     ? path.resolve(currentWorkingDirectory)
@@ -377,12 +371,13 @@ export function resolveFetchUrlPackageRoot(
     return cachedPackageRoot;
   }
 
-  const packageJsonPath = findPackageJSON(
-    FETCH_URL_PACKAGE_NAME,
-    readFetchUrlPackageSearchBase(currentWorkingDirectory)
-  );
-
-  if (!packageJsonPath) {
+  let packageJsonPath: string;
+  try {
+    const resolver = currentWorkingDirectory
+      ? createRequire(path.resolve(currentWorkingDirectory, 'package.json'))
+      : _require;
+    packageJsonPath = resolver.resolve(`${FETCH_URL_PACKAGE_NAME}/package.json`);
+  } catch {
     throw new Error(`Unable to locate ${FETCH_URL_PACKAGE_NAME}.`);
   }
 
