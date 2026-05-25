@@ -28,19 +28,35 @@ async function loadMcpModuleWithMocks(options?: {
   const clients: FakeClient[] = [];
   const transports: FakeTransport[] = [];
   const connectDeferred = options?.connectDeferred;
-  const ErrorCode = {
-    ConnectionClosed: -32000,
+  const SdkErrorCode = {
+    ConnectionClosed: 'CONNECTION_CLOSED',
+    RequestTimeout: 'REQUEST_TIMEOUT',
+    NotConnected: 'NOT_CONNECTED',
+  };
+  const ProtocolErrorCode = {
     InternalError: -32603,
-    RequestTimeout: -32001,
+    MethodNotFound: -32601,
   };
 
-  class FakeMcpError extends Error {
+  class FakeSdkError extends Error {
+    code: string;
+    data?: unknown;
+
+    constructor(code: string, message: string, data?: unknown) {
+      super(message);
+      this.name = 'SdkError';
+      this.code = code;
+      this.data = data;
+    }
+  }
+
+  class FakeProtocolError extends Error {
     code: number;
     data?: unknown;
 
     constructor(code: number, message: string, data?: unknown) {
       super(message);
-      this.name = 'McpError';
+      this.name = 'ProtocolError';
       this.code = code;
       this.data = data;
     }
@@ -72,15 +88,13 @@ async function loadMcpModuleWithMocks(options?: {
     }
   }
 
-  vi.doMock('@modelcontextprotocol/sdk/client/index.js', () => ({
+  vi.doMock('@modelcontextprotocol/client', () => ({
     Client: FakeClient,
-  }));
-  vi.doMock('@modelcontextprotocol/sdk/client/stdio.js', () => ({
     StdioClientTransport: FakeTransport,
-  }));
-  vi.doMock('@modelcontextprotocol/sdk/types.js', () => ({
-    ErrorCode,
-    McpError: FakeMcpError,
+    SdkError: FakeSdkError,
+    SdkErrorCode,
+    ProtocolError: FakeProtocolError,
+    ProtocolErrorCode,
   }));
 
   const mcpModule = await import('@/lib/mcp');
@@ -88,8 +102,10 @@ async function loadMcpModuleWithMocks(options?: {
 
   return {
     ...mcpModule,
-    ErrorCode,
-    FakeMcpError,
+    SdkErrorCode,
+    ProtocolErrorCode,
+    FakeSdkError,
+    FakeProtocolError,
     clients,
     transports,
   };
@@ -141,19 +157,19 @@ describe('callFetchUrl runtime lifecycle', () => {
   });
 
   it('resets the runtime instance after a connection-closed error', async () => {
-    const { ErrorCode, FakeMcpError, callFetchUrl, clients } =
+    const { SdkErrorCode, FakeSdkError, callFetchUrl, clients } =
       await loadMcpModuleWithMocks();
 
     await callFetchUrl({ url: 'https://example.com' });
 
     clients[0]?.callTool.mockRejectedValueOnce(
-      new FakeMcpError(ErrorCode.ConnectionClosed, 'Connection closed')
+      new FakeSdkError(SdkErrorCode.ConnectionClosed, 'Connection closed')
     );
 
     await expect(
       callFetchUrl({ url: 'https://example.com/retry' })
     ).rejects.toMatchObject({
-      code: ErrorCode.ConnectionClosed,
+      code: SdkErrorCode.ConnectionClosed,
       message: 'Connection closed',
     });
 
@@ -167,19 +183,19 @@ describe('callFetchUrl runtime lifecycle', () => {
   });
 
   it('ignores stale lifecycle callbacks from a replaced client', async () => {
-    const { ErrorCode, FakeMcpError, callFetchUrl, clients } =
+    const { SdkErrorCode, FakeSdkError, callFetchUrl, clients } =
       await loadMcpModuleWithMocks();
 
     await callFetchUrl({ url: 'https://example.com' });
 
     clients[0]?.callTool.mockRejectedValueOnce(
-      new FakeMcpError(ErrorCode.ConnectionClosed, 'Connection closed')
+      new FakeSdkError(SdkErrorCode.ConnectionClosed, 'Connection closed')
     );
 
     await expect(
       callFetchUrl({ url: 'https://example.com/retry' })
     ).rejects.toMatchObject({
-      code: ErrorCode.ConnectionClosed,
+      code: SdkErrorCode.ConnectionClosed,
       message: 'Connection closed',
     });
 

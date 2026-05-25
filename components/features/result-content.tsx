@@ -245,7 +245,7 @@ export function getResultViewTabId(viewMode: ViewMode): string {
 
 function DetailRow({ label, value }: ResultDetailItem) {
   return (
-    <Stack direction="row" gap={2}>
+    <Stack direction="row" sx={{ gap: 2 }}>
       <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>
         {label}
       </Typography>
@@ -283,7 +283,7 @@ function ResultDetailDialog({
       }
       maxWidth="sm"
     >
-      <Stack gap={2}>
+      <Stack sx={{ gap: 2 }}>
         {detailItems.map((item) => (
           <DetailRow key={item.label} {...item} />
         ))}
@@ -471,7 +471,7 @@ function ResultHeaderButtonContent({ result }: { result: TransformResult }) {
   const { metadata, title, url } = result;
 
   return (
-    <Stack direction="row" gap={1.5} alignItems="center">
+    <Stack direction="row" sx={{ gap: 1.5, alignItems: 'center' }}>
       <Avatar
         src={isSafeImageUrl(metadata.favicon) ? metadata.favicon : undefined}
         sx={{
@@ -544,9 +544,7 @@ export function ResultActionBar({
     <>
       <Stack
         direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        sx={{ flexWrap: 'wrap', gap: 1 }}
+        sx={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}
       >
         <ViewModeToggle
           viewMode={viewMode}

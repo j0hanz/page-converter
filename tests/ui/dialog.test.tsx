@@ -23,9 +23,6 @@ describe('BaseDialog', () => {
   it('forwards standard Dialog props to the underlying MUI dialog', () => {
     renderDialog({
       'aria-describedby': 'dialog-description',
-      PaperProps: {
-        'data-testid': 'dialog-paper',
-      },
       children: <p id="dialog-description">Dialog body</p>,
     });
 
@@ -33,7 +30,6 @@ describe('BaseDialog', () => {
       'aria-describedby',
       'dialog-description'
     );
-    expect(screen.getByTestId('dialog-paper')).toBeInTheDocument();
   });
 
   it('invokes onClose when the default close action is used', async () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { CallToolResult } from '@modelcontextprotocol/client';
 
 import {
   createStreamProgressEvent,

@@ -155,7 +155,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactCompiler: true,
   reactStrictMode: true,
-  serverExternalPackages: [FETCH_URL_PACKAGE_NAME, '@modelcontextprotocol/sdk'],
+  serverExternalPackages: [FETCH_URL_PACKAGE_NAME, '@modelcontextprotocol/client'],
   typedRoutes: true,
   logging: {
     fetches: {

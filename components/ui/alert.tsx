@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import BlockIcon from '@mui/icons-material/Block';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CloudOffIcon from '@mui/icons-material/CloudOff';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutlined';
 import HourglassTopIcon from '@mui/icons-material/HourglassTop';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';

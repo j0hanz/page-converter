@@ -20,7 +20,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@j0hanz/fetch-url-mcp": "^2",
-    "@modelcontextprotocol/sdk": "^1.29",
+    "@modelcontextprotocol/client": "2.0.0-alpha.2",
     "@mui/icons-material": "^9",
     "@mui/material": "^9",
     "@mui/material-nextjs": "^9",

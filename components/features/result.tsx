@@ -100,9 +100,8 @@ export default function TransformResultPanel({ result }: TransformResultProps) {
       <ResultHeaderWithDetails result={result} />
 
       <Stack
-        gap={0.2}
         component="section"
-        sx={{ containerType: 'inline-size' }}
+        sx={{ gap: 0.2, containerType: 'inline-size' }}
       >
         <ResultActionBar
           viewMode={viewMode}

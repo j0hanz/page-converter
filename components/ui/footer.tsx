@@ -24,7 +24,7 @@ export default function Footer() {
         opacity: 0.7,
       }}
     >
-      <Typography variant="caption" textAlign="center">
+      <Typography variant="caption" sx={{ textAlign: 'center' }}>
         &copy; 2026{' '}
         <Link
           href={`https://github.com/${SITE_CREATOR}`}

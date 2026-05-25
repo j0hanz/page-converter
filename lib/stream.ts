@@ -1,4 +1,4 @@
-import type { Progress } from '@modelcontextprotocol/sdk/types.js';
+import type { Progress } from '@modelcontextprotocol/client';
 
 import type {
   StreamEvent,

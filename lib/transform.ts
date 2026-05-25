@@ -1,4 +1,4 @@
-import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+import { SdkError, SdkErrorCode } from '@modelcontextprotocol/client';
 
 import type {
   TransformError,
@@ -14,9 +14,9 @@ import {
 import { callFetchUrl, parseMcpResult, type ProgressCallback } from '@/lib/mcp';
 import type { TransformRequest } from '@/lib/validate';
 
-const RETRYABLE_TRANSPORT_ERROR_CODES = new Set<number>([
-  ErrorCode.RequestTimeout,
-  ErrorCode.ConnectionClosed,
+const RETRYABLE_SDK_ERROR_CODES = new Set<SdkErrorCode>([
+  SdkErrorCode.RequestTimeout,
+  SdkErrorCode.ConnectionClosed,
 ]);
 const MAX_TRANSFORM_ATTEMPTS = 2;
 const ABORT_REASON_BY_ERROR_NAME = {
@@ -104,11 +104,8 @@ function mapTransportError(error: unknown): TransformError {
     );
   }
 
-  if (error instanceof McpError) {
-    return createInternalError(
-      message,
-      RETRYABLE_TRANSPORT_ERROR_CODES.has(error.code)
-    );
+  if (error instanceof SdkError) {
+    return createInternalError(message, RETRYABLE_SDK_ERROR_CODES.has(error.code));
   }
 
   return createInternalError(message, false);

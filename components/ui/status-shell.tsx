@@ -30,15 +30,14 @@ export function StatusShell({
 }: StatusShellProps) {
   return (
     <Box sx={{ ...STATUS_SHELL_CONTAINER_SX, minHeight }}>
-      <Stack spacing={2} alignItems="center">
+      <Stack sx={{ gap: 2, alignItems: 'center' }}>
         <Typography variant="h6" color="error">
           {title}
         </Typography>
         <Typography
           variant="body2"
           color="text.secondary"
-          textAlign="center"
-          sx={STATUS_MESSAGE_SX}
+          sx={{ ...STATUS_MESSAGE_SX, textAlign: 'center' }}
         >
           {message}
         </Typography>

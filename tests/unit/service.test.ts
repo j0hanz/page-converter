@@ -2,9 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   type CallToolResult,
-  ErrorCode,
-  McpError,
-} from '@modelcontextprotocol/sdk/types.js';
+  ProtocolError,
+  ProtocolErrorCode,
+  SdkError,
+  SdkErrorCode,
+} from '@modelcontextprotocol/client';
 
 import { callFetchUrl } from '@/lib/mcp';
 import { transformUrl } from '@/lib/transform';
@@ -40,7 +42,7 @@ describe('transformUrl', () => {
   it('retries once for retryable MCP transport errors', async () => {
     callFetchUrlMock
       .mockRejectedValueOnce(
-        new McpError(ErrorCode.RequestTimeout, 'Request timed out')
+        new SdkError(SdkErrorCode.RequestTimeout, 'Request timed out')
       )
       .mockResolvedValueOnce(successResult);
 
@@ -52,7 +54,7 @@ describe('transformUrl', () => {
 
   it('does not retry non-retryable MCP transport errors', async () => {
     callFetchUrlMock.mockRejectedValueOnce(
-      new McpError(ErrorCode.MethodNotFound, 'tools/call not supported')
+      new ProtocolError(ProtocolErrorCode.MethodNotFound, 'tools/call not supported')
     );
 
     const response = await transformUrl(VALID_REQUEST);

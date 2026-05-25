@@ -1,4 +1,4 @@
-import type { ComponentProps, CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
@@ -7,8 +7,6 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Typography from '@mui/material/Typography';
-
 import type { Components } from 'react-markdown';
 
 const TABLE_CONTAINER_SX = { my: 2, overflowX: 'auto' } as const;
@@ -23,7 +21,7 @@ interface TableCellRendererProps {
 }
 
 function createTableCellRenderer(
-  fontWeight?: ComponentProps<typeof Typography>['fontWeight']
+  fontWeight?: CSSProperties['fontWeight']
 ) {
   return function TableCellRenderer({
     children,

@@ -1,4 +1,4 @@
-import type { ComponentProps, ElementType, ReactNode } from 'react';
+import type { ComponentProps, CSSProperties, ElementType, ReactNode } from 'react';
 
 import Box from '@mui/material/Box';
 import Checkbox from '@mui/material/Checkbox';
@@ -110,7 +110,7 @@ interface HeadingConfig {
   mt: number;
   component: ElementType;
   bordered?: boolean;
-  fontWeight?: ComponentProps<typeof Typography>['fontWeight'];
+  fontWeight?: CSSProperties['fontWeight'];
   color?: ComponentProps<typeof Typography>['color'];
 }
 
@@ -136,8 +136,7 @@ const headingComponents = Object.fromEntries(
           component={component}
           gutterBottom
           color={color}
-          fontWeight={fontWeight}
-          sx={bordered ? { mt, ...HEADING_BORDER_SX } : { mt }}
+          sx={bordered ? { mt, fontWeight, ...HEADING_BORDER_SX } : { mt, fontWeight }}
         >
           {children}
         </Typography>

@@ -4,13 +4,16 @@ import { readFileSync } from 'node:fs';
 import { findPackageJSON } from 'node:module';
 import path from 'node:path';
 
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import type {
-  CallToolResult,
-  Progress,
-} from '@modelcontextprotocol/sdk/types.js';
-import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+import {
+  Client,
+  type CallToolResult,
+  type Progress,
+  ProtocolError,
+  ProtocolErrorCode,
+  SdkError,
+  SdkErrorCode,
+  StdioClientTransport,
+} from '@modelcontextprotocol/client';
 
 import type {
   TransformError,
@@ -25,6 +28,7 @@ import {
 
 const DEFAULT_PACKAGE_VERSION = '0.0.0';
 const MAX_STDERR_BUFFER_LENGTH = 4000;
+const PROTOCOL_INTERNAL_ERROR_CODE: number = ProtocolErrorCode.InternalError;
 const MCP_MAX_TOTAL_TIMEOUT = 120_000;
 const RECONNECT_BASE_DELAY_MS = 500;
 const RECONNECT_MAX_DELAY_MS = 5000;
@@ -321,11 +325,10 @@ export async function callFetchUrl(
         name: FETCH_URL_TOOL_NAME,
         arguments: { url: args.url },
       },
-      undefined,
       createRequestOptions(options)
     );
 
-    return result as CallToolResult;
+    return result;
   } catch (error) {
     if (shouldResetInstance(error)) {
       await resetRuntimeState(state, { expectedClient: client });
@@ -340,18 +343,15 @@ function shouldResetInstance(error: unknown): boolean {
     return false;
   }
 
-  if (error instanceof McpError) {
-    return isResettableMcpError(error.code);
+  if (error instanceof SdkError) {
+    return error.code === SdkErrorCode.ConnectionClosed;
+  }
+
+  if (error instanceof ProtocolError) {
+    return error.code === PROTOCOL_INTERNAL_ERROR_CODE;
   }
 
   return true;
-}
-
-function isResettableMcpError(code: number): boolean {
-  return (
-    code === (ErrorCode.ConnectionClosed as number) ||
-    code === (ErrorCode.InternalError as number)
-  );
 }
 
 function readFetchUrlPackageSearchBase(
@@ -427,12 +427,12 @@ function appendStderrChunk(state: McpRuntimeState, chunk: string): string {
 }
 
 function createTransportError(error: unknown, state: McpRuntimeState): Error {
-  if (error instanceof McpError && !isResettableMcpError(error.code)) {
+  if (error instanceof ProtocolError && error.code !== PROTOCOL_INTERNAL_ERROR_CODE) {
     return error;
   }
 
   let message = error instanceof Error ? error.message : String(error);
-  if (error instanceof McpError) {
+  if (error instanceof ProtocolError) {
     message = message.replace(new RegExp(`^MCP error ${error.code}: `), '');
   }
 
@@ -442,9 +442,16 @@ function createTransportError(error: unknown, state: McpRuntimeState): Error {
   }
 
   const transportErrorMessage = `${message}\nChild stderr: ${stderr}`;
-  if (error instanceof McpError) {
+  if (error instanceof ProtocolError) {
     return copyErrorStack(
-      new McpError(error.code, transportErrorMessage, error.data),
+      new ProtocolError(error.code, transportErrorMessage, error.data),
+      error
+    );
+  }
+
+  if (error instanceof SdkError) {
+    return copyErrorStack(
+      new SdkError(error.code, transportErrorMessage, error.data),
       error
     );
   }
@@ -539,7 +546,7 @@ function extractMetadata(data: JsonRecord): TransformMetadata {
     modifiedAt: readMetadataTimestamp(metadata, 'modifiedAt', 'modifiedDate'),
     image: readString(metadata.image),
     favicon: readString(metadata.favicon),
-  }) as TransformMetadata;
+  });
 }
 
 function readMetadataTimestamp(

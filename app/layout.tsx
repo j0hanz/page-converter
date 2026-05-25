@@ -171,9 +171,7 @@ export default function RootLayout({
                 <Toolbar sx={{ justifyContent: 'space-between' }}>
                   <Stack
                     direction="row"
-                    gap={1}
-                    alignItems="center"
-                    sx={sx.minWidthZero}
+                    sx={{ ...sx.minWidthZero, gap: 1, alignItems: 'center' }}
                   >
                     <LogoIcon
                       sx={{
@@ -186,8 +184,7 @@ export default function RootLayout({
                   </Stack>
                   <Stack
                     direction="row"
-                    sx={{ gap: fluid.headerGap }}
-                    alignItems="center"
+                    sx={{ gap: fluid.headerGap, alignItems: 'center' }}
                   >
                     <Suspense fallback={<AboutDialogFallback />}>
                       <AboutDialogSlot />
